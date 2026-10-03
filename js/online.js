@@ -296,6 +296,16 @@
       '<div class="field"><label for="uc-pw">Password <span data-f="pwState"></span></label>' +
       '<input id="uc-pw" type="password" autocomplete="off" placeholder="Your SIGARRA password"></div>' +
       '<label class="check" for="uc-remember"><input id="uc-remember" type="checkbox"> Remember it on the server (encrypted) so SIGARRA syncs on its own</label>' +
+      '<details class="localsync"><summary class="small">Sync from your own computer (if SIGARRA blocks the server)</summary>' +
+      '<p class="muted small">SIGARRA can turn the server away. Run a small script on your computer instead: it signs in from your own network and your SIGARRA password stays with you. <span data-f="localState"></span></p>' +
+      '<div class="field-row">' +
+      '<button class="btn small" type="button" data-act="synckey">Create a sync key</button>' +
+      '<button class="btn small ghost" type="button" data-act="synckey-off" hidden>Turn off local sync</button>' +
+      '</div>' +
+      '<div class="field" data-f="keybox" hidden><label>Your sync key (copy it now, shown once)</label>' +
+      '<input data-f="keyval" type="text" readonly></div>' +
+      '<p class="muted small">Then follow server/tools/README to run it.</p>' +
+      '</details>' +
       '<details><summary class="small">Type the timetable by hand instead</summary>' +
       '<div class="field"><label for="uc-csv">One class per line: day,start,end,course,type,room,teacher</label>' +
       '<textarea id="uc-csv" rows="4" placeholder="Mon,08:30,10:30,ES,TP,B208,ABC"></textarea></div></details>' +
@@ -325,9 +335,42 @@
       }
     }
 
+    function showLocalState(on, username) {
+      $('[data-f="localState"]').textContent = on
+        ? 'A sync key is set' + (username ? ' for ' + username : '') + '.'
+        : 'No sync key yet.';
+      $('[data-act="synckey-off"]').hidden = !on;
+      $('[data-act="synckey"]').textContent = on ? 'Create a new key' : 'Create a sync key';
+    }
+
+    function makeSyncKey() {
+      msg.textContent = 'Creating a key…';
+      api('POST', '/api/uni/sync-key', {}).then(function (r) {
+        if (r.status !== 200) throw new Error(r.json.error || 'Could not create a key.');
+        $('[data-f="keybox"]').hidden = false;
+        $('[data-f="keyval"]').value = r.json.key;
+        $('[data-f="keyval"]').focus();
+        $('[data-f="keyval"]').select();
+        showLocalState(true, r.json.user);
+        msg.textContent = 'Key created. Copy it now into local-sync.config.json; it will not be shown again.';
+      }).catch(function (e) { msg.textContent = e.message; });
+    }
+
+    function turnOffSyncKey() {
+      api('DELETE', '/api/uni/sync-key', {}).then(function (r) {
+        if (r.status !== 200) throw new Error((r.json && r.json.error) || 'Could not turn it off.');
+        $('[data-f="keybox"]').hidden = true;
+        $('[data-f="keyval"]').value = '';
+        showLocalState(false);
+        msg.textContent = 'Local sync turned off. The old key no longer works.';
+      }).catch(function (e) { msg.textContent = e.message; });
+    }
+
     function load() {
       $('#uc-moodle').value = '';
       $('#uc-pw').value = '';
+      $('[data-f="keybox"]').hidden = true;
+      $('[data-f="keyval"]').value = '';
       showSources();
       api('GET', '/api/uni/settings').then(function (r) {
         var s = r.json || {};
@@ -337,6 +380,7 @@
         $('#uc-remember').checked = !!s.passwordRemembered;
         $('[data-f="pwState"]').textContent = s.passwordRemembered ? '(remembered)' : '';
         $('#uc-csv').value = s.scheduleCsv || '';
+        showLocalState(!!s.localSyncEnabled);
       });
     }
 
@@ -369,6 +413,8 @@
       var act = e.target.getAttribute && e.target.getAttribute('data-act');
       if (act === 'close') el.close();
       if (act === 'save') save();
+      if (act === 'synckey') makeSyncKey();
+      if (act === 'synckey-off') turnOffSyncKey();
     });
     return { el: el, load: load };
   }

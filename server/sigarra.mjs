@@ -15,9 +15,9 @@ const DEFAULT_BASE = 'https://sigarra.up.pt';
 // Like the uni app, the session is opened at FEUP whatever the student's faculty: it is valid
 // on every faculty, and FEUP's home page shows the student's photo, whose link has the number.
 const LOGIN_FACULTY = 'feup';
-// A plain browser User-Agent. A bot screen that runs a JavaScript challenge still won't let a
-// non-browser client through, but a lighter filter that only checks the User-Agent might.
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+// An honest identifier for this tool. Run from the student's own computer (see tools/local-sync.mjs),
+// this is an ordinary SIGARRA login from their own network, the same as the U.Porto app on a phone.
+const UA = 'personal-dashboard/2.0 (U.Porto student sync)';
 const MAX_BYTES = 8 * 1024 * 1024;
 
 export class SigarraError extends Error {
@@ -166,11 +166,7 @@ export class SigarraClient {
     let body = form ? new URLSearchParams(form).toString() : undefined;
     for (let hop = 0; hop < 8; hop++) {
       if (!this.trusted(u)) throw new SigarraError(`Not following SIGARRA to ${u.host}: only U.Porto sites are allowed.`, 'changed');
-      const headers = {
-        'user-agent': UA,
-        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'accept-language': 'pt-PT,pt;q=0.9,en;q=0.5',
-      };
+      const headers = { 'user-agent': UA, 'accept-language': 'pt-PT,pt;q=0.9,en;q=0.5' };
       const cookie = this.cookiesFor(u);
       if (cookie) headers.cookie = cookie;
       if (body !== undefined) headers['content-type'] = 'application/x-www-form-urlencoded';

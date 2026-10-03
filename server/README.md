@@ -57,6 +57,12 @@ host is more likely to be screened than a phone, so this can block server-side s
 right password. Any other part that fails is listed as a warning and keeps its last good data. Requests only go to `sigarra.up.pt` and other `https://*.up.pt` hosts;
 a redirect anywhere else is refused, so the session cookie can't leave the university.
 
+**Local sync.** If the server is blocked, `tools/local-sync.mjs` runs the same sign-in from the
+student's own computer and posts the result to `POST /api/uni/push`. That endpoint has no session;
+it is authenticated by a per-user sync key (create or revoke it in Uni connections — `POST`/`DELETE
+/api/uni/sync-key`; only its SHA-256 hash is stored). The pushed data is merged like any SIGARRA
+sync. The student's SIGARRA password stays on their computer. See [tools/README.md](tools/README.md).
+
 When the dashboard is opened without this server (the published page, `file://`, or
 `python3 -m http.server`), `online.js` does nothing and everything stays in the browser as before.
 
@@ -126,9 +132,11 @@ VPS), or with Postgres if you set `DATABASE_URL`. Set `APP_SECRET` and `SIGNUP_C
   the manual timetable still works.
 - SIGARRA sits behind a bot screen (Cloudflare). It can serve a "Just a moment..." challenge
   that only a real browser passes, and it screens datacenter hosts (where this server runs) more
-  than phones. A browser `User-Agent` is sent, which gets past a light filter but not a full
-  JavaScript challenge. When the screen blocks the server, the Uni tab says so and the manual
-  timetable still works; running the sync from a home network (the device-side `sync_uni.py`) is
-  the fallback if the host stays blocked.
+  than phones. The sync sends an honest `User-Agent` and does not try to defeat the screen. When
+  the screen blocks the server, the Uni tab says so and the manual timetable still works. The
+  fallback is **local sync**: run `tools/local-sync.mjs` on your own computer, where the sign-in
+  comes from your own network. It reuses the same `sigarra.mjs`, and pushes the result to the
+  server with a per-user sync key (your SIGARRA password never leaves your computer). See
+  [tools/README.md](tools/README.md).
 - Conflicts are resolved per document: if two devices edit at the same moment, the one
   that saved first wins and the other reloads with a notice.

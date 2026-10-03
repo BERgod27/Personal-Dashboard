@@ -161,10 +161,13 @@ export function build(prev, results, { drop = [], now = Date.now() } = {}) {
 
   const collect = (key) => {
     const seen = new Set();
-    return Object.values(bySource).flatMap((v) => v[key] || []).filter((i) => {
-      const k = i.id ?? JSON.stringify(i);
-      return !seen.has(k) && seen.add(k);
-    });
+    return Object.values(bySource).flatMap((v) => v[key] || [])
+      // Ignore anything that isn't a record (a malformed or hand-edited source could hold junk).
+      .filter((i) => i && typeof i === 'object' && !Array.isArray(i))
+      .filter((i) => {
+        const k = i.id ?? JSON.stringify(i);
+        return !seen.has(k) && seen.add(k);
+      });
   };
   const first = (key) => Object.values(bySource).map((v) => v[key]).find((v) => v != null) ?? null;
   const by = (k) => (a, b) => String(a[k]).localeCompare(String(b[k]));

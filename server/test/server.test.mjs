@@ -7,6 +7,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startFakeSigarra } from './fake-sigarra.mjs';
+import { syncSigarra } from '../sigarra.mjs';
 
 const PORT = 18000 + Math.floor(Math.random() * 1000);
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -161,6 +162,61 @@ test('a saved SIGARRA password that stops working is deleted, and old data stays
   assert.equal(data.sources.sigarra, undefined);
   assert.ok(!data.classes.some((c) => c.source === 'sigarra'));
   assert.equal(data.profile, null);
+});
+
+test('local sync: a key pushes SIGARRA data, no server password, surviving settings changes', async () => {
+  assert.equal((await call('POST', '/api/login', { username: 'bernardo', password: 'long-password-1' })).status, 200);
+  // Local sync only: no SIGARRA username or password saved on the server (both stay on the device).
+  await call('PUT', '/api/uni/settings', { sigarraUser: '', rememberPassword: false });
+  const mk = await call('POST', '/api/uni/sync-key', {});
+  assert.equal(mk.status, 200);
+  assert.match(mk.json.key, /^[\w-]{20,}$/);
+  assert.equal(mk.json.user, 'bernardo');
+  const key = mk.json.key;
+  assert.equal((await call('GET', '/api/uni/settings')).json.localSyncEnabled, true);
+
+  // Build a real SIGARRA payload locally (as tools/local-sync.mjs does), then push it with NO cookie.
+  const payload = await syncSigarra({ user: 'up202300001', password: 'pw-123', base: fake.base });
+  const push = (k, u, data = payload) => fetch(BASE + '/api/uni/push', {
+    method: 'POST', redirect: 'manual',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + k },
+    body: JSON.stringify({ user: u, data }),
+  });
+  // A wrong key or a wrong user is refused with the same message.
+  assert.equal((await push('not-the-key', 'bernardo')).status, 401);
+  assert.equal((await push(key, 'nobody')).status, 401);
+  // The real key pushes, and the data shows up for the signed-in user.
+  const ok = await push(key, 'bernardo');
+  const okj = await ok.json();
+  assert.equal(ok.status, 200, okj.error);
+  assert.ok(okj.classes >= 1 && okj.exams >= 1);
+  let uni = (await call('GET', '/api/uni')).json;
+  assert.ok(uni.classes.some((c) => c.source === 'sigarra' && c.course === 'AMAT'));
+  assert.deepEqual(uni.exams.map((e) => e.course), ['AMAT', 'FIS']);
+  assert.equal(uni.sources.sigarra.ok, true);
+  // The push never carried or stored the SIGARRA password.
+  assert.equal((await call('GET', '/api/uni/settings')).json.passwordRemembered, false);
+  assert.ok(!JSON.stringify(uni).includes('pw-123'));
+
+  // An unrelated settings change must NOT drop locally-pushed data: a sync key keeps SIGARRA connected.
+  assert.equal((await call('PUT', '/api/uni/settings', { weeksAhead: 3 })).status, 200);
+  uni = (await call('GET', '/api/uni')).json;
+  assert.ok(uni.classes.some((c) => c.source === 'sigarra'), 'pushed data survives a settings change');
+
+  // Missing data is a 400; malformed data is accepted without a 500 and never breaks reads.
+  const noData = await fetch(BASE + '/api/uni/push', { method: 'POST', redirect: 'manual',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + key }, body: JSON.stringify({ user: 'bernardo' }) });
+  assert.equal(noData.status, 400);
+  assert.equal((await push(key, 'bernardo', { classes: [null], exams: 'x' })).status, 200);
+  assert.equal((await call('GET', '/api/uni')).status, 200);
+
+  // Turning off local sync stops the key and lets the data be forgotten on the next change.
+  assert.equal((await call('DELETE', '/api/uni/sync-key', {})).status, 200);
+  assert.equal((await call('GET', '/api/uni/settings')).json.localSyncEnabled, false);
+  assert.equal((await push(key, 'bernardo')).status, 401);
+  await call('PUT', '/api/uni/settings', { weeksAhead: 2 });
+  uni = (await call('GET', '/api/uni')).json;
+  assert.ok(!(uni.classes || []).some((c) => c.source === 'sigarra'), 'after turning off local sync, its data is dropped');
 });
 
 test('sign out everywhere ends every session', async () => {

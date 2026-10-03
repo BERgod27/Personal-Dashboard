@@ -34,6 +34,11 @@ const db = await openDb();
 const S = makeStore(db);
 const loginLimit = rateLimiter({ max: 10, windowMs: 15 * 60e3 });
 const syncLimit = rateLimiter({ max: 20, windowMs: 60 * 60e3 });
+const pushLimit = rateLimiter({ max: 30, windowMs: 60 * 60e3 });
+const pushIpLimit = rateLimiter({ max: 60, windowMs: 60 * 60e3 });
+// Compared against instead of the real hash when a user or key is absent, so the key check
+// takes the same path (and time) whether or not the account exists.
+const DUMMY_KEY_HASH = sha256('local-sync-no-such-key');
 await S.pruneSessions();
 
 // ---------------------------------------------------------------- http helpers
@@ -207,6 +212,7 @@ function publicUniSettings(s) {
     faculty: s.faculty || '',
     sigarraUser: s.sigarraUser || '',
     passwordRemembered: !!s.sigarraPassword,
+    localSyncEnabled: !!s.localSyncKeyHash,
     scheduleCsv: s.scheduleCsv || '',
     weeksAhead: s.weeksAhead || 2,
   };
@@ -226,9 +232,10 @@ function checkMoodleUrl(raw) {
   return u.href;
 }
 
-// Sources in the saved data that the settings no longer connect.
+// Sources in the saved data that the settings no longer connect. SIGARRA counts as connected
+// when a username is saved OR local sync is set up (the student's computer pushes its data).
 function disconnected(s, data) {
-  const on = { moodle: !!s.moodleIcs, sigarra: !!s.sigarraUser, manual: !!s.scheduleCsv };
+  const on = { moodle: !!s.moodleIcs, sigarra: !!s.sigarraUser || !!s.localSyncKeyHash, manual: !!s.scheduleCsv };
   return Object.keys(data?.sources || {}).filter((k) => k in on && !on[k]);
 }
 
@@ -360,6 +367,33 @@ async function route(req, res) {
     return send(res, 200, out);
   }
 
+  // --- local SIGARRA sync push (no session; a per-user sync key, not the account password)
+  // The student runs tools/local-sync.mjs on their own computer: it signs in to SIGARRA from
+  // their own network and posts the result here. Their SIGARRA password never reaches the server.
+  if (path === '/api/uni/push' && method === 'POST') {
+    // Throttle by IP before any work, so a flood of bad keys can't hammer the database.
+    if (pushIpLimit.tooMany('push-ip:' + clientIp(req))) return fail(res, 429, 'Too many requests. Try again later.');
+    const key = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+    const body = await readJson(req, 512 * 1024);
+    const name = String(body.user || '').trim().toLowerCase();
+    const u = key && name ? await S.userByName(name) : null;
+    const s = u ? await S.getServer(u.id, UNI_SETTINGS, {}) : null;
+    // Always run the constant-time compare (against a dummy hash when absent), so a wrong user
+    // and a wrong key take the same path. One message for both.
+    const stored = (s && s.localSyncKeyHash) || '';
+    if (!safeEqual(sha256(key), stored || DUMMY_KEY_HASH) || !stored) {
+      return fail(res, 401, 'Unknown user, or the sync key is wrong or turned off. Generate one in Uni connections.');
+    }
+    if (pushLimit.tooMany('push:' + u.id)) return fail(res, 429, 'Too many pushes this hour. Try again later.');
+    const payload = body.data;
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return fail(res, 400, 'No SIGARRA data in the request.');
+    const prev = await S.getServer(u.id, UNI_DATA);
+    const data = build(prev, { sigarra: [true, payload] });
+    await S.setServer(u.id, UNI_DATA, data);
+    const c = forClient(data);
+    return send(res, 200, { ok: true, classes: c.classes.length, exams: c.exams.length, deadlines: c.deadlines.length, synced_at: c.sources.sigarra.synced_at });
+  }
+
   // --- pages
   if (path === '/login' || path === '/login.html') {
     if (await currentUser(req)) return redirect(res, '/');
@@ -469,6 +503,20 @@ async function route(req, res) {
       if (b.ifStale && e.status === 400) return send(res, 200, { skipped: 'not connected', needsPassword: !!e.needsPassword });
       return send(res, e.status || 502, { error: e.message, needsPassword: !!e.needsPassword });
     }
+  }
+  // Create (or replace) the key the local sync script uses to push SIGARRA data. Shown once.
+  if (path === '/api/uni/sync-key' && method === 'POST') {
+    const key = newToken();
+    const s = await S.getServer(user.id, UNI_SETTINGS, {});
+    s.localSyncKeyHash = sha256(key);
+    await S.setServer(user.id, UNI_SETTINGS, s);
+    return send(res, 200, { key, user: user.username });
+  }
+  if (path === '/api/uni/sync-key' && method === 'DELETE') {
+    const s = await S.getServer(user.id, UNI_SETTINGS, {});
+    delete s.localSyncKeyHash;
+    await S.setServer(user.id, UNI_SETTINGS, s);
+    return send(res, 200, { ok: true });
   }
 
   return fail(res, 404, 'not found');
