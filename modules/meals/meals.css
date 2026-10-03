@@ -107,11 +107,12 @@
 .pdm-day.is-today { border-color: var(--pdm-accent); }
 .pdm-dayslot { display: flex; flex-direction: column; gap: 2px; }
 
-.pdm-scroll { max-height: 360px; overflow: auto; }
+.pdm-scroll { max-height: 480px; overflow: auto; }
 .pdm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .pdm-table th, .pdm-table td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--pdm-line); }
 .pdm-table th { position: sticky; top: 0; background: var(--pdm-bg); color: var(--pdm-muted); font-weight: 600; }
 .pdm-table td.pdm-num { text-align: right; }
+.pdm-table tr.pdm-group th { position: static; padding-top: 12px; color: var(--pdm-fg); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
 
 .pdm-goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .pdm-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }

@@ -12,7 +12,7 @@
     today: { title: 'Today' },
     uni: { title: 'Uni', sub: 'Your timetable and what is due next.' },
     workouts: { title: 'Workouts', sub: 'Log your sessions and watch your lifts go up.' },
-    meals: { title: 'Meals', sub: 'Plan the week and keep track of what you eat.' },
+    meals: { title: 'Refeições', sub: 'Planeia a semana e regista o que comes.' },
     news: { title: 'News', sub: 'Headlines from Portugal and the world.' }
   };
   var ORDER = ['today', 'uni', 'workouts', 'meals', 'news'];

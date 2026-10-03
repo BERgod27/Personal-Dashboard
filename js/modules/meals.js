@@ -7,7 +7,7 @@
   'use strict';
 
   var TIMES = { breakfast: ['08:00', '08:30'], lunch: ['13:00', '13:45'], snack: ['16:30', '16:45'], dinner: ['20:00', '20:45'] };
-  var NAMES = { breakfast: 'Breakfast', lunch: 'Lunch', snack: 'Snack', dinner: 'Dinner' };
+  var NAMES = { breakfast: 'Pequeno-almoço', lunch: 'Almoço', snack: 'Lanche', dinner: 'Jantar' };
   var M = window.PDModules && window.PDModules.meals;
   var mounted = null;
 
@@ -15,13 +15,13 @@
 
   Dashboard.registerModule({
     id: 'meals',
-    title: 'Meals',
+    title: 'Refeições',
     category: 'meal',
     order: 40,
     wide: true,
     render: function (el) {
       if (mounted === el) return;
-      if (!M) { el.textContent = 'The meals module did not load.'; return; }
+      if (!M) { el.textContent = 'O módulo de refeições não carregou.'; return; }
       mounted = el;
       M.mount(el, { hideTitle: true });
     },
