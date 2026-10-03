@@ -140,10 +140,11 @@ function workoutSection(w, today) {
   const out = [`Units: ${unit}. ${sessions.length} sessions logged; most recent first:`];
   for (const s of sessions.filter((s) => daysBetween(s.date, today) <= 60).slice(0, 25)) {
     const ex = (s.exercises || []).filter((e) => e.name).map((e) => {
-      const sets = (e.sets || []).filter((x) => x.reps !== '' || x.weight !== '').map((x) => `${x.reps || 0}×${x.weight || 0}`).join(', ');
+      const sets = (e.sets || []).filter((x) => x.reps !== '' || x.weight !== '').map((x) =>
+        x.km != null || x.min != null ? `${x.km || 0}${unit === 'lb' ? 'mi' : 'km'} in ${x.min || 0}min` : `${x.reps || 0}×${x.weight || 0}${x.warmup ? ' (warm-up)' : ''}`).join(', ');
       return `${clip(e.name, 60)} ${sets}`;
     });
-    out.push(`- ${s.date}${s.title ? ' ' + clip(s.title, 60) : ''}: ${ex.join('; ')}${s.notes ? ' — ' + clip(s.notes, 200) : ''}`);
+    out.push(`- ${s.date}${s.title ? ' ' + clip(s.title, 60) : ''}${s.duration ? ` (${s.duration} min)` : ''}: ${ex.join('; ')}${s.notes ? ' — ' + clip(s.notes, 200) : ''}`);
   }
   return section('Workouts (sets as reps×weight)', out);
 }
