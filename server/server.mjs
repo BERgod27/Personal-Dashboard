@@ -22,6 +22,9 @@ const COOKIE = 'pd_session';
 const UNI_STALE_MIN = Number(process.env.UNI_SYNC_MINUTES || 60);
 const MAX_DOC_BYTES = 2 * 1024 * 1024;
 const MAX_DOCS = 30;
+// The GitHub commit this copy was built from (Render sets RENDER_GIT_COMMIT). The Account menu
+// shows it, so it's easy to see whether an update is live.
+const VERSION = (process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || null;
 const MOODLE_HOSTS = (process.env.ALLOWED_MOODLE_HOSTS || '.up.pt').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
 
 // ---------------------------------------------------------------- startup
@@ -296,12 +299,12 @@ async function route(req, res) {
 
   if (method !== 'GET' && method !== 'HEAD' && !sameOrigin(req)) return fail(res, 403, 'cross-site request blocked');
 
-  if (path === '/api/health') return send(res, 200, { ok: true, db: db.kind });
+  if (path === '/api/health') return send(res, 200, { ok: true, db: db.kind, version: VERSION });
 
   // --- auth
   if (path === '/api/auth' && method === 'GET') {
     const user = await currentUser(req);
-    return send(res, 200, { user: user ? { username: user.username } : null, needsSetup: (await S.countUsers()) === 0 });
+    return send(res, 200, { user: user ? { username: user.username } : null, needsSetup: (await S.countUsers()) === 0, version: VERSION });
   }
   if (path === '/api/signup' && method === 'POST') {
     // X-Forwarded-For can be forged, so sign-up also has one limit shared by everyone.

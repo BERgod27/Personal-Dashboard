@@ -30,6 +30,9 @@ never retry it and can't get the account blocked; the dashboard asks for it agai
 signs in once, never twice with the same password.
 
 **Account → Sign out on all devices** ends every session, for example after using a shared computer.
+The bottom of the Account menu shows the version: the first characters of the GitHub commit the
+host built (Render sets `RENDER_GIT_COMMIT`; `/api/health` reports it too). When it matches the
+newest commit on GitHub, the update is live.
 
 ### SIGARRA
 

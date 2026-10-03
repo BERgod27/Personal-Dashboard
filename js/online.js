@@ -233,8 +233,12 @@
       '<button class="btn small" type="button" data-act="uni">Uni connections</button>' +
       '<button class="btn small" type="button" data-act="out">Sign out</button>' +
       '<button class="btn small ghost" type="button" data-act="out-all">Sign out on all devices</button>' +
+      '<p class="muted small" data-f="version" hidden></p>' +
       '</div></details>';
     wrap.querySelector('b').textContent = auth.json.user.username;
+    // The GitHub commit the server was built from: matches the newest commit once an update is live.
+    var version = wrap.querySelector('[data-f="version"]');
+    if (auth.json.version) { version.textContent = 'Version ' + auth.json.version; version.hidden = false; }
     var status = wrap.querySelector('#sync-status');
     var paint = function (s) { status.textContent = LABELS[s]; status.dataset.state = s; };
     paint(state);

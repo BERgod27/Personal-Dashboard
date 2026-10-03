@@ -16,7 +16,7 @@ let fake;
 
 before(async () => {
   fake = await startFakeSigarra({ user: 'up202300001', password: 'pw-123', code: '202300001' });
-  const env = { ...process.env, PORT: String(PORT), APP_SECRET: 'x'.repeat(48), SIGNUP_CODE: 'letmein', CRON_SECRET: 'cron-key', SQLITE_PATH: join(dir, 'db.sqlite'), SIGARRA_BASE_URL: fake.base };
+  const env = { ...process.env, PORT: String(PORT), APP_SECRET: 'x'.repeat(48), SIGNUP_CODE: 'letmein', CRON_SECRET: 'cron-key', SQLITE_PATH: join(dir, 'db.sqlite'), SIGARRA_BASE_URL: fake.base, RENDER_GIT_COMMIT: 'df9fa6d946c8936edc51a6c01154432744a4e4d0' };
   delete env.DATABASE_URL;
   if (process.env.TEST_DATABASE_URL) env.DATABASE_URL = process.env.TEST_DATABASE_URL;
   proc = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', new URL('../server.mjs', import.meta.url).pathname], { env, stdio: ['ignore', 'pipe', 'inherit'] });
@@ -49,7 +49,8 @@ test('signed-out visitors are sent to the sign-in page', async () => {
   const csp = r.headers.get('content-security-policy');
   assert.match(csp, /script-src 'self';/, 'scripts only from this site');
   assert.equal((await call('GET', '/api/state')).status, 401);
-  assert.deepEqual((await call('GET', '/api/auth')).json, { user: null, needsSetup: true });
+  assert.deepEqual((await call('GET', '/api/auth')).json, { user: null, needsSetup: true, version: 'df9fa6d' });
+  assert.equal((await call('GET', '/api/health')).json.version, 'df9fa6d', 'the deployed commit, to check an update is live');
 });
 
 test('sign-up needs the setup code and only works once', async () => {
