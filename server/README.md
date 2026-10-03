@@ -18,6 +18,7 @@ parser for SIGARRA's pages (`parse5`, `css-select`, `domutils`).
 | Your data | `docs` table: each localStorage key the dashboard uses (`personal-dashboard.v1`, `pd.meals.v1`, `pd.workouts.v1`) is one versioned JSON document |
 | Browser sync | `../js/online.js` loads your data before the dashboard starts, saves each change within a second, and reloads when another device saved something newer |
 | Uni | `uni.mjs` (Moodle, manual timetable, merging; same `uni/1` data format as `modules/uni/sync_uni.py`) and `sigarra.mjs` (SIGARRA); settings are in the **Account → Uni connections** dialog |
+| Tutor | `tutor.mjs`: the **Ask** button (`../js/tutor.js`) sends your question; the server adds your own dashboard data and asks Claude through the Anthropic API, streaming the answer back. See [Tutor](#tutor). |
 | News | reuses `modules/news/server.mjs` and `feeds.json`; cached for 15 minutes |
 | Database | Postgres when `DATABASE_URL` is set, otherwise a SQLite file (`data/dashboard.db`) |
 
@@ -78,7 +79,19 @@ When the dashboard is opened without this server (the published page, `file://`,
 | `UNI_SYNC_MINUTES` | optional | How old uni data may get before opening the dashboard refreshes it (default 60). |
 | `ALLOWED_MOODLE_HOSTS` | optional | Hosts allowed for the Moodle link (default any `*.up.pt`). |
 | `ALLOW_MORE_USERS` | optional | `1` to allow more accounts with the sign-up code. |
+| `ANTHROPIC_API_KEY` | for the tutor | Anthropic API key (`sk-ant-...`) from console.anthropic.com. Without it the Ask button says the tutor isn't set up. |
+| `TUTOR_MODEL` | optional | Claude model for the tutor (default `claude-opus-5-5`; `claude-sonnet-5-5` costs about half). |
+| `TUTOR_EFFORT` | optional | `low`, `medium` (default), `high`: how hard Claude thinks before answering. Lower is faster and cheaper. |
+| `TUTOR_PER_HOUR`, `TUTOR_PER_DAY` | optional | Questions allowed per user (default 40 an hour, 200 a day), so a stuck tab can't run up the bill. |
 | `SIGARRA_BASE_URL` | tests only | Points the SIGARRA sync at another server (the tests run a fake SIGARRA). |
+
+## Tutor
+
+The **Ask** button (bottom right on every tab) opens a chat with Claude that knows your timetable, deadlines, exams, planner, workouts, meals and the latest headlines, and helps with studying anything.
+
+- **It needs an API key, not a subscription.** A Claude.ai Pro or Max plan does not include API access. Create a key at [console.anthropic.com](https://console.anthropic.com) → API keys, add some credit under Billing (pay per use; a typical question with your data costs a few cents, follow-ups in the same chat less because the data is cached), and set it as `ANTHROPIC_API_KEY` in Render → your service → Environment. Never put the key in the repo or the browser.
+- **What is sent:** for each question, the server reads your own saved data (the next two weeks of classes, upcoming deadlines and exams, open tasks, the last couple of months of workouts, the last week of meals, 20 headlines) and sends it with the chat to Anthropic's API. Nothing is stored on the server and question text is never logged; the chat itself is kept in your browser only (`pd.tutor.chat`, cleared on sign-out; **+** starts a new one).
+- Requests that Claude's safety filters decline are retried once on Anthropic's recommended fallback model (`fallbacks: "default"`).
 
 ## Run it on your computer
 

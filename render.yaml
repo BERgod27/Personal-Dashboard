@@ -21,3 +21,5 @@ services:
         sync: false
       - key: DATABASE_URL        # Neon connection string (postgresql://...)
         sync: false
+      - key: ANTHROPIC_API_KEY   # for the Ask tutor; from console.anthropic.com (pay per use)
+        sync: false
