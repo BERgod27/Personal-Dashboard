@@ -263,7 +263,7 @@
     flush().then(function () {
       return api('POST', everywhere ? '/api/logout-all' : '/api/logout', {});
     }).catch(function () {}).then(function () {
-      KEYS.concat([META]).forEach(function (k) { try { ls.removeItem(k); } catch (e) {} });
+      KEYS.concat([META, 'pd.tutor.chat']).forEach(function (k) { try { ls.removeItem(k); } catch (e) {} });
       location.replace('/login');
     });
   }

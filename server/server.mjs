@@ -14,6 +14,7 @@ import { openDb, store as makeStore } from './db.mjs';
 import { hashPassword, verifyPassword, verifyDummy, newToken, sha256, safeEqual, secretBox, rateLimiter } from './security.mjs';
 import { syncMoodleIcs, syncSigarra, manualClasses, build, forClient } from './uni.mjs';
 import { isCredentialError } from './sigarra.mjs';
+import { tutorConfig, checkMessages, buildContext, streamAnswer, explainError } from './tutor.mjs';
 
 const WEB_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
@@ -36,6 +37,9 @@ const loginLimit = rateLimiter({ max: 10, windowMs: 15 * 60e3 });
 const syncLimit = rateLimiter({ max: 20, windowMs: 60 * 60e3 });
 const pushLimit = rateLimiter({ max: 30, windowMs: 60 * 60e3 });
 const pushIpLimit = rateLimiter({ max: 60, windowMs: 60 * 60e3 });
+// Each tutor question costs money on the Anthropic account, so they are capped per user.
+const tutorHourLimit = rateLimiter({ max: Number(process.env.TUTOR_PER_HOUR || 40), windowMs: 60 * 60e3 });
+const tutorDayLimit = rateLimiter({ max: Number(process.env.TUTOR_PER_DAY || 200), windowMs: 24 * 60 * 60e3 });
 // Compared against instead of the real hash when a user or key is absent, so the key check
 // takes the same path (and time) whether or not the account exists.
 const DUMMY_KEY_HASH = sha256('local-sync-no-such-key');
@@ -195,6 +199,15 @@ function newsView(data, params) {
   let items = cat && cat !== 'all' ? data.items.filter((i) => i.category === cat) : data.items;
   if (limit) items = items.slice(0, limit);
   return { ...data, items };
+}
+
+// The last headlines, without fetching (for the tutor's context).
+async function cachedNews() {
+  if (!news.data) {
+    const saved = await S.getServer(0, NEWS_KEY).catch(() => null);
+    if (saved) { news.data = saved.data; news.at = saved.at; }
+  }
+  return news.data;
 }
 
 // ---------------------------------------------------------------- uni
@@ -443,6 +456,46 @@ async function route(req, res) {
       const data = await getNews(path.endsWith('/refresh'));
       return send(res, 200, newsView(data, url.searchParams));
     } catch (e) { return fail(res, 502, 'News could not be loaded: ' + e.message); }
+  }
+
+  // --- tutor (Claude API; ANTHROPIC_API_KEY must be set on the server)
+  if (path === '/api/tutor' && method === 'GET') {
+    const { configured, model } = tutorConfig();
+    return send(res, 200, { configured, model });
+  }
+  if (path === '/api/tutor' && method === 'POST') {
+    const cfg = tutorConfig();
+    if (!cfg.configured) return send(res, 503, { error: 'The tutor needs an Anthropic API key. Add ANTHROPIC_API_KEY in Render → Environment (see server/README.md).', setup: true });
+    const b = await readJson(req, 128 * 1024);
+    const messages = checkMessages(b.messages);
+    const view = ['today', 'uni', 'workouts', 'meals', 'news'].includes(b.view) ? b.view : null;
+    if (tutorHourLimit.tooMany('tutor:' + user.id) || tutorDayLimit.tooMany('tutor:' + user.id)) {
+      return fail(res, 429, 'That\'s a lot of questions for now. The tutor limit resets within the hour.');
+    }
+    const docs = {};
+    for (const d of await S.docs(user.id)) docs[d.key] = d.value;
+    const context = buildContext({ docs, uni: forClient(await S.getServer(user.id, UNI_DATA)), news: await cachedNews() });
+    const abort = new AbortController();
+    res.on('close', () => abort.abort());
+    // One JSON object per line: {t:'text'} chunks, {reset:true}, then {done:true} or {error}.
+    res.writeHead(200, headers({ 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store', 'x-accel-buffering': 'no' }));
+    const line = (o) => { if (!res.writableEnded) res.write(JSON.stringify(o) + '\n'); };
+    try {
+      for await (const ev of streamAnswer({ apiKey: process.env.ANTHROPIC_API_KEY.trim(), model: cfg.model, effort: cfg.effort, context, messages, view, signal: abort.signal })) {
+        if (ev.type === 'text') line({ t: ev.text });
+        else if (ev.type === 'reset') line({ reset: true });
+        else if (ev.type === 'done') {
+          if (ev.stop === 'refusal') line({ error: 'Claude declined to answer that one. Try rephrasing the question.' });
+          else line({ done: true, stop: ev.stop });
+        }
+      }
+    } catch (e) {
+      if (!abort.signal.aborted) {
+        console.error('[tutor]', e.status || '', e.name || 'error'); // no content: questions are private
+        line({ error: explainError(e) });
+      }
+    }
+    return res.end();
   }
 
   // --- uni
