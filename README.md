@@ -34,6 +34,7 @@ js/core.js            areas, module registry, quick-add parser (Dashboard)
 js/modules/*.js       adapters that register each module with the dashboard
 modules/<name>/       the real modules (uni, workouts, meals, news), each with a README
 js/app.js             daily view, editor, backup/restore
+js/tabs.js            tab navigation (#today #uni #workouts #meals #news, keys 1-5)
 ```
 
 ## Adding a module

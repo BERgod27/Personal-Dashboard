@@ -44,8 +44,8 @@ const CSS = `
   border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
 header { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:12px 14px 8px; }
 h2 { margin:0; font-size:16px; font-weight:650; margin-right:auto; }
-h2 { display:flex; align-items:center; gap:10px; }
-h2::before { content:var(--dash-mark, none); width:10px; height:10px; border-radius:3px; background:var(--dash-mark-color, var(--accent)); box-shadow:0 0 0 4px var(--dash-mark-bg, transparent); }
+h2 { display:var(--dash-title-display, block); }
+.tabs { margin-right:var(--dash-tabs-push, 0); }
 .tabs { display:flex; gap:4px; }
 button { font:inherit; color:inherit; background:var(--chip); border:0; border-radius:999px; padding:4px 10px; cursor:pointer; }
 button[aria-pressed="true"] { background:var(--accent); color:var(--dash-accent-ink, #fff); }

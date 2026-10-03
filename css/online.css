@@ -6,7 +6,7 @@
 .auth-form {
   display: grid; gap: var(--s-4); padding: 28px;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md); animation: pop var(--t-med) var(--ease) both;
+  box-shadow: var(--shadow-float); animation: pop var(--t-med) var(--ease) both;
 }
 .auth-card > .brand { justify-content: center; margin: 0; }
 .auth-form h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
@@ -32,14 +32,20 @@
   position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 200px;
   display: grid; gap: 8px; padding: var(--s-3);
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md); animation: pop var(--t-fast) var(--ease) both;
+  box-shadow: var(--shadow-float); animation: pop var(--t-fast) var(--ease) both;
 }
 .account-pop .btn { justify-content: flex-start; }
-/* the bar sits at the end of .topbar; on phones it takes its own row */
-.topbar .online-bar { order: 5; }
-@media (max-width: 560px) {
-  .topbar:has(.online-bar) { flex-wrap: wrap; row-gap: 8px; }
-  .topbar .online-bar { width: 100%; justify-content: space-between; }
+/* The bar is appended to .topbar. Phone: it sits between the brand and the backup button.
+   Desktop: .topbar dissolves into the sidebar, so the bar becomes its footer and the menu opens upward. */
+.topbar .online-bar { order: 1; min-width: 0; }
+.topbar .settings-btn { order: 2; }
+.topbar .account-menu > summary.btn { height: 34px; padding: 0 10px; }
+@media (min-width: 960px) {
+  .topbar .online-bar {
+    order: 4; justify-content: space-between; padding: 10px 4px 0 12px; margin-top: 6px; border-top: 1px solid var(--line);
+  }
+  .topbar .settings-btn { order: 3; }
+  .topbar .account-pop { top: auto; bottom: calc(100% + 6px); right: 0; }
 }
 .account-pop p { margin: 0; }
 
