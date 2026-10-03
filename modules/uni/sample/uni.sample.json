@@ -247,7 +247,60 @@
       "source": "sigarra"
     }
   ],
-  "courses": [],
+  "courses": [
+    {
+      "id": "sigarra:uc:sample-0",
+      "code": "L.EIC024",
+      "acronym": "ES",
+      "name": "Engenharia de Software",
+      "ects": 6,
+      "semester": "1S",
+      "year": 3,
+      "status": "Inscrito",
+      "grade": null,
+      "occurrence": null,
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:uc:sample-1",
+      "code": "L.EIC002",
+      "acronym": "AM",
+      "name": "Análise Matemática",
+      "ects": 6,
+      "semester": "1S",
+      "year": 3,
+      "status": "Inscrito",
+      "grade": null,
+      "occurrence": null,
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:uc:sample-2",
+      "code": "L.EIC025",
+      "acronym": "LBAW",
+      "name": "Laboratório de Bases de Dados e Aplicações Web",
+      "ects": 6,
+      "semester": "1S",
+      "year": 3,
+      "status": "Inscrito",
+      "grade": null,
+      "occurrence": null,
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:uc:sample-3",
+      "code": "L.EIC022",
+      "acronym": "RC",
+      "name": "Redes de Computadores",
+      "ects": 6,
+      "semester": "1S",
+      "year": 3,
+      "status": "Inscrito",
+      "grade": null,
+      "occurrence": null,
+      "source": "sigarra"
+    }
+  ],
   "profile": {
     "name": "Example Student",
     "email": null,

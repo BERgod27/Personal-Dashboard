@@ -504,21 +504,9 @@ textarea:focus { outline: none; background: var(--surface); border-color: var(--
   background: var(--accent); color: var(--accent-ink); font-weight: 600;
 }
 
-/* Uni */
-.module .uni-panel { border: 0; padding: 0; background: transparent; border-radius: 0; font: inherit; font-size: var(--fs-base); gap: var(--s-6); max-width: 760px; }
-.view-module .uni-panel header strong { display: none; }
-.module .uni-panel .uni-meta { font-size: var(--fs-sm); }
-.module .uni-panel h3 { font-size: var(--fs-sm); text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--muted); margin-bottom: var(--s-2); }
-.module .uni-panel ul { gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
-.module .uni-panel li { border: 0; border-radius: 0; padding: 12px 16px; border-top: 1px solid var(--line); }
-.module .uni-panel li:first-child { border-top: 0; }
-.module .uni-panel li.now { box-shadow: inset 3px 0 0 var(--uni); background: var(--uni-bg); }
-.module .uni-panel ul:has(> .empty) { background: none; border: 0; }
-.module .uni-panel li.empty { padding: 4px 0; font-style: normal; }
-.module .uni-panel .t { font-weight: 600; }
-.module .uni-panel .chip { font-weight: 600; font-size: var(--fs-xs); padding: 2px 8px; background: var(--uni-bg); color: var(--uni); }
-.module .uni-panel .day { font-size: var(--fs-sm); color: var(--ink-2); }
-.module .uni-panel details summary { font-size: var(--fs-md); }
+/* Uni: the panel reads our tokens itself (modules/uni/panel.js); only size and font here */
+.module .uni-panel { font: inherit; font-size: var(--fs-base); gap: var(--s-6); }
+.view-module .uni-panel > header strong { display: none; }
 
 /* News (shadow DOM: themed through --dash-* and its panel part) */
 .view-module news-panel { --dash-title-display: none; --dash-tabs-push: auto; }
