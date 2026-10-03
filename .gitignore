@@ -1,0 +1,8 @@
+server/node_modules/
+server/data/
+.env
+modules/uni/config.json
+modules/uni/data/
+modules/uni/schedule.csv
+modules/news/data/news.json
+__pycache__/

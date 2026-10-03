@@ -1,0 +1,452 @@
+{
+  "schema": "uni/1",
+  "generated_at": "2026-10-03T01:34+01:00",
+  "classes": [
+    {
+      "id": "sigarra::2026-09-28T08:30+01:00",
+      "course": "ES",
+      "type": "TP",
+      "room": "B208",
+      "teacher": "ABC",
+      "group": null,
+      "start": "2026-09-28T08:30+01:00",
+      "end": "2026-09-28T10:30+01:00",
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:1:2026-09-28T11:30+01:00",
+      "course": "AM",
+      "type": "T",
+      "room": "B001",
+      "teacher": "JMS",
+      "group": null,
+      "start": "2026-09-28T11:30+01:00",
+      "end": "2026-09-28T13:00+01:00",
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:2:2026-09-29T09:00+01:00",
+      "course": "LBAW",
+      "type": "PL",
+      "room": "I105",
+      "teacher": "TBS",
+      "group": null,
+      "start": "2026-09-29T09:00+01:00",
+      "end": "2026-09-29T11:00+01:00",
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:3:2026-09-30T08:30+01:00",
+      "course": "AM",
+      "type": "TP",
+      "room": "B209",
+      "teacher": "JMS",
+      "group": null,
+      "start": "2026-09-30T08:30+01:00",
+      "end": "2026-09-30T10:00+01:00",
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:4:2026-09-30T14:00+01:00",
+      "course": "RC",
+      "type": "T",
+      "room": "B002",
+      "teacher": "MRP",
+      "group": null,
+      "start": "2026-09-30T14:00+01:00",
+      "end": "2026-09-30T16:00+01:00",
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:5:2026-10-01T10:00+01:00",
+      "course": "ES",
+      "type": "T",
+      "room": "B001",
+      "teacher": "ABC",
+      "group": null,
+      "start": "2026-10-01T10:00+01:00",
+      "end": "2026-10-01T12:00+01:00",
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:6:2026-10-02T09:00+01:00",
+      "course": "RC",
+      "type": "PL",
+      "room": "I320",
+      "teacher": "MRP",
+      "group": null,
+      "start": "2026-10-02T09:00+01:00",
+      "end": "2026-10-02T11:00+01:00",
+      "source": "sigarra"
+    },
+    {
+      "id": "sample-today-0",
+      "course": "ES",
+      "type": "TP",
+      "room": "B208",
+      "teacher": null,
+      "start": "2026-10-03T09:00+01:00",
+      "end": "2026-10-03T11:00+01:00",
+      "source": "sigarra"
+    },
+    {
+      "id": "sample-today-1",
+      "course": "LBAW",
+      "type": "T",
+      "room": "B002",
+      "teacher": null,
+      "start": "2026-10-03T14:00+01:00",
+      "end": "2026-10-03T15:30+01:00",
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra::2026-10-05T08:30+01:00",
+      "course": "ES",
+      "type": "TP",
+      "room": "B208",
+      "teacher": "ABC",
+      "group": null,
+      "start": "2026-10-05T08:30+01:00",
+      "end": "2026-10-05T10:30+01:00",
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:1:2026-10-05T11:30+01:00",
+      "course": "AM",
+      "type": "T",
+      "room": "B001",
+      "teacher": "JMS",
+      "group": null,
+      "start": "2026-10-05T11:30+01:00",
+      "end": "2026-10-05T13:00+01:00",
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:2:2026-10-06T09:00+01:00",
+      "course": "LBAW",
+      "type": "PL",
+      "room": "I105",
+      "teacher": "TBS",
+      "group": null,
+      "start": "2026-10-06T09:00+01:00",
+      "end": "2026-10-06T11:00+01:00",
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:3:2026-10-07T08:30+01:00",
+      "course": "AM",
+      "type": "TP",
+      "room": "B209",
+      "teacher": "JMS",
+      "group": null,
+      "start": "2026-10-07T08:30+01:00",
+      "end": "2026-10-07T10:00+01:00",
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:4:2026-10-07T14:00+01:00",
+      "course": "RC",
+      "type": "T",
+      "room": "B002",
+      "teacher": "MRP",
+      "group": null,
+      "start": "2026-10-07T14:00+01:00",
+      "end": "2026-10-07T16:00+01:00",
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:5:2026-10-08T10:00+01:00",
+      "course": "ES",
+      "type": "T",
+      "room": "B001",
+      "teacher": "ABC",
+      "group": null,
+      "start": "2026-10-08T10:00+01:00",
+      "end": "2026-10-08T12:00+01:00",
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:6:2026-10-09T09:00+01:00",
+      "course": "RC",
+      "type": "PL",
+      "room": "I320",
+      "teacher": "MRP",
+      "group": null,
+      "start": "2026-10-09T09:00+01:00",
+      "end": "2026-10-09T11:00+01:00",
+      "source": "sigarra"
+    }
+  ],
+  "deadlines": [
+    {
+      "id": "moodle:0",
+      "title": "Relatório intercalar is due",
+      "course": "ES",
+      "due": "2026-10-02T23:59+01:00",
+      "kind": "deadline",
+      "source": "moodle",
+      "url": "https://moodle.up.pt/"
+    },
+    {
+      "id": "moodle:1",
+      "title": "Mini-teste 2 closes",
+      "course": "AM",
+      "due": "2026-10-04T18:59+01:00",
+      "kind": "deadline",
+      "source": "moodle",
+      "url": "https://moodle.up.pt/"
+    },
+    {
+      "id": "moodle:2",
+      "title": "Projeto 1: entrega A1 is due",
+      "course": "LBAW",
+      "due": "2026-10-07T23:59+01:00",
+      "kind": "deadline",
+      "source": "moodle",
+      "url": "https://moodle.up.pt/"
+    },
+    {
+      "id": "moodle:3",
+      "title": "Lab 3 report is due",
+      "course": "RC",
+      "due": "2026-10-12T23:59+01:00",
+      "kind": "deadline",
+      "source": "moodle",
+      "url": "https://moodle.up.pt/"
+    }
+  ],
+  "events": [],
+  "courses": [],
+  "sources": {
+    "sigarra": {
+      "ok": true,
+      "synced_at": "2026-10-03T01:34+01:00",
+      "error": null,
+      "data": {
+        "classes": [
+          {
+            "id": "sigarra::2026-09-28T08:30+01:00",
+            "course": "ES",
+            "type": "TP",
+            "room": "B208",
+            "teacher": "ABC",
+            "group": null,
+            "start": "2026-09-28T08:30+01:00",
+            "end": "2026-09-28T10:30+01:00",
+            "source": "sigarra"
+          },
+          {
+            "id": "sigarra:1:2026-09-28T11:30+01:00",
+            "course": "AM",
+            "type": "T",
+            "room": "B001",
+            "teacher": "JMS",
+            "group": null,
+            "start": "2026-09-28T11:30+01:00",
+            "end": "2026-09-28T13:00+01:00",
+            "source": "sigarra"
+          },
+          {
+            "id": "sigarra:2:2026-09-29T09:00+01:00",
+            "course": "LBAW",
+            "type": "PL",
+            "room": "I105",
+            "teacher": "TBS",
+            "group": null,
+            "start": "2026-09-29T09:00+01:00",
+            "end": "2026-09-29T11:00+01:00",
+            "source": "sigarra"
+          },
+          {
+            "id": "sigarra:3:2026-09-30T08:30+01:00",
+            "course": "AM",
+            "type": "TP",
+            "room": "B209",
+            "teacher": "JMS",
+            "group": null,
+            "start": "2026-09-30T08:30+01:00",
+            "end": "2026-09-30T10:00+01:00",
+            "source": "sigarra"
+          },
+          {
+            "id": "sigarra:4:2026-09-30T14:00+01:00",
+            "course": "RC",
+            "type": "T",
+            "room": "B002",
+            "teacher": "MRP",
+            "group": null,
+            "start": "2026-09-30T14:00+01:00",
+            "end": "2026-09-30T16:00+01:00",
+            "source": "sigarra"
+          },
+          {
+            "id": "sigarra:5:2026-10-01T10:00+01:00",
+            "course": "ES",
+            "type": "T",
+            "room": "B001",
+            "teacher": "ABC",
+            "group": null,
+            "start": "2026-10-01T10:00+01:00",
+            "end": "2026-10-01T12:00+01:00",
+            "source": "sigarra"
+          },
+          {
+            "id": "sigarra:6:2026-10-02T09:00+01:00",
+            "course": "RC",
+            "type": "PL",
+            "room": "I320",
+            "teacher": "MRP",
+            "group": null,
+            "start": "2026-10-02T09:00+01:00",
+            "end": "2026-10-02T11:00+01:00",
+            "source": "sigarra"
+          },
+          {
+            "id": "sigarra::2026-10-05T08:30+01:00",
+            "course": "ES",
+            "type": "TP",
+            "room": "B208",
+            "teacher": "ABC",
+            "group": null,
+            "start": "2026-10-05T08:30+01:00",
+            "end": "2026-10-05T10:30+01:00",
+            "source": "sigarra"
+          },
+          {
+            "id": "sigarra:1:2026-10-05T11:30+01:00",
+            "course": "AM",
+            "type": "T",
+            "room": "B001",
+            "teacher": "JMS",
+            "group": null,
+            "start": "2026-10-05T11:30+01:00",
+            "end": "2026-10-05T13:00+01:00",
+            "source": "sigarra"
+          },
+          {
+            "id": "sigarra:2:2026-10-06T09:00+01:00",
+            "course": "LBAW",
+            "type": "PL",
+            "room": "I105",
+            "teacher": "TBS",
+            "group": null,
+            "start": "2026-10-06T09:00+01:00",
+            "end": "2026-10-06T11:00+01:00",
+            "source": "sigarra"
+          },
+          {
+            "id": "sigarra:3:2026-10-07T08:30+01:00",
+            "course": "AM",
+            "type": "TP",
+            "room": "B209",
+            "teacher": "JMS",
+            "group": null,
+            "start": "2026-10-07T08:30+01:00",
+            "end": "2026-10-07T10:00+01:00",
+            "source": "sigarra"
+          },
+          {
+            "id": "sigarra:4:2026-10-07T14:00+01:00",
+            "course": "RC",
+            "type": "T",
+            "room": "B002",
+            "teacher": "MRP",
+            "group": null,
+            "start": "2026-10-07T14:00+01:00",
+            "end": "2026-10-07T16:00+01:00",
+            "source": "sigarra"
+          },
+          {
+            "id": "sigarra:5:2026-10-08T10:00+01:00",
+            "course": "ES",
+            "type": "T",
+            "room": "B001",
+            "teacher": "ABC",
+            "group": null,
+            "start": "2026-10-08T10:00+01:00",
+            "end": "2026-10-08T12:00+01:00",
+            "source": "sigarra"
+          },
+          {
+            "id": "sigarra:6:2026-10-09T09:00+01:00",
+            "course": "RC",
+            "type": "PL",
+            "room": "I320",
+            "teacher": "MRP",
+            "group": null,
+            "start": "2026-10-09T09:00+01:00",
+            "end": "2026-10-09T11:00+01:00",
+            "source": "sigarra"
+          },
+          {
+            "id": "sample-today-0",
+            "course": "ES",
+            "type": "TP",
+            "room": "B208",
+            "teacher": null,
+            "start": "2026-10-03T09:00+01:00",
+            "end": "2026-10-03T11:00+01:00",
+            "source": "sigarra"
+          },
+          {
+            "id": "sample-today-1",
+            "course": "LBAW",
+            "type": "T",
+            "room": "B002",
+            "teacher": null,
+            "start": "2026-10-03T14:00+01:00",
+            "end": "2026-10-03T15:30+01:00",
+            "source": "sigarra"
+          }
+        ],
+        "courses": []
+      }
+    },
+    "moodle": {
+      "ok": true,
+      "synced_at": "2026-10-03T01:34+01:00",
+      "error": null,
+      "data": {
+        "deadlines": [
+          {
+            "id": "moodle:0",
+            "title": "Relatório intercalar is due",
+            "course": "ES",
+            "due": "2026-10-02T23:59+01:00",
+            "kind": "deadline",
+            "source": "moodle",
+            "url": "https://moodle.up.pt/"
+          },
+          {
+            "id": "moodle:1",
+            "title": "Mini-teste 2 closes",
+            "course": "AM",
+            "due": "2026-10-04T18:59+01:00",
+            "kind": "deadline",
+            "source": "moodle",
+            "url": "https://moodle.up.pt/"
+          },
+          {
+            "id": "moodle:2",
+            "title": "Projeto 1: entrega A1 is due",
+            "course": "LBAW",
+            "due": "2026-10-07T23:59+01:00",
+            "kind": "deadline",
+            "source": "moodle",
+            "url": "https://moodle.up.pt/"
+          },
+          {
+            "id": "moodle:3",
+            "title": "Lab 3 report is due",
+            "course": "RC",
+            "due": "2026-10-12T23:59+01:00",
+            "kind": "deadline",
+            "source": "moodle",
+            "url": "https://moodle.up.pt/"
+          }
+        ],
+        "events": []
+      }
+    }
+  }
+}

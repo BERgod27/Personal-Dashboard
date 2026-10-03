@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meals</title>
+  <style>
+    body { margin: 0; background: #f4f6f8; }
+    @media (prefers-color-scheme: dark) { body { background: #111417; } }
+    main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  </style>
+</head>
+<body>
+  <main id="meals"></main>
+  <script src="meals.js"></script>
+  <script>PDModules.meals.mount(document.getElementById('meals'));</script>
+</body>
+</html>

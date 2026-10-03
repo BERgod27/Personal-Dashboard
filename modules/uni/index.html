@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Uni Panel</title>
+<style>
+  :root{color-scheme:light dark}
+  body{margin:0;padding:16px;background:#f5f6f8;max-width:560px}
+  @media (prefers-color-scheme:dark){body{background:#0e1013}}
+</style>
+<!-- data/uni.js is written by sync_uni.py; open this page through `python3 sync_uni.py serve` -->
+<script src="data/uni.js"></script>
+</head>
+<body>
+<div id="uni"></div>
+<script type="module">
+  import { mountUniPanel } from "./panel.js";
+  const sample = new URLSearchParams(location.search).has("sample");
+  if (sample) {
+    const data = await (await fetch("sample/uni.sample.json")).json();
+    mountUniPanel(document.getElementById("uni"), { data });
+  } else {
+    mountUniPanel(document.getElementById("uni"), window.UNI_DATA ? {} : { dataUrl: "data/uni.json" });
+  }
+</script>
+</body>
+</html>

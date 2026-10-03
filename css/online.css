@@ -1,0 +1,56 @@
+/* Online mode (server/server.mjs): sign-in page, sync status, account menu, uni connections.
+   Uses the tokens from app.css so it follows the main theme. */
+
+.auth-page { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 16px; }
+.auth-card { width: min(100%, 380px); display: grid; gap: 20px; }
+.auth-form {
+  display: grid; gap: var(--s-4); padding: 28px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md); animation: pop var(--t-med) var(--ease) both;
+}
+.auth-card > .brand { justify-content: center; margin: 0; }
+.auth-form h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+.auth-form .btn.primary { height: 42px; margin-top: 4px; }
+.auth-form .btn.primary { justify-content: center; width: 100%; }
+.auth-error { margin: 0; min-height: 1.2em; color: var(--danger); font-size: 0.9rem; }
+.auth-error:empty { min-height: 0; }
+
+.online-bar { display: flex; align-items: center; gap: 8px; }
+.sync-status { font-size: var(--fs-sm); font-weight: 500; color: var(--muted); white-space: nowrap; }
+.sync-status::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%;
+  background: var(--workout); vertical-align: 1px;
+}
+.sync-status[data-state="saving"]::before { background: var(--muted); }
+.sync-status[data-state="offline"]::before,
+.sync-status[data-state="error"]::before { background: var(--now); }
+
+.account-menu { position: relative; }
+.account-menu > summary { list-style: none; cursor: pointer; }
+.account-menu > summary::-webkit-details-marker { display: none; }
+.account-pop {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 200px;
+  display: grid; gap: 8px; padding: var(--s-3);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md); animation: pop var(--t-fast) var(--ease) both;
+}
+.account-pop .btn { justify-content: flex-start; }
+/* the bar sits at the end of .topbar; on phones it takes its own row */
+.topbar .online-bar { order: 5; }
+@media (max-width: 560px) {
+  .topbar:has(.online-bar) { flex-wrap: wrap; row-gap: 8px; }
+  .topbar .online-bar { width: 100%; justify-content: space-between; }
+}
+.account-pop p { margin: 0; }
+
+.uni-connect { width: min(560px, calc(100vw - 32px)); }
+.uni-connect textarea, .uni-connect input:not([type="checkbox"]) { width: 100%; }
+.uni-connect .check { align-items: flex-start; }
+.uni-connect .check input { margin-top: 4px; flex: none; }
+
+.online-notice {
+  position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 50;
+  max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 12px;
+  background: var(--ink); color: var(--surface); font-size: var(--fs-md); font-weight: 500;
+  box-shadow: var(--shadow-lg); animation: fade var(--t-med) ease both;
+}

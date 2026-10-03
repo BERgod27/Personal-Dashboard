@@ -1,0 +1,16 @@
+{
+  "name": "personal-dashboard-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hosted Personal Dashboard: accounts, synced data, Moodle/SIGARRA/news sync",
+  "type": "module",
+  "main": "server.mjs",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.mjs",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.13.0"
+  }
+}

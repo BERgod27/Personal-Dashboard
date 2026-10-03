@@ -1,0 +1,11 @@
+{ "refreshMinutes": 15, "maxItemsPerFeed": 15, "maxAgeHours": 48,
+  "categories": [{ "id": "world", "label": "World" }, { "id": "portugal", "label": "Portugal" }],
+  "feeds": [
+    { "name": "Sample RSS", "category": "world", "url": "http://localhost:9911/rss" },
+    { "name": "Sample GN", "category": "world", "url": "http://localhost:9911/rss?news.google.com" },
+    { "name": "Sample Atom", "category": "portugal", "url": "http://localhost:9911/atom" },
+    { "name": "Sample RDF", "category": "world", "url": "http://localhost:9911/rdf" },
+    { "name": "Not a feed", "category": "world", "url": "http://localhost:9911/html" },
+    { "name": "Down", "category": "portugal", "url": "http://localhost:9911/500" },
+    { "name": "Disabled", "category": "world", "url": "http://localhost:9911/rss", "enabled": false }
+  ] }

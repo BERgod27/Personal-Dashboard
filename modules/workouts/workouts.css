@@ -1,0 +1,111 @@
+/* Workout tracker module. All rules are scoped under .wt-root so the panel
+   can be mounted inside the dashboard shell without leaking styles. */
+.wt-root {
+  --wt-bg: var(--pd-bg, #ffffff);
+  --wt-surface: var(--pd-surface, #f6f7f9);
+  --wt-border: var(--pd-border, #dfe2e7);
+  --wt-text: var(--pd-text, #1d2330);
+  --wt-muted: var(--pd-muted, #667085);
+  --wt-accent: var(--pd-accent, #2f6fde);
+  --wt-accent-2: var(--pd-accent-2, #e0782f);
+  --wt-danger: var(--pd-danger, #c8383b);
+  --wt-on-accent: #ffffff;
+  --wt-radius: 10px;
+  color: var(--wt-text);
+  background: var(--wt-bg);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+  box-sizing: border-box;
+}
+@media (prefers-color-scheme: dark) {
+  .wt-root:not([data-theme="light"]) {
+    --wt-bg: var(--pd-bg, #14171d);
+    --wt-surface: var(--pd-surface, #1d2129);
+    --wt-border: var(--pd-border, #2e3440);
+    --wt-text: var(--pd-text, #e7eaf0);
+    --wt-muted: var(--pd-muted, #98a2b3);
+    --wt-accent: var(--pd-accent, #6c9cf0);
+    --wt-accent-2: var(--pd-accent-2, #f0a060);
+    --wt-danger: var(--pd-danger, #ef6b6e);
+    --wt-on-accent: #0b1220;
+  }
+}
+.wt-root *, .wt-root *::before, .wt-root *::after { box-sizing: inherit; }
+.wt-root h2 { font-size: 20px; margin: 0 0 12px; }
+.wt-root h3 { font-size: 15px; margin: 0 0 8px; }
+.wt-root button, .wt-root input, .wt-root select, .wt-root textarea {
+  font: inherit; color: inherit;
+}
+.wt-root input, .wt-root select, .wt-root textarea {
+  background: var(--wt-bg);
+  border: 1px solid var(--wt-border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  min-width: 0;
+}
+.wt-root button {
+  background: var(--wt-surface);
+  border: 1px solid var(--wt-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.wt-root button:hover { border-color: var(--wt-accent); }
+.wt-root button.wt-primary { background: var(--wt-accent); border-color: var(--wt-accent); color: var(--wt-on-accent); }
+.wt-root button.wt-danger { color: var(--wt-danger); }
+.wt-root button.wt-icon { padding: 2px 8px; }
+
+.wt-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.wt-stat { background: var(--wt-surface); border: 1px solid var(--wt-border); border-radius: var(--wt-radius); padding: 10px 12px; }
+.wt-stat b { display: block; font-size: 20px; }
+.wt-stat span { color: var(--wt-muted); font-size: 12px; }
+
+.wt-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--wt-border); margin-bottom: 14px; }
+.wt-tabs button { border: none; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 8px 12px; }
+.wt-tabs button[aria-selected="true"] { border-bottom-color: var(--wt-accent); font-weight: 600; }
+
+.wt-card { background: var(--wt-surface); border: 1px solid var(--wt-border); border-radius: var(--wt-radius); padding: 12px; margin-bottom: 10px; }
+.wt-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.wt-row > .wt-grow { flex: 1 1 160px; }
+.wt-muted { color: var(--wt-muted); }
+.wt-field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--wt-muted); }
+.wt-field input, .wt-field select, .wt-field textarea { color: var(--wt-text); font-size: 14px; }
+
+.wt-ex { border-left: 3px solid var(--wt-accent); }
+.wt-sets { display: grid; grid-template-columns: 32px 1fr 1fr 32px; gap: 6px; align-items: center; margin: 8px 0; }
+.wt-sets .wt-head { font-size: 12px; color: var(--wt-muted); }
+.wt-sets input { width: 100%; }
+.wt-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+.wt-hist-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.wt-hist ul { margin: 6px 0 0; padding-left: 18px; }
+.wt-hist li { margin: 2px 0; }
+
+.wt-chart { width: 100%; max-width: 720px; height: auto; display: block; }
+.wt-chart text { fill: var(--wt-muted); font-size: 11px; }
+.wt-chart .wt-grid { stroke: var(--wt-border); stroke-width: 1; }
+.wt-chart .wt-l1 { stroke: var(--wt-accent); fill: none; stroke-width: 2; }
+.wt-chart .wt-l2 { stroke: var(--wt-accent-2); fill: none; stroke-width: 2; stroke-dasharray: 5 4; }
+.wt-chart .wt-p1 { fill: var(--wt-accent); }
+.wt-legend { display: flex; gap: 14px; font-size: 12px; color: var(--wt-muted); margin-top: 4px; }
+.wt-legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 4px; background: var(--wt-accent); }
+.wt-legend i.wt-l2i { background: var(--wt-accent-2); }
+
+.wt-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.wt-table th, .wt-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--wt-border); }
+.wt-table th { color: var(--wt-muted); font-weight: 500; }
+.wt-table-wrap { overflow-x: auto; }
+.wt-empty { text-align: center; color: var(--wt-muted); padding: 24px 8px; }
+.wt-toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--wt-text); color: var(--wt-bg); padding: 8px 14px; border-radius: 8px; font-size: 13px; }
+
+/* Inside the dashboard shell: use its theme tokens and take a full grid row. */
+.wt-root.wt-embedded {
+  --wt-bg: var(--surface); --wt-surface: var(--surface-2); --wt-border: var(--line);
+  --wt-text: var(--ink); --wt-muted: var(--muted); --wt-accent: var(--workout);
+  --wt-accent-2: var(--accent); --wt-danger: var(--danger); --wt-on-accent: var(--accent-ink);
+  font-family: var(--f-body);
+  max-width: none; padding: 0; background: transparent;
+}
+#module-workout { grid-column: 1 / -1; }

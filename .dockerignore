@@ -1,0 +1,7 @@
+server/node_modules
+server/data
+modules/uni/config.json
+modules/uni/data/*
+modules/news/data/news.json
+**/__pycache__
+.git

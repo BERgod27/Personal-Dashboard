@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sign in · Bernardo's Day</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#5b5bd6">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/online.css">
+</head>
+<body class="auth-page">
+<main class="auth-card">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-name">Bernardo's Day</span>
+  </div>
+  <form id="auth-form" class="auth-form" autocomplete="on">
+    <h1 id="auth-title">Sign in</h1>
+    <p class="muted small" id="auth-intro" hidden>First visit: create the account. The setup code is the SIGNUP_CODE you set on the host.</p>
+    <div class="field">
+      <label for="auth-user">Username</label>
+      <input id="auth-user" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    </div>
+    <div class="field">
+      <label for="auth-pass">Password</label>
+      <input id="auth-pass" name="password" type="password" autocomplete="current-password" required>
+    </div>
+    <div class="field" id="auth-code-field" hidden>
+      <label for="auth-code">Setup code</label>
+      <input id="auth-code" name="code" type="password" autocomplete="off">
+    </div>
+    <p class="auth-error" id="auth-error" role="alert"></p>
+    <button class="btn primary" id="auth-submit" type="submit">Sign in</button>
+  </form>
+</main>
+<script src="js/login.js"></script>
+</body>
+</html>

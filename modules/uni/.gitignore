@@ -1,0 +1,4 @@
+config.json
+data/
+schedule.csv
+__pycache__/

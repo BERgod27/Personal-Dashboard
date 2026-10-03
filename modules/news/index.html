@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>News</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { margin: 0; padding: 16px; background: Canvas; height: 100vh; box-sizing: border-box; }
+    news-panel { max-width: 760px; margin: 0 auto; height: 100%; }
+  </style>
+  <script type="module" src="./news-panel.js"></script>
+</head>
+<body>
+  <news-panel id="news"></news-panel>
+  <script>
+    // Served by server.mjs → use the same origin; opened as a file → default localhost:8787.
+    if (location.protocol.startsWith('http')) document.getElementById('news').setAttribute('api', location.origin);
+  </script>
+</body>
+</html>

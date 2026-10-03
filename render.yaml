@@ -1,0 +1,23 @@
+# Render Blueprint: one free web service. The database is a free Neon Postgres
+# (Render's own free Postgres is deleted after 30 days). See server/README.md.
+services:
+  - type: web
+    name: bernardos-day
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: cd server && npm ci --omit=dev
+    startCommand: cd server && npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: APP_SECRET          # encrypts saved Moodle link and SIGARRA password; never change it
+        generateValue: true
+      - key: CRON_SECRET         # key for the optional keep-fresh ping (/api/cron)
+        generateValue: true
+      - key: SIGNUP_CODE         # you type this once when creating your account
+        sync: false
+      - key: DATABASE_URL        # Neon connection string (postgresql://...)
+        sync: false

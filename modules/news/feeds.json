@@ -1,0 +1,30 @@
+{
+  "refreshMinutes": 15,
+  "maxItemsPerFeed": 15,
+  "maxAgeHours": 48,
+  "categories": [
+    { "id": "world", "label": "World" },
+    { "id": "portugal", "label": "Portugal" }
+  ],
+  "feeds": [
+    { "name": "BBC News", "category": "world", "url": "https://feeds.bbci.co.uk/news/world/rss.xml" },
+    { "name": "Reuters", "category": "world", "url": "https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com/world&hl=en-US&gl=US&ceid=US:en", "note": "Reuters has no public RSS; this is a Google News search scoped to reuters.com" },
+    { "name": "Associated Press", "category": "world", "url": "https://news.google.com/rss/search?q=when:24h+allinurl:apnews.com&hl=en-US&gl=US&ceid=US:en", "note": "AP has no public RSS; Google News search scoped to apnews.com" },
+    { "name": "The New York Times", "category": "world", "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml" },
+    { "name": "The Guardian", "category": "world", "url": "https://www.theguardian.com/world/rss" },
+    { "name": "Financial Times", "category": "world", "url": "https://www.ft.com/world?format=rss" },
+    { "name": "The Economist", "category": "world", "url": "https://www.economist.com/international/rss.xml" },
+    { "name": "Al Jazeera", "category": "world", "url": "https://www.aljazeera.com/xml/rss/all.xml" },
+    { "name": "Le Monde (EN)", "category": "world", "url": "https://www.lemonde.fr/en/rss/une.xml" },
+    { "name": "DW", "category": "world", "url": "https://rss.dw.com/rdf/rss-en-world" },
+    { "name": "NPR", "category": "world", "url": "https://feeds.npr.org/1004/rss.xml" },
+
+    { "name": "Público", "category": "portugal", "url": "https://feeds.feedburner.com/PublicoRSS" },
+    { "name": "RTP Notícias", "category": "portugal", "url": "https://www.rtp.pt/noticias/rss" },
+    { "name": "Observador", "category": "portugal", "url": "https://observador.pt/feed/" },
+    { "name": "Expresso", "category": "portugal", "url": "https://expresso.pt/rss/ultimas" },
+    { "name": "ECO", "category": "portugal", "url": "https://eco.sapo.pt/feed/" },
+    { "name": "Jornal de Notícias", "category": "portugal", "url": "https://www.jn.pt/rss" },
+    { "name": "Diário de Notícias", "category": "portugal", "url": "https://www.dn.pt/rss" }
+  ]
+}
