@@ -50,8 +50,11 @@ newest commit on GitHub, the update is live.
 
 Only a failed sign-in fails the SIGARRA sync. When SIGARRA's answer can't be read, the error says
 what it sent (HTTP status and page title) for the sign-in and the home page, so a block or a
-changed page can be told apart. Any other part that fails is listed as a warning and keeps its
-last good data. Requests only go to `sigarra.up.pt` and other `https://*.up.pt` hosts;
+changed page can be told apart. A 403 or 503 — often a bot screen like Cloudflare's "Just a
+moment..." — is treated as the front door turning the request away, not a wrong password: the
+saved password is kept (SIGARRA never saw it, so retrying can't lock the account). A datacenter
+host is more likely to be screened than a phone, so this can block server-side sync even with the
+right password. Any other part that fails is listed as a warning and keeps its last good data. Requests only go to `sigarra.up.pt` and other `https://*.up.pt` hosts;
 a redirect anywhere else is refused, so the session cookie can't leave the university.
 
 When the dashboard is opened without this server (the published page, `file://`, or
@@ -121,5 +124,11 @@ VPS), or with Postgres if you set `DATABASE_URL`. Set `APP_SECRET` and `SIGNUP_C
   reachable from where this was built, so the first real test is on the host. If SIGARRA refuses
   sign-ins from outside Portugal or changes its pages, the error shows in Uni connections and
   the manual timetable still works.
+- SIGARRA sits behind a bot screen (Cloudflare). It can serve a "Just a moment..." challenge
+  that only a real browser passes, and it screens datacenter hosts (where this server runs) more
+  than phones. A browser `User-Agent` is sent, which gets past a light filter but not a full
+  JavaScript challenge. When the screen blocks the server, the Uni tab says so and the manual
+  timetable still works; running the sync from a home network (the device-side `sync_uni.py`) is
+  the fallback if the host stays blocked.
 - Conflicts are resolved per document: if two devices edit at the same moment, the one
   that saved first wins and the other reloads with a notice.

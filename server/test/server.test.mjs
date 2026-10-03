@@ -144,14 +144,17 @@ test('a saved SIGARRA password that stops working is deleted, and old data stays
   const typo = await call('POST', '/api/uni/sync', { password: 'typo' });
   assert.equal(typo.json.forgotPassword, true);
   assert.equal((await call('GET', '/api/uni/settings')).json.passwordRemembered, false);
-  // So is one SIGARRA doesn't confirm (here it turns the server away): no retrying it every hour.
+  // A bot screen (SIGARRA's front door turning the server away) is not a wrong password, so the
+  // saved password is kept: retrying it can't lock the account, and the block may clear later.
   await call('PUT', '/api/uni/settings', { rememberPassword: true, sigarraPassword: 'pw-123' });
+  assert.equal((await call('GET', '/api/uni/settings')).json.passwordRemembered, true);
   fake.opts.loginReply = 'forbidden';
   const away = await call('POST', '/api/uni/sync', {});
   fake.opts.loginReply = null;
-  assert.equal(away.json.forgotPassword, true);
-  assert.match(away.json.data.sources.sigarra.error, /HTTP 403.*stops retrying/);
-  assert.equal((await call('GET', '/api/uni/settings')).json.passwordRemembered, false);
+  assert.equal(away.json.forgotPassword, false);
+  assert.match(away.json.data.sources.sigarra.error, /refused the request from the server/);
+  assert.ok(!/was removed/.test(away.json.data.sources.sigarra.error));
+  assert.equal((await call('GET', '/api/uni/settings')).json.passwordRemembered, true, 'a bot screen keeps the password');
   const off = await call('PUT', '/api/uni/settings', { sigarraUser: '' });
   assert.equal(off.status, 200);
   const data = (await call('GET', '/api/uni')).json;

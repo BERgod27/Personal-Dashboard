@@ -14,7 +14,7 @@ export function startFakeSigarra(opts = {}) {
   const o = {
     user: 'up202301234', password: 'right-pass', code: '202301234', faculties: ['feup'],
     calendar: true, // false: SIGARRA's new timetable page is missing, so the older endpoint is used
-    loginReply: null, // 'expired', 'blocked', 'forbidden' (SIGARRA turns the server away) or 'unknown' (a page we can't read)
+    loginReply: null, // 'expired', 'blocked', 'forbidden'/'botwall' (the front door turns the server away) or 'unknown' (a page we can't read)
     ...opts,
   };
   const monday = mondayOf(todayLocal());
@@ -57,6 +57,7 @@ export function startFakeSigarra(opts = {}) {
       if (o.loginReply === 'expired') return { body: page('<p class="aviso-invalidado">A sua senha encontra-se expirada.</p>') };
       if (o.loginReply === 'blocked') return { body: page('<p class="aviso-invalidado">A sua conta encontra-se bloqueada.</p>') };
       if (o.loginReply === 'forbidden') return { status: 403, body: page('<h1>Acesso negado</h1>', '', 'Acesso negado') };
+      if (o.loginReply === 'botwall') return { status: 403, body: page('<h1>Just a moment...</h1><p>Enable JavaScript and cookies to continue</p>', '', 'Just a moment...') };
       if (o.loginReply === 'unknown') return { body: page('<p>Estamos em manutenção.</p>', '', 'Manutenção') };
       if (form.get('p_user') !== o.user || form.get('p_pass') !== o.password) {
         return { body: page('<p class="aviso-invalidado">O conjunto utilizador/senha não é válido.</p>') };
@@ -68,7 +69,7 @@ export function startFakeSigarra(opts = {}) {
         body: page('<p>A carregar...</p>', '<meta http-equiv="Refresh" content="0;url=web_page.inicial">'),
       };
     },
-    'GET /feup/pt/web_page.inicial': ({ signedIn }) => (o.loginReply === 'forbidden' ? { status: 403, body: page('<h1>Acesso negado</h1>', '', 'Acesso negado') } : {
+    'GET /feup/pt/web_page.inicial': ({ signedIn }) => (o.loginReply === 'forbidden' || o.loginReply === 'botwall' ? { status: 403, body: page('<h1>Just a moment...</h1>', '', 'Just a moment...') } : {
       body: page(signedIn
         ? `<div class="autenticado"><div class="fotografia"><img src="fotografias_service.foto?pct_cod=${o.code}" alt=""></div></div>`
         : '<form action="vld_validacao.validacao"><input name="p_user"></form>'),

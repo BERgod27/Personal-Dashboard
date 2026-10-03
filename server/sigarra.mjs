@@ -15,7 +15,9 @@ const DEFAULT_BASE = 'https://sigarra.up.pt';
 // Like the uni app, the session is opened at FEUP whatever the student's faculty: it is valid
 // on every faculty, and FEUP's home page shows the student's photo, whose link has the number.
 const LOGIN_FACULTY = 'feup';
-const UA = 'Mozilla/5.0 (compatible; personal-dashboard/2.0)';
+// A plain browser User-Agent. A bot screen that runs a JavaScript challenge still won't let a
+// non-browser client through, but a lighter filter that only checks the User-Agent might.
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 const MAX_BYTES = 8 * 1024 * 1024;
 
 export class SigarraError extends Error {
@@ -74,10 +76,28 @@ function answered(r) {
   return `HTTP ${r.status}${title ? ` "${title}"` : ''}${to ? ` to ${to.host}${to.pathname}` : ''}`;
 }
 
+// SIGARRA's sign-in reports a bad password with a 200 page and a warning, never a 403 or 503.
+// A 403/503 — often a bot screen like Cloudflare's "Just a moment..." — is the site's front
+// door turning the request away before SIGARRA sees it. Servers get this far more than phones
+// do. So it is an infrastructure block, not a credential problem: the password was never
+// checked, retrying it can't lock the account, and the saved one should be kept.
+const EDGE_STATUS = new Set([403, 503]);
+const looksLikeBotScreen = (r) =>
+  /just a moment|attention required|enable javascript and cookies|cf-chl|cloudflare/i
+    .test(`${parseHtml(r.text).querySelector('title')?.text || ''} ${r.text.slice(0, 2000)}`);
+
+function edgeBlock(r, what) {
+  const who = looksLikeBotScreen(r) ? "SIGARRA's bot screen (Cloudflare)" : 'SIGARRA';
+  return Object.assign(
+    new SigarraError(`${who} refused the request from the server (${answered(r)}) while loading the ${what}. It does this to servers even when the U.Porto app works on your phone, so it is not your password.`, 'edge'),
+    { answered: answered(r) });
+}
+
 function check(r, what) {
   const fail = (message, kind) => Object.assign(new SigarraError(message, kind), { answered: answered(r) });
+  if (EDGE_STATUS.has(r.status)) throw edgeBlock(r, what);
   if (r.status >= 500) throw fail(`SIGARRA had an error loading the ${what} (HTTP ${r.status}).`, 'server');
-  if (r.status === 401 || r.status === 403) throw fail(`SIGARRA refused access to the ${what} (HTTP ${r.status}).`, 'session');
+  if (r.status === 401) throw fail(`SIGARRA refused access to the ${what} (HTTP ${r.status}).`, 'session');
   if (r.status !== 200) throw fail(`SIGARRA answered HTTP ${r.status} for the ${what}.`, 'changed');
 }
 
@@ -146,7 +166,11 @@ export class SigarraClient {
     let body = form ? new URLSearchParams(form).toString() : undefined;
     for (let hop = 0; hop < 8; hop++) {
       if (!this.trusted(u)) throw new SigarraError(`Not following SIGARRA to ${u.host}: only U.Porto sites are allowed.`, 'changed');
-      const headers = { 'user-agent': UA, 'accept-language': 'pt-PT,pt;q=0.9,en;q=0.5' };
+      const headers = {
+        'user-agent': UA,
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'accept-language': 'pt-PT,pt;q=0.9,en;q=0.5',
+      };
       const cookie = this.cookiesFor(u);
       if (cookie) headers.cookie = cookie;
       if (body !== undefined) headers['content-type'] = 'application/x-www-form-urlencoded';
@@ -190,6 +214,7 @@ export class SigarraClient {
   async login(user, password) {
     const r = await this.request(this.url(LOGIN_FACULTY, 'vld_validacao.validacao'),
       { method: 'POST', form: { p_user: user, p_pass: password }, follow: false });
+    if (EDGE_STATUS.has(r.status)) throw edgeBlock(r, 'sign-in');
     if (r.status >= 500) throw new SigarraError(`SIGARRA's sign-in is having problems (HTTP ${r.status}). Try again later.`, 'server');
     const result = r.status === 200 ? loginResult(parseHtml(r.text)) : { kind: 'unknown' };
     if (result.kind === 'credentials') throw new SigarraError('SIGARRA says the username or password is wrong.', 'credentials');
@@ -200,6 +225,7 @@ export class SigarraClient {
     // Signed in, or SIGARRA answered something unfamiliar: the home page tells for sure.
     let homeSaid = 'showed no one signed in';
     const home = await this.home().catch((e) => {
+      if (e.kind === 'edge') throw e; // the front door blocked us: that is the real reason
       homeSaid = e.answered ? `answered ${e.answered}` : `could not be read (${e.message.replace(/\.$/, '')})`;
       return { signedIn: false, code: null };
     });

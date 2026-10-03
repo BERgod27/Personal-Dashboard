@@ -216,20 +216,32 @@ test('a wrong, expired or blocked password stops the sync with a clear reason', 
   await assert.rejects(syncSigarra({ user: 'up202301234', password: '', base: fake.base }), /password needed/);
 });
 
-test('a sign-in SIGARRA does not confirm says what it answered and is not retried', async () => {
+test('a bot screen or firewall is an edge block, not a wrong password, and is tried once', async () => {
   const posts = () => fake.log.filter((r) => r.key.startsWith('POST')).length;
   try {
-    // SIGARRA turning the server away, like a firewall would.
+    // A plain 403, as a firewall would send: an edge block, so the password is not blamed.
     fake.opts.loginReply = 'forbidden';
     const before = posts();
     await assert.rejects(syncSigarra({ user: 'up202301234', password: 'right-pass', base: fake.base }), (e) =>
-      e.kind === 'unconfirmed' && isCredentialError(e)
-      && /sign-in answered HTTP 403 "Acesso negado"/.test(e.message) && /home page answered HTTP 403/.test(e.message));
+      e.kind === 'edge' && !isCredentialError(e)
+      && /SIGARRA refused the request from the server \(HTTP 403/.test(e.message) && /not your password/.test(e.message));
     assert.equal(posts(), before + 1, 'one sign-in, never a second try with the same password');
-    // A page we can't read, like a maintenance notice.
-    fake.opts.loginReply = 'unknown';
+    // Cloudflare's "Just a moment..." screen is named as a bot screen.
+    fake.opts.loginReply = 'botwall';
     await assert.rejects(syncSigarra({ user: 'up202301234', password: 'right-pass', base: fake.base }), (e) =>
-      e.kind === 'unconfirmed' && /HTTP 200 "Manutenção"/.test(e.message) && /home page showed no one signed in/.test(e.message));
+      e.kind === 'edge' && /bot screen \(Cloudflare\)/.test(e.message) && /HTTP 403 "Just a moment/.test(e.message));
+  } finally { fake.opts.loginReply = null; }
+});
+
+test('a sign-in SIGARRA answers with a page we can\'t read is unconfirmed, and tried once', async () => {
+  const posts = () => fake.log.filter((r) => r.key.startsWith('POST')).length;
+  try {
+    fake.opts.loginReply = 'unknown';
+    const before = posts();
+    await assert.rejects(syncSigarra({ user: 'up202301234', password: 'right-pass', base: fake.base }), (e) =>
+      e.kind === 'unconfirmed' && isCredentialError(e)
+      && /HTTP 200 "Manutenção"/.test(e.message) && /home page showed no one signed in/.test(e.message));
+    assert.equal(posts(), before + 1, 'one sign-in, never a second try with the same password');
   } finally { fake.opts.loginReply = null; }
 });
 
