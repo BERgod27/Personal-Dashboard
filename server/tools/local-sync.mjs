@@ -96,7 +96,16 @@ async function main() {
     process.exit(1);
   }
   const out = await res.json().catch(() => ({}));
-  if (!res.ok) { console.error(`\nThe dashboard refused the update (HTTP ${res.status}): ${out.error || ''}`); process.exit(1); }
+  if (!res.ok) {
+    console.error(`\nThe dashboard refused the update (HTTP ${res.status}): ${out.error || ''}`);
+    if (res.status === 401) {
+      console.error(`\nCheck these three things in server/tools/local-sync.config.json:`);
+      console.error(`  1. "user" is the name you sign in to the DASHBOARD with (now "${cfg.user}"), not your SIGARRA number.`);
+      console.error(`  2. "key" is the newest key from Uni connections (a new key replaces the old one). Copy all of it, no spaces or quotes.`);
+      console.error(`  3. "serverUrl" is the site where you made the key (now ${cfg.serverUrl}).`);
+    }
+    process.exit(1);
+  }
   console.log(`Done. The dashboard now shows ${out.classes} classes, ${out.exams} exams and ${out.deadlines} deadlines. Reload it to see them.`);
 }
 
