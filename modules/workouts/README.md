@@ -1,7 +1,13 @@
 # Workout tracker module
 
-Log workouts (exercises, sets, reps, weight), browse history, and see progress
-charts and personal records per exercise.
+A gym log in the style of the popular workout trackers:
+- **Workout**: start empty or from a routine (any workout you named), add exercises from a
+  built-in library with muscle-group figures, log sets as weight × reps (distance + time for
+  cardio) next to last time's numbers, tick each set to start the rest timer, tap a set
+  number to mark a warm-up. The workout in progress survives a reload (`pd.workouts.draft.v1`, per device).
+- **History**: month calendar and session cards with duration, volume, sets and PRs.
+- **Progress**: muscle map for the last 7/30 days, weekly totals, and per-exercise records and charts.
+The body figures and icons are original inline SVG drawn in `workouts.js`.
 
 ## Run it on its own
 Open `index.html` in a browser (double-click works, no server needed).
@@ -41,5 +47,8 @@ panel.summary(); panel.refresh(); panel.unmount();
   "sessions": [ { "id": "…", "date": "2026-10-03", "title": "Push day", "notes": "",
                   "exercises": [ { "name": "Bench press", "sets": [ { "reps": 8, "weight": 60 } ] } ] } ] }
 ```
+Optional fields: session `duration` (minutes), exercise `rest` (seconds), set `warmup: true`,
+cardio sets `{ "km": 5, "min": 27 }` instead of reps/weight, top-level `rest` (default rest
+seconds) and `muscles` (`{ "exercise name": "chest" }` for exercises you added yourself).
 Weight 0 means bodyweight; progress for those exercises tracks max reps instead.
 Estimated 1RM uses the Epley formula.

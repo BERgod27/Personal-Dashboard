@@ -488,19 +488,19 @@ textarea:focus { outline: none; background: var(--surface); border-color: var(--
   --dash-border: var(--line); --dash-radius: var(--radius-lg); --dash-font: var(--f-body); --dash-accent-ink: var(--accent-ink);
 }
 
-/* Segmented tabs, shared by Meals and Workouts */
-.modules .pdm-tabs, .modules .wt-tabs {
+/* Segmented tabs (Meals; Workouts draws its own in the same style) */
+.modules .pdm-tabs {
   display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
   max-width: 100%; overflow-x: auto; scrollbar-width: none; margin: 0 0 var(--s-5);
 }
 .modules .pdm-tabs { align-self: flex-start; margin-bottom: 0; }
-.modules .pdm-tab, .modules .wt-root .wt-tabs button {
+.modules .pdm-tab {
   border: 0; border-radius: 9px; background: transparent; color: var(--muted); padding: 0 14px; height: 32px; min-height: 0;
   font-size: var(--fs-md); font-weight: 500; white-space: nowrap; box-shadow: none;
   transition: background-color var(--t-fast), color var(--t-fast);
 }
-.modules .pdm-tab:hover, .modules .wt-root .wt-tabs button:hover { color: var(--ink); background: var(--surface-2); }
-.modules .pdm-tab[aria-selected="true"], .modules .wt-root .wt-tabs button[aria-selected="true"] {
+.modules .pdm-tab:hover { color: var(--ink); background: var(--surface-2); }
+.modules .pdm-tab[aria-selected="true"] {
   background: var(--accent); color: var(--accent-ink); font-weight: 600;
 }
 
@@ -512,30 +512,7 @@ textarea:focus { outline: none; background: var(--surface); border-color: var(--
 .view-module news-panel { --dash-title-display: none; --dash-tabs-push: auto; }
 .view-module news-panel::part(panel) { border: 1px solid var(--line); background: var(--surface); }
 
-/* Workouts */
-.modules .wt-root.wt-embedded { --wt-radius: var(--radius-lg); --wt-accent: var(--workout); font-size: var(--fs-base); }
-.modules .wt-root input, .modules .wt-root select, .modules .wt-root textarea {
-  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 7px 10px; min-height: 38px;
-  transition: border-color var(--t-fast), box-shadow var(--t-fast), background-color var(--t-fast);
-}
-.modules .wt-root input:focus, .modules .wt-root select:focus, .modules .wt-root textarea:focus {
-  outline: none; background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft);
-}
-.modules .wt-root button {
-  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); min-height: 36px; padding: 6px 14px;
-  font-weight: 500; transition: background-color var(--t-fast), border-color var(--t-fast);
-}
-.modules .wt-root button:hover { background: var(--surface-2); border-color: var(--line-strong); }
-.modules .wt-root button.wt-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
-.modules .wt-root button.wt-primary:hover { background: var(--accent-hover); }
-.modules .wt-root button.wt-icon { min-height: 32px; min-width: 32px; padding: 0 8px; }
-.modules .wt-root .wt-stats { gap: var(--s-3); margin-bottom: var(--s-6); }
-.modules .wt-root .wt-stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px 16px; display: flex; flex-direction: column-reverse; gap: 2px; }
-.modules .wt-root .wt-stat b { font-size: var(--fs-2xl); font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.modules .wt-root .wt-stat span { font-size: var(--fs-sm); }
-.modules .wt-root .wt-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--s-4); margin-bottom: var(--s-3); }
-.modules .wt-root .wt-ex { box-shadow: inset 3px 0 0 var(--workout); border-left: 1px solid var(--line); }
-.modules .wt-root .wt-field { font-size: var(--fs-sm); font-weight: 500; color: var(--ink-2); }
+/* Workouts: the panel reads our tokens itself (modules/workouts/workouts.css) */
 
 /* Meals */
 .modules .pdm { font-size: var(--fs-base); gap: var(--s-5); }
