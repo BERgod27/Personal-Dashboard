@@ -143,6 +143,14 @@ test('a saved SIGARRA password that stops working is deleted, and old data stays
   const typo = await call('POST', '/api/uni/sync', { password: 'typo' });
   assert.equal(typo.json.forgotPassword, true);
   assert.equal((await call('GET', '/api/uni/settings')).json.passwordRemembered, false);
+  // So is one SIGARRA doesn't confirm (here it turns the server away): no retrying it every hour.
+  await call('PUT', '/api/uni/settings', { rememberPassword: true, sigarraPassword: 'pw-123' });
+  fake.opts.loginReply = 'forbidden';
+  const away = await call('POST', '/api/uni/sync', {});
+  fake.opts.loginReply = null;
+  assert.equal(away.json.forgotPassword, true);
+  assert.match(away.json.data.sources.sigarra.error, /HTTP 403.*stops retrying/);
+  assert.equal((await call('GET', '/api/uni/settings')).json.passwordRemembered, false);
   const off = await call('PUT', '/api/uni/settings', { sigarraUser: '' });
   assert.equal(off.status, 200);
   const data = (await call('GET', '/api/uni')).json;

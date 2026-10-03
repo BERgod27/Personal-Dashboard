@@ -24,9 +24,10 @@ parser for SIGARRA's pages (`parse5`, `css-select`, `domutils`).
 The Moodle calendar link and the SIGARRA password (only if you tick "Remember") are
 encrypted with AES-256-GCM using a key derived from `APP_SECRET`, which lives only in the
 host's settings. If you don't tick "Remember", the password is used for that one sync and
-dropped. If SIGARRA turns a remembered password down (wrong, expired or blocked), the server
-deletes it straight away, so the automatic refreshes never retry it and can't get the account
-blocked; the dashboard asks for it again.
+dropped. If SIGARRA turns a remembered password down (wrong, expired or blocked), or the
+sign-in can't be confirmed, the server deletes it straight away, so the automatic refreshes
+never retry it and can't get the account blocked; the dashboard asks for it again. Each sync
+signs in once, never twice with the same password.
 
 **Account → Sign out on all devices** ends every session, for example after using a shared computer.
 
@@ -44,8 +45,10 @@ blocked; the dashboard asks for it again.
    FEUP print balance.
 5. Signs out.
 
-Only a failed sign-in fails the SIGARRA sync. Any other part that fails is listed as a warning and
-keeps its last good data. Requests only go to `sigarra.up.pt` and other `https://*.up.pt` hosts;
+Only a failed sign-in fails the SIGARRA sync. When SIGARRA's answer can't be read, the error says
+what it sent (HTTP status and page title) for the sign-in and the home page, so a block or a
+changed page can be told apart. Any other part that fails is listed as a warning and keeps its
+last good data. Requests only go to `sigarra.up.pt` and other `https://*.up.pt` hosts;
 a redirect anywhere else is refused, so the session cookie can't leave the university.
 
 When the dashboard is opened without this server (the published page, `file://`, or

@@ -384,7 +384,7 @@
     // Refresh uni data in the background if it is more than an hour old.
     api('POST', '/api/uni/sync', { ifStale: true }).then(function (r) {
       if (r.status === 200 && r.json.data) publishUni(r.json.data);
-      if (r.json && r.json.forgotPassword) notice('SIGARRA turned down your saved password, so it was removed. Type it again in Account → Uni connections.');
+      if (r.json && r.json.forgotPassword) notice('The SIGARRA sign-in failed, so your saved password was removed. Type it again in Account → Uni connections.');
     }).catch(function () {});
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);

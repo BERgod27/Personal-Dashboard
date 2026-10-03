@@ -216,6 +216,23 @@ test('a wrong, expired or blocked password stops the sync with a clear reason', 
   await assert.rejects(syncSigarra({ user: 'up202301234', password: '', base: fake.base }), /password needed/);
 });
 
+test('a sign-in SIGARRA does not confirm says what it answered and is not retried', async () => {
+  const posts = () => fake.log.filter((r) => r.key.startsWith('POST')).length;
+  try {
+    // SIGARRA turning the server away, like a firewall would.
+    fake.opts.loginReply = 'forbidden';
+    const before = posts();
+    await assert.rejects(syncSigarra({ user: 'up202301234', password: 'right-pass', base: fake.base }), (e) =>
+      e.kind === 'unconfirmed' && isCredentialError(e)
+      && /sign-in answered HTTP 403 "Acesso negado"/.test(e.message) && /home page answered HTTP 403/.test(e.message));
+    assert.equal(posts(), before + 1, 'one sign-in, never a second try with the same password');
+    // A page we can't read, like a maintenance notice.
+    fake.opts.loginReply = 'unknown';
+    await assert.rejects(syncSigarra({ user: 'up202301234', password: 'right-pass', base: fake.base }), (e) =>
+      e.kind === 'unconfirmed' && /HTTP 200 "Manutenção"/.test(e.message) && /home page showed no one signed in/.test(e.message));
+  } finally { fake.opts.loginReply = null; }
+});
+
 test('requests never leave U.Porto: a redirect elsewhere is refused before it is followed', async () => {
   const s = new SigarraClient({ base: fake.base });
   await assert.rejects(s.request(`${fake.base}/feup/pt/leave`), /only U\.Porto sites/);

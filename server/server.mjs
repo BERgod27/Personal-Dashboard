@@ -257,7 +257,9 @@ async function runUniSync(userId, { password } = {}) {
         if (saved === used) {
           delete cur.sigarraPassword;
           await S.setServer(userId, UNI_SETTINGS, cur);
-          results.sigarra[1] += ' The saved password was removed; type the right one in Uni connections.';
+          results.sigarra[1] += errors.sigarra.kind === 'unconfirmed'
+            ? ' The saved password was removed so the server stops retrying it; type it in Uni connections to try again.'
+            : ' The saved password was removed; type the right one in Uni connections.';
           forgotPassword = true;
         }
       }

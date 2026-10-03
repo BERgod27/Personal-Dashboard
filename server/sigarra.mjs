@@ -26,9 +26,10 @@ export class SigarraError extends Error {
   }
 }
 
-// SIGARRA turned the password down. Trying the same one again won't help, and repeated
-// failed sign-ins can get the account blocked.
-export const isCredentialError = (e) => ['credentials', 'expired', 'blocked', 'refused'].includes(e?.kind);
+// SIGARRA turned the password down, or the sign-in failed in a way we can't read (so it may
+// have). Trying the same one again won't help, and repeated failed sign-ins can get the
+// account blocked.
+export const isCredentialError = (e) => ['credentials', 'expired', 'blocked', 'refused', 'unconfirmed'].includes(e?.kind);
 
 const clean = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 const numberOf = (user) => /^(?:up)?(\d{5,})$/i.exec(String(user || '').trim())?.[1] ?? null;
@@ -66,10 +67,18 @@ async function readCapped(res) {
   return Buffer.concat(chunks);
 }
 
+// What SIGARRA sent, in a few words for error messages: HTTP 403 "Acesso negado".
+function answered(r) {
+  const title = clean(parseHtml(r.text).querySelector('title')?.text).slice(0, 80);
+  const to = r.location ? URL.parse(r.location, r.url) : null;
+  return `HTTP ${r.status}${title ? ` "${title}"` : ''}${to ? ` to ${to.host}${to.pathname}` : ''}`;
+}
+
 function check(r, what) {
-  if (r.status >= 500) throw new SigarraError(`SIGARRA had an error loading the ${what} (HTTP ${r.status}).`, 'server');
-  if (r.status === 401 || r.status === 403) throw new SigarraError(`SIGARRA refused access to the ${what} (HTTP ${r.status}).`, 'session');
-  if (r.status !== 200) throw new SigarraError(`SIGARRA answered HTTP ${r.status} for the ${what}.`, 'changed');
+  const fail = (message, kind) => Object.assign(new SigarraError(message, kind), { answered: answered(r) });
+  if (r.status >= 500) throw fail(`SIGARRA had an error loading the ${what} (HTTP ${r.status}).`, 'server');
+  if (r.status === 401 || r.status === 403) throw fail(`SIGARRA refused access to the ${what} (HTTP ${r.status}).`, 'session');
+  if (r.status !== 200) throw fail(`SIGARRA answered HTTP ${r.status} for the ${what}.`, 'changed');
 }
 
 export class SigarraClient {
@@ -146,7 +155,7 @@ export class SigarraClient {
         res = await fetch(u, { method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(this.timeoutMs) });
       } catch (e) {
         throw new SigarraError(e.name === 'TimeoutError' ? 'SIGARRA took too long to answer.'
-          : `Could not reach SIGARRA (${e.cause?.code || e.message}).`, 'unreachable');
+          : `Could not reach SIGARRA (${e.cause?.code || e.cause?.message || e.message}).`, 'unreachable');
       }
       this.keepCookies(res, u);
       const loc = res.headers.get('location');
@@ -189,25 +198,20 @@ export class SigarraClient {
     if (result.kind === 'refused') throw new SigarraError(`SIGARRA refused the sign-in: "${result.text}"`, 'refused');
 
     // Signed in, or SIGARRA answered something unfamiliar: the home page tells for sure.
-    const home = await this.home().catch(() => ({ signedIn: false, code: null }));
-    if (home.signedIn && (home.code || numberOf(user))) return (this.code = home.code || numberOf(user));
-    if ((result.kind === 'ok' || result.kind === 'already') && numberOf(user)) return (this.code = numberOf(user));
-    // Last try: the older sign-in that SIGARRA's mobile endpoints use.
-    return (this.code = await this.mobileLogin(user, password));
-  }
-
-  async mobileLogin(user, password) {
-    const r = await this.request(this.url(LOGIN_FACULTY, 'mob_val_geral.autentica'),
-      { method: 'POST', form: { pv_login: user, pv_password: password } });
-    let auth = null;
-    try { auth = JSON.parse(r.text); } catch { /* not JSON */ }
-    if (!auth || typeof auth !== 'object') {
-      throw new SigarraError('SIGARRA did not accept the sign-in and gave no reason. Its sign-in page may have changed.', 'changed');
+    let homeSaid = 'showed no one signed in';
+    const home = await this.home().catch((e) => {
+      homeSaid = e.answered ? `answered ${e.answered}` : `could not be read (${e.message.replace(/\.$/, '')})`;
+      return { signedIn: false, code: null };
+    });
+    if (home.signedIn) {
+      if (home.code || numberOf(user)) return (this.code = home.code || numberOf(user));
+      throw new SigarraError('Signed in, but SIGARRA did not show your student number. Use your up number as the username.', 'changed');
     }
-    if (!auth.authenticated) throw new SigarraError('SIGARRA says the username or password is wrong.', 'credentials');
-    const code = /\d{5,}/.exec(String(auth.codigo ?? ''))?.[0] || numberOf(user);
-    if (!code) throw new SigarraError('Signed in, but SIGARRA did not give your student number.', 'changed');
-    return code;
+    if ((result.kind === 'ok' || result.kind === 'already') && numberOf(user)) return (this.code = numberOf(user));
+    // No second sign-in with the same password: an unreadable answer may still have been a
+    // failed attempt. Say what SIGARRA sent instead, so the cause can be found.
+    const note = result.text ? `, saying "${result.text.slice(0, 120)}"` : '';
+    throw new SigarraError(`SIGARRA did not confirm the sign-in. The sign-in answered ${answered(r)}${note}, and the home page ${homeSaid}.`, 'unconfirmed');
   }
 
   async home() {
