@@ -43,9 +43,10 @@ const TYPES = {
 
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com",
-  "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com",
+  // Only this site's own scripts: public CDNs would let anyone's npm package run here.
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: https:",
   "connect-src 'self'",
   "frame-ancestors 'none'",
@@ -59,6 +60,8 @@ function headers(extra = {}) {
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'same-origin',
     'x-frame-options': 'DENY',
+    'permissions-policy': 'camera=(), microphone=(), geolocation=()',
+    ...(process.env.FORCE_SECURE_COOKIE === '1' || process.env.RENDER ? { 'strict-transport-security': 'max-age=31536000' } : {}),
     ...extra,
   };
 }
@@ -267,7 +270,8 @@ async function route(req, res) {
     return send(res, 200, { user: user ? { username: user.username } : null, needsSetup: (await S.countUsers()) === 0 });
   }
   if (path === '/api/signup' && method === 'POST') {
-    if (loginLimit.tooMany('ip:' + clientIp(req))) return fail(res, 429, 'Too many attempts. Wait a few minutes.');
+    // X-Forwarded-For can be forged, so sign-up also has one limit shared by everyone.
+    if (loginLimit.tooMany('ip:' + clientIp(req)) || loginLimit.tooMany('signup')) return fail(res, 429, 'Too many attempts. Wait a few minutes.');
     const { username = '', password = '', code = '' } = await readJson(req, 4096);
     const want = process.env.SIGNUP_CODE || '';
     if (!want) return fail(res, 403, 'Sign-up is closed. Set SIGNUP_CODE on the server to open it.');
@@ -299,7 +303,8 @@ async function route(req, res) {
   // --- cron (no session; shared secret)
   if (path === '/api/cron' && method === 'POST') {
     const secret = process.env.CRON_SECRET;
-    const given = (req.headers.authorization || '').replace(/^Bearer\s+/i, '') || url.searchParams.get('key') || '';
+    // Header only: a key in the URL would end up in the host's request logs.
+    const given = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
     if (!secret || !safeEqual(given, secret)) return fail(res, 401, 'bad cron key');
     const out = { news: null, uni: {} };
     try { const n = await getNews(false); out.news = n?.items?.length ?? 0; } catch (e) { out.news = e.message; }

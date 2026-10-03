@@ -43,6 +43,8 @@ test('signed-out visitors are sent to the sign-in page', async () => {
   assert.equal(r.status, 302);
   assert.equal(r.headers.get('location'), '/login');
   assert.equal((await call('GET', '/login')).status, 200);
+  const csp = r.headers.get('content-security-policy');
+  assert.match(csp, /script-src 'self';/, 'scripts only from this site');
   assert.equal((await call('GET', '/api/state')).status, 401);
   assert.deepEqual((await call('GET', '/api/auth')).json, { user: null, needsSetup: true });
 });
@@ -119,6 +121,7 @@ test('server files and private data are never served', async () => {
 
 test('cron needs its key; sign-out ends the session', async () => {
   assert.equal((await call('POST', '/api/cron', {})).status, 401);
+  assert.equal((await call('POST', '/api/cron?key=cron-key', {})).status, 401, 'the key is only accepted in the header');
   assert.equal((await call('POST', '/api/logout', {})).status, 200);
   assert.equal((await call('GET', '/api/state')).status, 401);
 });
