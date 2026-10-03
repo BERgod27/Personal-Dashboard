@@ -103,7 +103,8 @@ function deadlineRow(d, now) {
   const due = new Date(d.due);
   const h = (due - now) / 36e5;
   const cls = h < 0 ? "late" : h < 48 ? "soon" : "";
-  const title = d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.title)}</a>` : esc(d.title);
+  // Only web links: a javascript: link in synced data must never become clickable.
+  const title = /^https?:\/\//i.test(d.url || "") ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.title)}</a>` : esc(d.title);
   return `<li class="${cls}"><span class="t">${relDue(due, now)}</span>
     <span class="what wrap">${title}<small>${esc(fmtDay(due))} ${fmtTime(due)}</small></span>
     ${d.course ? `<span class="chip">${esc(d.course)}</span>` : "<span></span>"}</li>`;

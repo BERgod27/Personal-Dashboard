@@ -67,6 +67,14 @@ async function main() {
     process.exit(2);
   }
 
+  // The sync key and your uni data travel to this address, so it must be encrypted (https).
+  let server;
+  try { server = new URL(cfg.serverUrl); } catch { console.error(`serverUrl is not a valid address: ${cfg.serverUrl}`); process.exit(2); }
+  if (server.protocol !== 'https:' && !['localhost', '127.0.0.1', '[::1]'].includes(server.hostname)) {
+    console.error(`serverUrl must start with https:// (now ${cfg.serverUrl}), so the sync key isn't sent unencrypted.`);
+    process.exit(2);
+  }
+
   const password = process.env.PD_SIGARRA_PASSWORD || await askHidden(`SIGARRA password for ${cfg.sigarraUser}: `);
   if (!password) { console.error('No password given.'); process.exit(2); }
 
