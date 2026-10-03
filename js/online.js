@@ -232,6 +232,7 @@
       '<p class="muted small">Signed in as <b></b></p>' +
       '<button class="btn small" type="button" data-act="uni">Uni connections</button>' +
       '<button class="btn small" type="button" data-act="out">Sign out</button>' +
+      '<button class="btn small ghost" type="button" data-act="out-all">Sign out on all devices</button>' +
       '</div></details>';
     wrap.querySelector('b').textContent = auth.json.user.username;
     var status = wrap.querySelector('#sync-status');
@@ -244,6 +245,7 @@
       wrap.querySelector('details').open = false;
       if (act === 'uni') openUni();
       if (act === 'out') signOut();
+      if (act === 'out-all' && confirm('Sign out on every phone and computer, this one included?')) signOut(true);
     });
     bar.appendChild(wrap);
 
@@ -253,9 +255,9 @@
     if (backupIntro) backupIntro.textContent = 'Your data is saved to your account. A backup copy is still a good idea before big changes.';
   }
 
-  function signOut() {
+  function signOut(everywhere) {
     flush().then(function () {
-      return api('POST', '/api/logout', {});
+      return api('POST', everywhere ? '/api/logout-all' : '/api/logout', {});
     }).catch(function () {}).then(function () {
       KEYS.concat([META]).forEach(function (k) { try { ls.removeItem(k); } catch (e) {} });
       location.replace('/login');
@@ -281,14 +283,15 @@
       '<p class="muted small">Moodle → Calendar → Import or export calendars → Export calendar → All courses + Recent and next 60 days → Get calendar URL.</p>' +
       '<div class="field"><label for="uc-moodle">Calendar URL <span data-f="moodleState"></span></label>' +
       '<input id="uc-moodle" type="password" autocomplete="off" placeholder="Paste to set or replace"></div>' +
-      '<h3>SIGARRA timetable</h3>' +
+      '<h3>SIGARRA</h3>' +
+      '<p class="muted small">Timetable, exams, course units, fees and print balance. The server signs in the same way as the U.Porto app.</p>' +
       '<div class="field-row">' +
-      '<div class="field"><label for="uc-fac">Faculty code</label><input id="uc-fac" type="text" placeholder="feup"></div>' +
       '<div class="field"><label for="uc-user">Username</label><input id="uc-user" type="text" autocomplete="off" placeholder="up202301234"></div>' +
+      '<div class="field"><label for="uc-fac">Faculty (optional)</label><input id="uc-fac" type="text" placeholder="found automatically"></div>' +
       '</div>' +
       '<div class="field"><label for="uc-pw">Password <span data-f="pwState"></span></label>' +
-      '<input id="uc-pw" type="password" autocomplete="off" placeholder="Only needed to sync the timetable"></div>' +
-      '<label class="check" for="uc-remember"><input id="uc-remember" type="checkbox"> Remember it on the server (encrypted) so the timetable syncs on its own</label>' +
+      '<input id="uc-pw" type="password" autocomplete="off" placeholder="Your SIGARRA password"></div>' +
+      '<label class="check" for="uc-remember"><input id="uc-remember" type="checkbox"> Remember it on the server (encrypted) so SIGARRA syncs on its own</label>' +
       '<details><summary class="small">Type the timetable by hand instead</summary>' +
       '<div class="field"><label for="uc-csv">One class per line: day,start,end,course,type,room,teacher</label>' +
       '<textarea id="uc-csv" rows="4" placeholder="Mon,08:30,10:30,ES,TP,B208,ABC"></textarea></div></details>' +
@@ -309,8 +312,13 @@
       $('[data-f="sources"]').textContent = Object.keys(src).map(function (k) {
         var s = src[k];
         var when = s.synced_at ? new Date(s.synced_at).toLocaleString() : 'never';
-        return (names[k] || k) + ': ' + (s.ok ? 'synced ' + when : 'failed (' + s.error + ')');
+        var warn = s.ok && s.warnings && s.warnings.length ? ' (not refreshed: ' + s.warnings.join('; ') + ')' : '';
+        return (names[k] || k) + ': ' + (s.ok ? 'synced ' + when + warn : 'failed (' + s.error + ')');
       }).join(' · ');
+      var p = d && d.profile;
+      if (p && p.faculties && p.faculties.length) {
+        $('#uc-fac').placeholder = 'found: ' + p.faculties.join(', ').toUpperCase();
+      }
     }
 
     function load() {
@@ -320,7 +328,7 @@
       api('GET', '/api/uni/settings').then(function (r) {
         var s = r.json || {};
         $('[data-f="moodleState"]').textContent = s.moodleConfigured ? '(saved for ' + s.moodleHost + ')' : '(not set)';
-        $('#uc-fac').value = s.faculty || 'feup';
+        $('#uc-fac').value = s.faculty || '';
         $('#uc-user').value = s.sigarraUser || '';
         $('#uc-remember').checked = !!s.passwordRemembered;
         $('[data-f="pwState"]').textContent = s.passwordRemembered ? '(remembered)' : '';
@@ -347,8 +355,8 @@
         $('#uc-pw').value = '';
         if (r.status !== 200) throw new Error(r.json.error || 'Sync failed.');
         var d = r.json.data;
-        msg.textContent = 'Synced: ' + d.classes.length + ' classes, ' + d.deadlines.length + ' deadlines.' +
-          (r.json.sigarraSkipped ? ' Type your SIGARRA password to update the timetable.' : '');
+        msg.textContent = 'Synced: ' + d.classes.length + ' classes, ' + (d.exams || []).length + ' exams, ' + d.deadlines.length + ' deadlines.' +
+          (r.json.sigarraSkipped ? ' Type your SIGARRA password to update SIGARRA.' : '');
         load();
       }).catch(function (e) { msg.textContent = e.message; });
     }
@@ -376,6 +384,7 @@
     // Refresh uni data in the background if it is more than an hour old.
     api('POST', '/api/uni/sync', { ifStale: true }).then(function (r) {
       if (r.status === 200 && r.json.data) publishUni(r.json.data);
+      if (r.json && r.json.forgotPassword) notice('SIGARRA turned down your saved password, so it was removed. Type it again in Account → Uni connections.');
     }).catch(function () {});
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);

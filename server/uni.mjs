@@ -1,53 +1,15 @@
 // Server-side uni sync: a Node port of modules/uni/sync_uni.py.
-// Same sources, same output contract (schema "uni/1"), so modules/uni/panel.js renders it unchanged.
+// Same sources, same output contract (schema "uni/1"), so modules/uni/panel.js renders it.
 //   Moodle  : calendar export URL (ICS)
-//   SIGARRA : the unofficial mobile JSON endpoints used by the U.Porto "uni" app
+//   SIGARRA : sign-in and pages the U.Porto "uni" app uses (sigarra.mjs)
 //   Manual  : a pasted schedule.csv (day,start,end,course,type,room,teacher)
 
-const LOCAL_TZ = 'Europe/Lisbon';
+import { LOCAL_TZ, offsetMinutes, zoned, iso, todayLocal, addDays, mondayOf } from './time.mjs';
+
+export { iso, zoned, mondayOf } from './time.mjs';
+export { syncSigarra } from './sigarra.mjs';
+
 const UA = 'personal-dashboard-uni/1.0';
-
-// ---------------------------------------------------------------- time zones
-
-function offsetMinutes(ms, zone = LOCAL_TZ) {
-  const s = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'longOffset' })
-    .formatToParts(new Date(ms)).find((p) => p.type === 'timeZoneName').value; // "GMT+01:00" or "GMT"
-  const m = s.match(/GMT([+-])(\d{2}):?(\d{2})?/);
-  return m ? (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] || 0)) : 0;
-}
-
-// Wall-clock time in a zone -> epoch ms.
-export function zoned(y, mo, d, h = 0, mi = 0, s = 0, zone = LOCAL_TZ) {
-  const naive = Date.UTC(y, mo - 1, d, h, mi, s);
-  let ms = naive - offsetMinutes(naive, zone) * 60e3;
-  ms = naive - offsetMinutes(ms, zone) * 60e3; // second pass settles DST edges
-  return ms;
-}
-
-const pad = (n) => String(n).padStart(2, '0');
-
-// "2026-10-10T23:59+01:00", like Python's isoformat(timespec="minutes") in Lisbon time.
-export function iso(ms) {
-  const off = offsetMinutes(ms);
-  const t = new Date(ms + off * 60e3);
-  const sign = off < 0 ? '-' : '+';
-  const a = Math.abs(off);
-  return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}T${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}${sign}${pad(Math.floor(a / 60))}:${pad(a % 60)}`;
-}
-
-// Today's date in Lisbon as {y, m, d}.
-function todayLocal(nowMs = Date.now()) {
-  const t = new Date(nowMs + offsetMinutes(nowMs) * 60e3);
-  return { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate() };
-}
-
-// Calendar-date arithmetic done in UTC so DST never shifts a day.
-const dayKey = ({ y, m, d }) => Date.UTC(y, m - 1, d);
-const fromKey = (k) => { const t = new Date(k); return { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate() }; };
-const addDays = (date, n) => fromKey(dayKey(date) + n * 86400e3);
-const weekday = (date) => (new Date(dayKey(date)).getUTCDay() + 6) % 7; // Monday = 0
-export const mondayOf = (date) => addDays(date, -weekday(date));
-const ymd = ({ y, m, d }) => `${y}${pad(m)}${pad(d)}`;
 
 // ---------------------------------------------------------------- ICS (Moodle calendar export)
 
@@ -118,109 +80,26 @@ export function moodleEventsToItems(events) {
   return { deadlines, events: others };
 }
 
-async function get(url, init = {}) {
-  const res = await fetch(url, { ...init, headers: { 'user-agent': UA, ...(init.headers || {}) }, signal: AbortSignal.timeout(30000) });
-  return res;
-}
-
-export async function syncMoodleIcs(icsUrl) {
+// Redirects are followed by hand so each hop can be checked against `allowed` (by default any
+// https link; the server limits it to the university's hosts).
+export async function syncMoodleIcs(icsUrl, { allowed = (u) => u.protocol === 'https:' } = {}) {
   if (!icsUrl) throw new Error('no Moodle calendar URL saved');
-  if (!/^https:\/\//i.test(icsUrl)) throw new Error('the Moodle calendar URL must start with https://');
-  const res = await get(icsUrl);
+  let u;
+  try { u = new URL(icsUrl); } catch { throw new Error('the Moodle calendar URL is not a valid link'); }
+  let res;
+  for (let hop = 0; ; hop++) {
+    if (!allowed(u)) throw new Error(`not following the Moodle link to ${u.host}: only the university's own sites are allowed`);
+    res = await fetch(u, { headers: { 'user-agent': UA }, redirect: 'manual', signal: AbortSignal.timeout(30000) });
+    const loc = res.headers.get('location');
+    if (!(res.status >= 300 && res.status < 400 && loc)) break;
+    await res.body?.cancel().catch(() => {});
+    if (hop >= 5) throw new Error('Moodle redirected too many times');
+    u = new URL(loc, u);
+  }
   if (!res.ok) throw new Error(`Moodle answered HTTP ${res.status}`);
   const text = await res.text();
   if (!text.includes('BEGIN:VCALENDAR')) throw new Error('Moodle did not return a calendar; the export URL may have expired');
   return moodleEventsToItems(parseIcs(text));
-}
-
-// ---------------------------------------------------------------- SIGARRA
-
-// fetch() drops cookies set on redirects, so this follows redirects by hand and keeps a jar.
-class Session {
-  constructor() { this.jar = new Map(); }
-  cookieHeader() { return [...this.jar].map(([k, v]) => `${k}=${v}`).join('; '); }
-  keep(res) {
-    for (const c of res.headers.getSetCookie?.() || []) {
-      const [pair] = c.split(';');
-      const i = pair.indexOf('=');
-      if (i > 0) this.jar.set(pair.slice(0, i).trim(), pair.slice(i + 1).trim());
-    }
-  }
-  async fetch(url, init = {}) {
-    for (let hop = 0; hop < 6; hop++) {
-      const res = await get(url, { ...init, redirect: 'manual', headers: { ...(init.headers || {}), cookie: this.cookieHeader() } });
-      this.keep(res);
-      const loc = res.headers.get('location');
-      if (res.status >= 300 && res.status < 400 && loc) {
-        url = new URL(loc, url).href;
-        init = { method: 'GET' };
-        continue;
-      }
-      return res;
-    }
-    throw new Error('too many redirects');
-  }
-}
-
-export function sigarraLectureToClass(l, monday) {
-  // 'dia' uses the Portuguese convention: 2 = Monday (segunda-feira) ... 7 = Saturday, 1 = Sunday.
-  const day = addDays(monday, (((Number(l.dia) - 2) % 7) + 7) % 7);
-  const secs = typeof l.hora_inicio === 'string' && l.hora_inicio.includes(':')
-    ? l.hora_inicio.split(':').slice(0, 2).reduce((h, m) => Number(h) * 3600 + Number(m) * 60)
-    : Math.trunc(Number(l.hora_inicio));
-  const start = zoned(day.y, day.m, day.d) + secs * 1000;
-  const hours = parseFloat(String(l.aula_duracao ?? 1).replace(',', '.'));
-  const end = start + hours * 3600e3;
-  return {
-    id: `sigarra:${l.aula_id || l.ocorrencia_id || ''}:${iso(start)}`,
-    course: l.ucurr_sigla ?? null,
-    type: l.tipo ?? null,
-    room: l.sala_sigla ?? null,
-    teacher: l.doc_sigla ?? null,
-    group: l.turma_sigla ?? null,
-    start: iso(start),
-    end: iso(end),
-    source: 'sigarra',
-  };
-}
-
-export async function syncSigarra({ faculty, user, password, weeksAhead = 2 }) {
-  if (!user) throw new Error('no SIGARRA username saved');
-  if (!password) throw new Error('SIGARRA password needed');
-  const base = `https://sigarra.up.pt/${String(faculty || 'feup').trim().toLowerCase()}/pt/`;
-  const s = new Session();
-  const json = async (res, what) => {
-    const raw = await res.text();
-    try { return JSON.parse(raw); } catch { throw new Error(`SIGARRA returned non-JSON for ${what} (session expired or endpoint changed)`); }
-  };
-
-  const login = await s.fetch(base + 'mob_val_geral.autentica', {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ pv_login: user, pv_password: password }).toString(),
-  });
-  const auth = await json(login, 'login');
-  if (!auth.authenticated) throw new Error('SIGARRA login failed (check username and password)');
-  const code = String(auth.codigo || user.replace(/\D/g, ''));
-
-  const first = mondayOf(todayLocal());
-  const classes = [];
-  for (let w = 0; w < weeksAhead; w++) {
-    const monday = addDays(first, 7 * w);
-    const q = new URLSearchParams({ pv_codigo: code, pv_semana_ini: ymd(monday), pv_semana_fim: ymd(addDays(monday, 6)) });
-    const res = await json(await s.fetch(`${base}mob_hor_geral.estudante?${q}`), 'timetable');
-    for (const l of res.horario || []) classes.push(sigarraLectureToClass(l, monday));
-  }
-  const out = { classes };
-  try {
-    const res = await json(await s.fetch(`${base}mob_fest_geral.ucurr_inscricoes_corrente?pv_codigo=${encodeURIComponent(code)}`), 'courses');
-    out.courses = (res.inscricoes || []).map((c) => ({
-      code: c.ucurr_codigo || c.ucurr_sigla, acronym: c.ucurr_sigla, name: c.ucurr_nome, source: 'sigarra',
-    }));
-  } catch (e) {
-    out.courses_error = e.message; // courses are nice to have; the timetable is what matters
-  }
-  return out;
 }
 
 // ---------------------------------------------------------------- manual timetable (CSV)
@@ -261,32 +140,46 @@ export function manualClasses(csv, weeks = 2, today = todayLocal()) {
 
 // ---------------------------------------------------------------- merge
 
-// Merge per-source results; a source that failed keeps its last good data.
-export function build(prev, results) {
+// Merge per-source results; a source that failed keeps its last good data. Within a source
+// that worked, a part it could not fetch this time (left undefined, with a warning) keeps its
+// last good copy too. `drop` lists sources to forget (no longer connected).
+export function build(prev, results, { drop = [], now = Date.now() } = {}) {
   const sources = structuredClone(prev?.sources || {});
   const bySource = Object.fromEntries(Object.entries(sources).map(([k, v]) => [k, v.data || {}]));
+  for (const name of drop) { delete sources[name]; delete bySource[name]; }
   for (const [name, [ok, payload]] of Object.entries(results)) {
     if (ok) {
-      bySource[name] = payload;
-      sources[name] = { ok: true, synced_at: iso(Date.now()), error: null };
+      const { warnings = [], ...fresh } = payload;
+      const kept = Object.entries(bySource[name] || {}).filter(([k]) => fresh[k] === undefined);
+      bySource[name] = Object.fromEntries([...kept, ...Object.entries(fresh).filter(([, v]) => v !== undefined)]);
+      sources[name] = { ok: true, synced_at: iso(now), error: null, warnings };
     } else {
-      sources[name] = { ok: false, synced_at: sources[name]?.synced_at ?? null, error: payload };
+      sources[name] = { ok: false, synced_at: sources[name]?.synced_at ?? null, error: payload, warnings: [] };
     }
   }
   for (const name of Object.keys(sources)) sources[name].data = bySource[name] || {};
 
   const collect = (key) => {
     const seen = new Set();
-    return Object.values(bySource).flatMap((v) => v[key] || []).filter((i) => !seen.has(i.id) && seen.add(i.id));
+    return Object.values(bySource).flatMap((v) => v[key] || []).filter((i) => {
+      const k = i.id ?? JSON.stringify(i);
+      return !seen.has(k) && seen.add(k);
+    });
   };
+  const first = (key) => Object.values(bySource).map((v) => v[key]).find((v) => v != null) ?? null;
   const by = (k) => (a, b) => String(a[k]).localeCompare(String(b[k]));
+  const fees = first('fees');
+  const prints = first('print_balance');
   return {
     schema: 'uni/1',
-    generated_at: iso(Date.now()),
+    generated_at: Object.keys(results).length || !prev?.generated_at ? iso(now) : prev.generated_at,
     classes: collect('classes').sort(by('start')),
     deadlines: collect('deadlines').sort(by('due')),
     events: collect('events').sort(by('start')),
+    exams: collect('exams').sort(by('start')),
     courses: collect('courses'),
+    profile: first('profile'),
+    finance: fees || prints != null ? { fees, print_balance: prints } : null,
     sources,
   };
 }

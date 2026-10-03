@@ -3,7 +3,7 @@
  *
  * Data comes from modules/uni/sync_uni.py, which runs on your own computer and
  * writes modules/uni/data/uni.js (window.UNI_DATA) and uni.json.
- * Classes go on the schedule and Moodle deadlines go in Tasks.
+ * Classes and exams go on the schedule and Moodle deadlines go in Tasks.
  * With no synced data, the panel says how to sync and can show example data.
  */
 (function () {
@@ -113,8 +113,8 @@
       else if (!el.childNodes.length) renderSetup(el);
     },
     itemsFor: function (date) {
-      if (!data || !data.classes) return [];
-      return data.classes.filter(function (c) { return day(c.start) === date; }).map(function (c) {
+      if (!data) return [];
+      var classes = (data.classes || []).filter(function (c) { return day(c.start) === date; }).map(function (c) {
         return {
           id: c.id,
           title: [c.course, c.type].filter(Boolean).join(' ') + (c.room ? ' · ' + c.room : ''),
@@ -122,6 +122,15 @@
           category: 'uni', source: 'SIGARRA', sample: isSample
         };
       });
+      var exams = (data.exams || []).filter(function (x) { return day(x.start) === date; }).map(function (x) {
+        return {
+          id: x.id,
+          title: 'Exam: ' + (x.course || x.course_name) + (x.rooms && x.rooms.length ? ' · ' + x.rooms.join(', ') : ''),
+          start: x.all_day ? null : hhmm(x.start), end: x.all_day ? null : hhmm(x.end),
+          category: 'uni', source: 'SIGARRA', sample: isSample
+        };
+      });
+      return classes.concat(exams);
     },
     tasksFor: function (date) {
       if (!data || !data.deadlines) return [];

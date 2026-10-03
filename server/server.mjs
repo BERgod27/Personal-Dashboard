@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { openDb, store as makeStore } from './db.mjs';
 import { hashPassword, verifyPassword, verifyDummy, newToken, sha256, safeEqual, secretBox, rateLimiter } from './security.mjs';
 import { syncMoodleIcs, syncSigarra, manualClasses, build, forClient } from './uni.mjs';
+import { isCredentialError } from './sigarra.mjs';
 
 const WEB_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
@@ -200,7 +201,7 @@ function publicUniSettings(s) {
   return {
     moodleConfigured: !!s.moodleIcs,
     moodleHost,
-    faculty: s.faculty || 'feup',
+    faculty: s.faculty || '',
     sigarraUser: s.sigarraUser || '',
     passwordRemembered: !!s.sigarraPassword,
     scheduleCsv: s.scheduleCsv || '',
@@ -208,13 +209,24 @@ function publicUniSettings(s) {
   };
 }
 
+// Moodle links (and anywhere Moodle redirects) must be https on an allowed host.
+function moodleHostOk(u) {
+  const host = u.hostname.toLowerCase();
+  return u.protocol === 'https:' && MOODLE_HOSTS.some((h) => (h.startsWith('.') ? host.endsWith(h) : host === h));
+}
+
 function checkMoodleUrl(raw) {
   let u;
   try { u = new URL(raw); } catch { throw Object.assign(new Error('That Moodle calendar URL is not a valid link.'), { status: 400 }); }
-  const host = u.hostname.toLowerCase();
-  const ok = u.protocol === 'https:' && MOODLE_HOSTS.some((h) => (h.startsWith('.') ? host.endsWith(h) : host === h));
+  const ok = moodleHostOk(u);
   if (!ok) throw Object.assign(new Error(`The Moodle calendar URL must be an https link on ${MOODLE_HOSTS.join(', ')}.`), { status: 400 });
   return u.href;
+}
+
+// Sources in the saved data that the settings no longer connect.
+function disconnected(s, data) {
+  const on = { moodle: !!s.moodleIcs, sigarra: !!s.sigarraUser, manual: !!s.scheduleCsv };
+  return Object.keys(data?.sources || {}).filter((k) => k in on && !on[k]);
 }
 
 async function runUniSync(userId, { password } = {}) {
@@ -222,16 +234,32 @@ async function runUniSync(userId, { password } = {}) {
   const job = (async () => {
     const s = await S.getServer(userId, UNI_SETTINGS, {});
     const results = {};
+    const errors = {};
     const attempt = async (name, fn) => {
-      try { results[name] = [true, await fn()]; } catch (e) { results[name] = [false, e.message || String(e)]; }
+      try { results[name] = [true, await fn()]; } catch (e) { results[name] = [false, e.message || String(e)]; errors[name] = e; }
     };
-    if (s.moodleIcs) await attempt('moodle', () => syncMoodleIcs(box.open(s.moodleIcs)));
-    let usedPassword = false;
-    if (s.sigarraUser) {
-      const pw = password || (s.sigarraPassword ? box.open(s.sigarraPassword) : null);
-      if (pw) {
-        usedPassword = true;
-        await attempt('sigarra', () => syncSigarra({ faculty: s.faculty, user: s.sigarraUser, password: pw, weeksAhead: s.weeksAhead || 2 }));
+    if (s.moodleIcs) await attempt('moodle', () => syncMoodleIcs(box.open(s.moodleIcs), { allowed: moodleHostOk }));
+    let forgotPassword = false;
+    if (s.sigarraUser && (password || s.sigarraPassword)) {
+      let used = password;
+      await attempt('sigarra', () => {
+        if (!used) {
+          try { used = box.open(s.sigarraPassword); } catch { throw new Error('The saved SIGARRA password can\'t be read any more (APP_SECRET changed). Type it again.'); }
+        }
+        return syncSigarra({ faculty: s.faculty, user: s.sigarraUser, password: used, weeksAhead: s.weeksAhead || 2 });
+      });
+      // If SIGARRA turned down the password that is saved, delete it, so automatic refreshes
+      // can't keep retrying it and get the account blocked.
+      if (used && isCredentialError(errors.sigarra)) {
+        const cur = await S.getServer(userId, UNI_SETTINGS, {});
+        let saved = null;
+        try { saved = cur.sigarraPassword ? box.open(cur.sigarraPassword) : null; } catch { /* unreadable: leave it */ }
+        if (saved === used) {
+          delete cur.sigarraPassword;
+          await S.setServer(userId, UNI_SETTINGS, cur);
+          results.sigarra[1] += ' The saved password was removed; type the right one in Uni connections.';
+          forgotPassword = true;
+        }
       }
     }
     if (s.scheduleCsv) await attempt('manual', async () => ({ classes: manualClasses(s.scheduleCsv, s.weeksAhead || 2) }));
@@ -240,9 +268,13 @@ async function runUniSync(userId, { password } = {}) {
       e.status = 400; e.needsPassword = !!s.sigarraUser;
       throw e;
     }
-    const data = build(await S.getServer(userId, UNI_DATA), results);
+    const prev = await S.getServer(userId, UNI_DATA);
+    const data = build(prev, results, { drop: disconnected(s, prev) });
     await S.setServer(userId, UNI_DATA, data);
-    return { data: forClient(data), ran: Object.keys(results), sigarraSkipped: !!s.sigarraUser && !usedPassword };
+    return {
+      data: forClient(data), ran: Object.keys(results),
+      sigarraSkipped: !!s.sigarraUser && !results.sigarra, forgotPassword,
+    };
   })().finally(() => uniRunning.delete(userId));
   uniRunning.set(userId, job);
   return job;
@@ -293,6 +325,13 @@ async function route(req, res) {
     if (!ok) return fail(res, 401, 'Wrong username or password.');
     loginLimit.clear('user:' + name);
     return startSession(req, res, u.id, u.username);
+  }
+  if (path === '/api/logout-all' && method === 'POST') {
+    // Signs out every device, e.g. after using a shared computer.
+    const user = await currentUser(req);
+    if (!user) return fail(res, 401, 'Sign in first.');
+    await S.dropUserSessions(user.id);
+    return send(res, 200, { ok: true }, undefined, { 'set-cookie': sessionCookie(req, '', 0) });
   }
   if (path === '/api/logout' && method === 'POST') {
     const token = cookies(req)[COOKIE];
@@ -387,14 +426,16 @@ async function route(req, res) {
       if (v) s.moodleIcs = box.seal(checkMoodleUrl(v)); else delete s.moodleIcs;
     }
     if (typeof b.faculty === 'string') {
-      const f = b.faculty.trim().toLowerCase() || 'feup';
-      if (!/^[a-z]{2,12}$/.test(f)) return fail(res, 400, 'The faculty code is letters only, like feup or fcup.');
-      s.faculty = f;
+      // Empty = found automatically from SIGARRA.
+      const f = b.faculty.trim().toLowerCase();
+      if (f && !/^[a-z]{2,12}$/.test(f)) return fail(res, 400, 'The faculty code is letters only, like feup or fcup.');
+      if (f) s.faculty = f; else delete s.faculty;
     }
+    let sigarraUserChanged = false;
     if (typeof b.sigarraUser === 'string') {
       const u = b.sigarraUser.trim();
       if (u && !/^[A-Za-z0-9._@-]{2,64}$/.test(u)) return fail(res, 400, 'That SIGARRA username looks wrong (e.g. up202301234).');
-      if (u !== (s.sigarraUser || '')) delete s.sigarraPassword;
+      if (u !== (s.sigarraUser || '')) { delete s.sigarraPassword; sigarraUserChanged = true; }
       if (u) s.sigarraUser = u; else delete s.sigarraUser;
     }
     if (b.rememberPassword === false) delete s.sigarraPassword;
@@ -405,6 +446,11 @@ async function route(req, res) {
     }
     if (Number.isInteger(b.weeksAhead) && b.weeksAhead >= 1 && b.weeksAhead <= 8) s.weeksAhead = b.weeksAhead;
     await S.setServer(user.id, UNI_SETTINGS, s);
+    // Forget synced data from sources that were disconnected (or another SIGARRA account's).
+    const prev = await S.getServer(user.id, UNI_DATA);
+    const drop = disconnected(s, prev);
+    if (sigarraUserChanged && prev?.sources?.sigarra && !drop.includes('sigarra')) drop.push('sigarra');
+    if (drop.length) await S.setServer(user.id, UNI_DATA, build(prev, {}, { drop }));
     return send(res, 200, publicUniSettings(s));
   }
   if (path === '/api/uni/sync' && method === 'POST') {

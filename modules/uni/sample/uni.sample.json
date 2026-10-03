@@ -216,7 +216,73 @@
     }
   ],
   "events": [],
+  "exams": [
+    {
+      "id": "sigarra:exam:sample-1",
+      "course": "ES",
+      "course_name": "Engenharia de Software",
+      "season": "EN",
+      "season_name": "Normal - Época Normal (1ºS)",
+      "start": "2027-01-11T09:00+00:00",
+      "end": "2027-01-11T12:00+00:00",
+      "all_day": false,
+      "rooms": [
+        "B104",
+        "B208"
+      ],
+      "source": "sigarra"
+    },
+    {
+      "id": "sigarra:exam:sample-2",
+      "course": "LBAW",
+      "course_name": "Laboratório de Bases de Dados e Aplicações Web",
+      "season": "EN",
+      "season_name": "Normal - Época Normal (1ºS)",
+      "start": "2027-01-18T14:30+00:00",
+      "end": "2027-01-18T17:30+00:00",
+      "all_day": false,
+      "rooms": [
+        "B001"
+      ],
+      "source": "sigarra"
+    }
+  ],
   "courses": [],
+  "profile": {
+    "name": "Example Student",
+    "email": null,
+    "number": "202300000",
+    "programmes": [
+      {
+        "name": "Licenciatura em Engenharia Informática e Computação",
+        "acronym": "L.EIC",
+        "year": "3",
+        "faculty": "feup",
+        "first_year": 2024,
+        "fest_id": null
+      }
+    ],
+    "faculties": [
+      "feup"
+    ]
+  },
+  "finance": {
+    "fees": {
+      "balance": "-69,70 €",
+      "balance_value": -69.7,
+      "next_due": "2026-10-31",
+      "unpaid": [
+        {
+          "description": "Propina - 2026/2027 - Prestação 2",
+          "date": "2026-09-01",
+          "deadline": "2026-10-31",
+          "amount": 69.7,
+          "amount_due": 69.7
+        }
+      ]
+    },
+    "print_balance": "2,35 €"
+  },
   "sources": {
     "sigarra": {
       "ok": true,

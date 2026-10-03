@@ -6,14 +6,17 @@ import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { startFakeSigarra } from './fake-sigarra.mjs';
 
 const PORT = 18000 + Math.floor(Math.random() * 1000);
 const BASE = `http://127.0.0.1:${PORT}`;
 const dir = mkdtempSync(join(tmpdir(), 'pd-'));
 let proc;
+let fake;
 
 before(async () => {
-  const env = { ...process.env, PORT: String(PORT), APP_SECRET: 'x'.repeat(48), SIGNUP_CODE: 'letmein', CRON_SECRET: 'cron-key', SQLITE_PATH: join(dir, 'db.sqlite') };
+  fake = await startFakeSigarra({ user: 'up202300001', password: 'pw-123', code: '202300001' });
+  const env = { ...process.env, PORT: String(PORT), APP_SECRET: 'x'.repeat(48), SIGNUP_CODE: 'letmein', CRON_SECRET: 'cron-key', SQLITE_PATH: join(dir, 'db.sqlite'), SIGARRA_BASE_URL: fake.base };
   delete env.DATABASE_URL;
   if (process.env.TEST_DATABASE_URL) env.DATABASE_URL = process.env.TEST_DATABASE_URL;
   proc = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', new URL('../server.mjs', import.meta.url).pathname], { env, stdio: ['ignore', 'pipe', 'inherit'] });
@@ -22,7 +25,7 @@ before(async () => {
     proc.on('exit', (c) => reject(new Error('server exited ' + c)));
   });
 });
-after(() => { proc?.kill(); rmSync(dir, { recursive: true, force: true }); });
+after(() => { proc?.kill(); fake?.close(); rmSync(dir, { recursive: true, force: true }); });
 
 let cookie = '';
 async function call(method, path, body, extra = {}) {
@@ -99,12 +102,67 @@ test('uni settings encrypt secrets and the manual timetable syncs', async () => 
   assert.equal(sync.status, 200);
   assert.ok(sync.json.data.classes.some((c) => c.source === 'manual'));
   assert.equal(sync.json.data.sources.manual.ok, true);
-  // moodle/sigarra are unreachable from the test sandbox, so they report errors but don't break the sync
+  // Moodle is unreachable from the test sandbox, so it reports an error but doesn't break the sync
   assert.equal(typeof sync.json.data.sources.moodle.ok, 'boolean');
+  // SIGARRA is the fake one (SIGARRA_BASE_URL), signed in with the remembered password
+  const d = sync.json.data;
+  assert.equal(d.sources.sigarra.ok, true, d.sources.sigarra.error);
+  assert.deepEqual(d.sources.sigarra.warnings, []);
+  assert.equal(d.sources.sigarra.data, undefined, 'raw copies stay on the server');
+  assert.ok(d.classes.some((c) => c.source === 'sigarra' && c.course === 'AMAT'));
+  assert.deepEqual(d.exams.map((e) => e.course), ['AMAT', 'FIS']);
+  assert.equal(d.profile.name, 'Bernardo Teste');
+  assert.equal(d.finance.fees.balance, '-697,00 €');
+  assert.equal(d.finance.print_balance, '2,35 €');
+  assert.ok(!JSON.stringify(d).includes('pw-123'));
 
   const js = await call('GET', '/modules/uni/data/uni.js');
   assert.match(js.text, /^window\.UNI_DATA = /);
   assert.equal((await call('POST', '/api/uni/sync', { ifStale: true })).json.skipped, 'fresh');
+});
+
+test('a saved SIGARRA password that stops working is deleted, and old data stays', async () => {
+  fake.opts.password = 'changed-on-sigarra';
+  const logins = () => fake.log.filter((r) => r.key.startsWith('POST')).length;
+  const before = logins();
+  const r = await call('POST', '/api/uni/sync', {});
+  assert.equal(r.status, 200);
+  assert.equal(r.json.forgotPassword, true);
+  assert.equal(r.json.data.sources.sigarra.ok, false);
+  assert.match(r.json.data.sources.sigarra.error, /wrong.*saved password was removed/);
+  assert.ok(r.json.data.classes.some((c) => c.source === 'sigarra'), 'last good timetable is kept');
+  assert.equal((await call('GET', '/api/uni/settings')).json.passwordRemembered, false);
+  const again = await call('POST', '/api/uni/sync', {});
+  assert.equal(again.json.sigarraSkipped, true);
+  assert.equal(logins(), before + 1, 'the bad password was tried once, not again');
+  // Typing the new password works, and removing SIGARRA forgets its data.
+  fake.opts.password = 'pw-123';
+  assert.equal((await call('POST', '/api/uni/sync', { password: 'pw-123' })).json.data.sources.sigarra.ok, true);
+  // A mistyped password saved with "Remember" is removed as soon as SIGARRA turns it down.
+  assert.equal((await call('PUT', '/api/uni/settings', { rememberPassword: true, sigarraPassword: 'typo' })).json.passwordRemembered, true);
+  const typo = await call('POST', '/api/uni/sync', { password: 'typo' });
+  assert.equal(typo.json.forgotPassword, true);
+  assert.equal((await call('GET', '/api/uni/settings')).json.passwordRemembered, false);
+  const off = await call('PUT', '/api/uni/settings', { sigarraUser: '' });
+  assert.equal(off.status, 200);
+  const data = (await call('GET', '/api/uni')).json;
+  assert.equal(data.sources.sigarra, undefined);
+  assert.ok(!data.classes.some((c) => c.source === 'sigarra'));
+  assert.equal(data.profile, null);
+});
+
+test('sign out everywhere ends every session', async () => {
+  const first = cookie;
+  assert.equal((await call('POST', '/api/login', { username: 'bernardo', password: 'long-password-1' })).status, 200);
+  const second = cookie;
+  assert.notEqual(first, second);
+  assert.equal((await call('POST', '/api/logout-all', {})).status, 200);
+  for (const c of [first, second]) {
+    cookie = c;
+    assert.equal((await call('GET', '/api/state')).status, 401);
+  }
+  cookie = '';
+  assert.equal((await call('POST', '/api/login', { username: 'bernardo', password: 'long-password-1' })).status, 200);
 });
 
 test('server files and private data are never served', async () => {

@@ -7,7 +7,8 @@ One small Node server that:
 - fetches Moodle deadlines, the SIGARRA timetable and the news feeds on the server,
   so they work from any device.
 
-No build step. Node 22.13+. The only dependency is `pg` (used when `DATABASE_URL` is set).
+No build step. Node 22.13+. Dependencies: `pg` (used when `DATABASE_URL` is set) and an HTML
+parser for SIGARRA's pages (`parse5`, `css-select`, `domutils`).
 
 ## How it works
 
@@ -16,14 +17,36 @@ No build step. Node 22.13+. The only dependency is `pg` (used when `DATABASE_URL
 | Accounts, sessions | `server.mjs` + `security.mjs` (scrypt password hashes, HttpOnly session cookie, rate-limited sign-in) |
 | Your data | `docs` table: each localStorage key the dashboard uses (`personal-dashboard.v1`, `pd.meals.v1`, `pd.workouts.v1`) is one versioned JSON document |
 | Browser sync | `../js/online.js` loads your data before the dashboard starts, saves each change within a second, and reloads when another device saved something newer |
-| Uni | `uni.mjs` (a Node port of `modules/uni/sync_uni.py`, same `uni/1` data format); settings are in the **Account → Uni connections** dialog |
+| Uni | `uni.mjs` (Moodle, manual timetable, merging; same `uni/1` data format as `modules/uni/sync_uni.py`) and `sigarra.mjs` (SIGARRA); settings are in the **Account → Uni connections** dialog |
 | News | reuses `modules/news/server.mjs` and `feeds.json`; cached for 15 minutes |
 | Database | Postgres when `DATABASE_URL` is set, otherwise a SQLite file (`data/dashboard.db`) |
 
 The Moodle calendar link and the SIGARRA password (only if you tick "Remember") are
 encrypted with AES-256-GCM using a key derived from `APP_SECRET`, which lives only in the
 host's settings. If you don't tick "Remember", the password is used for that one sync and
-dropped.
+dropped. If SIGARRA turns a remembered password down (wrong, expired or blocked), the server
+deletes it straight away, so the automatic refreshes never retry it and can't get the account
+blocked; the dashboard asks for it again.
+
+**Account → Sign out on all devices** ends every session, for example after using a shared computer.
+
+### SIGARRA
+
+`sigarra.mjs` makes the same requests as U.Porto's student app *uni*
+([NIAEFEUP/uni](https://github.com/NIAEFEUP/uni)):
+
+1. Signs in through SIGARRA's web form at FEUP (the session works for every faculty) and reads the
+   student number from the home page.
+2. Finds the student's faculties (the **Faculty** field is only needed if that fails).
+3. Timetable: the calendar feed behind SIGARRA's timetable page; if that page has no feed, the older
+   weekly JSON endpoint.
+4. Current course units, exam maps for each of them (upcoming exams only), profile, fees and the
+   FEUP print balance.
+5. Signs out.
+
+Only a failed sign-in fails the SIGARRA sync. Any other part that fails is listed as a warning and
+keeps its last good data. Requests only go to `sigarra.up.pt` and other `https://*.up.pt` hosts;
+a redirect anywhere else is refused, so the session cookie can't leave the university.
 
 When the dashboard is opened without this server (the published page, `file://`, or
 `python3 -m http.server`), `online.js` does nothing and everything stays in the browser as before.
@@ -40,6 +63,7 @@ When the dashboard is opened without this server (the published page, `file://`,
 | `UNI_SYNC_MINUTES` | optional | How old uni data may get before opening the dashboard refreshes it (default 60). |
 | `ALLOWED_MOODLE_HOSTS` | optional | Hosts allowed for the Moodle link (default any `*.up.pt`). |
 | `ALLOW_MORE_USERS` | optional | `1` to allow more accounts with the sign-up code. |
+| `SIGARRA_BASE_URL` | tests only | Points the SIGARRA sync at another server (the tests run a fake SIGARRA). |
 
 ## Run it on your computer
 
@@ -86,9 +110,10 @@ VPS), or with Postgres if you set `DATABASE_URL`. Set `APP_SECRET` and `SIGNUP_C
 
 ## Known limits
 
-- SIGARRA has no official student API. The sync uses the mobile endpoints the U.Porto app
-  uses; they were not reachable from where this was built, so the first real test is on the
-  host. If SIGARRA refuses logins from outside Portugal or changes its endpoints, the error
-  shows in Uni connections and the manual timetable still works.
+- SIGARRA has no official student API. The sync follows what the U.Porto app does, tested
+  against a fake SIGARRA built from that app's requests and page layouts; the real SIGARRA was not
+  reachable from where this was built, so the first real test is on the host. If SIGARRA refuses
+  sign-ins from outside Portugal or changes its pages, the error shows in Uni connections and
+  the manual timetable still works.
 - Conflicts are resolved per document: if two devices edit at the same moment, the one
   that saved first wins and the other reloads with a notice.

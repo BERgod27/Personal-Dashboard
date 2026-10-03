@@ -114,6 +114,9 @@ export function store(db) {
     async dropSession(tokenHash) {
       await db.q('DELETE FROM sessions WHERE token_hash = $1', [tokenHash]);
     },
+    async dropUserSessions(userId) {
+      await db.q('DELETE FROM sessions WHERE user_id = $1', [userId]);
+    },
     async pruneSessions() {
       await db.q('DELETE FROM sessions WHERE expires_at < $1', [Date.now()]);
     },

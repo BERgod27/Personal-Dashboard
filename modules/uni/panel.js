@@ -1,4 +1,4 @@
-// Uni panel: today's classes, the week ahead, and upcoming deadlines.
+// Uni panel: today's classes, upcoming deadlines and exams, the week ahead, fees.
 // Framework-free. Mount it anywhere:
 //
 //   import { mountUniPanel } from "./modules/uni/panel.js";
@@ -38,6 +38,10 @@ const STYLE = `
 .uni-panel .empty{color:var(--_muted);font-style:italic;padding:4px 0}
 .uni-panel .day{margin-top:10px;font-weight:600;font-size:13px}
 .uni-panel .err{font-size:12px;color:var(--_bad)}
+.uni-panel .warn{font-size:12px;color:var(--_warn)}
+.uni-panel .money{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px}
+.uni-panel .money b{font-variant-numeric:tabular-nums}
+.uni-panel .unpaid{margin-top:8px}
 .uni-panel details summary{cursor:pointer;color:var(--_muted);font-size:12px}
 `;
 
@@ -63,6 +67,38 @@ function classRow(c, now) {
     ${c.type ? `<span class="chip">${esc(c.type)}</span>` : "<span></span>"}</li>`;
 }
 
+const SEASONS = { MT: "Mini-test", EN: "Normal season", ER: "Resit season", EC: "Completion season", EE: "Special season", EAE: "Special season" };
+
+function examRow(x, now) {
+  const s = new Date(x.start), e = new Date(x.end);
+  const h = (s - now) / 36e5;
+  const cls = h < 48 ? "soon" : "";
+  const when = x.all_day ? fmtDay(s) : `${fmtDay(s)} ${fmtTime(s)}–${fmtTime(e)}`;
+  const sub = [when, (x.rooms || []).join(", "), SEASONS[x.season] || x.season_name].filter(Boolean).join(" · ");
+  return `<li class="${cls}"><span class="t">${now >= s ? "now" : relDue(x.all_day ? new Date(Math.max(+s, +now)) : s, now)}</span>
+    <span class="what wrap">${esc(x.course_name || x.course)}<small>${esc(sub)}</small></span>
+    ${x.course ? `<span class="chip">${esc(x.course)}</span>` : "<span></span>"}</li>`;
+}
+
+function moneyLine(f, now) {
+  const fees = f && f.fees;
+  const parts = [];
+  if (fees && fees.balance) parts.push(`<span>Fees balance <b>${esc(fees.balance)}</b></span>`);
+  if (fees && fees.next_due) parts.push(`<span>Next payment <b>${esc(fmtDay(new Date(fees.next_due + "T12:00")))}</b></span>`);
+  if (f && f.print_balance) parts.push(`<span>Printing <b>${esc(f.print_balance)}</b></span>`);
+  const unpaid = (fees && fees.unpaid) || [];
+  const rows = unpaid.slice(0, 3).map((u) => {
+    const due = u.deadline ? new Date(u.deadline + "T23:59") : null;
+    const cls = due && due < now ? "late" : due && due - now < 7 * 864e5 ? "soon" : "";
+    const amount = u.amount_due != null ? u.amount_due.toLocaleString([], { style: "currency", currency: "EUR" }) : "";
+    return `<li class="${cls}"><span class="t">${esc(amount)}</span>
+      <span class="what wrap">${esc(u.description)}${due ? `<small>due ${esc(fmtDay(due))}</small>` : ""}</span><span></span></li>`;
+  });
+  if (!parts.length && !rows.length) return "";
+  return `<section><h3>Fees and printing</h3>${parts.length ? `<div class="money">${parts.join("")}</div>` : ""}
+    ${rows.length ? `<ul class="unpaid">${rows.join("")}</ul>` : ""}</section>`;
+}
+
 function deadlineRow(d, now) {
   const due = new Date(d.due);
   const h = (due - now) / 36e5;
@@ -73,7 +109,7 @@ function deadlineRow(d, now) {
     ${d.course ? `<span class="chip">${esc(d.course)}</span>` : "<span></span>"}</li>`;
 }
 
-export function renderUni(data, { now = new Date(), deadlineDays = 14, weekDays = 7 } = {}) {
+export function renderUni(data, { now = new Date(), deadlineDays = 14, weekDays = 7, examLimit = 6 } = {}) {
   const classes = (data.classes || []).map((c) => ({ ...c, _s: new Date(c.start) }));
   const today = classes.filter((c) => sameDay(c._s, now));
   const tomorrow0 = new Date(now); tomorrow0.setHours(24, 0, 0, 0);
@@ -87,6 +123,11 @@ export function renderUni(data, { now = new Date(), deadlineDays = 14, weekDays 
     return due >= recentCutoff && due <= horizon;
   });
 
+  const exams = (data.exams || []).filter((x) => new Date(x.end) > now).slice(0, examLimit);
+  const p = data.profile;
+  const prog = p && p.programmes && p.programmes[0];
+  const who = p ? [p.name, prog && prog.acronym, prog && prog.year && `year ${prog.year}`, (p.faculties || []).join(", ").toUpperCase()].filter(Boolean).join(" · ") : "";
+
   const byDay = new Map();
   for (const c of upcoming) {
     const k = c._s.toDateString();
@@ -96,23 +137,28 @@ export function renderUni(data, { now = new Date(), deadlineDays = 14, weekDays 
 
   const sources = Object.entries(data.sources || {});
   const errors = sources.filter(([, s]) => !s.ok);
+  const warnings = sources.filter(([, s]) => s.ok && s.warnings && s.warnings.length);
   const synced = data.generated_at ? new Date(data.generated_at) : null;
 
   return `
     <header><strong>Uni</strong>
       <span class="uni-meta">${synced ? `synced ${esc(fmtDay(synced))} ${fmtTime(synced)}` : "not synced yet"}
       ${sources.length ? ` · ${sources.map(([n]) => esc(n)).join(", ")}` : ""}</span></header>
+    ${who ? `<div class="uni-meta">${esc(who)}</div>` : ""}
     ${errors.map(([n, s]) => `<div class="err">${esc(n)}: ${esc(s.error)}${s.synced_at ? " (showing last good data)" : ""}</div>`).join("")}
+    ${warnings.map(([n, s]) => `<div class="warn">${esc(n)}, not refreshed this time: ${esc(s.warnings.join("; "))} (showing last good data)</div>`).join("")}
     <section><h3>Today</h3>
       ${today.length ? `<ul>${today.map((c) => classRow(c, now)).join("")}</ul>` : `<div class="empty">No classes today.</div>`}
     </section>
     <section><h3>Deadlines · next ${deadlineDays} days</h3>
       ${deadlines.length ? `<ul>${deadlines.map((d) => deadlineRow(d, now)).join("")}</ul>` : `<div class="empty">Nothing due.</div>`}
     </section>
-    <section><details><summary>This week (${upcoming.length} classes)</summary>
+    ${exams.length ? `<section><h3>Exams</h3><ul>${exams.map((x) => examRow(x, now)).join("")}</ul></section>` : ""}
+    <section><details><summary>This week (${upcoming.length} ${upcoming.length === 1 ? "class" : "classes"})</summary>
       ${[...byDay.values()].map((list) => `<div class="day">${esc(fmtDay(list[0]._s))}</div>
         <ul>${list.map((c) => classRow(c, now)).join("")}</ul>`).join("") || `<div class="empty">No more classes this week.</div>`}
-    </details></section>`;
+    </details></section>
+    ${moneyLine(data.finance, now)}`;
 }
 
 export async function mountUniPanel(el, opts = {}) {
