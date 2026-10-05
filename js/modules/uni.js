@@ -10,6 +10,7 @@
   'use strict';
 
   var data = window.UNI_DATA || null;
+  var loading = !data; // true while modules/uni/data/uni.js is still loading
   var isSample = false;
   var mounted = null; // the element the panel is mounted in
 
@@ -30,13 +31,18 @@
     });
   }
 
+  function renderLoading(el) {
+    el.innerHTML = '<div class="skeleton-card" data-uni-loading aria-busy="true" aria-label="Loading uni data">' +
+      '<span class="skeleton lg"></span><span class="skeleton" style="width:80%"></span><span class="skeleton" style="width:65%"></span></div>';
+  }
+
   function renderSetup(el) {
     el.innerHTML = '';
     if (window.PDOnline) return renderOnlineSetup(el);
     Dashboard.placeholder(el, {
         title: 'Uni',
       status: 'Not synced yet',
-      summary: 'Classes from SIGARRA and deadlines from Moodle. The sync runs on your computer because the university sites only answer from there.',
+      summary: 'Classes and exams come from SIGARRA, deadlines from Moodle. The sync runs on your computer, because the university sites only answer from there.',
       planned: [
         'cd personal-dashboard/modules/uni',
         'python3 sync_uni.py setup   (once)',
@@ -67,8 +73,8 @@
     Dashboard.placeholder(el, {
       title: 'Uni',
       status: 'Not connected yet',
-      summary: 'Classes from SIGARRA and deadlines from Moodle, synced by the server so they show on all your devices.',
-      planned: ['Moodle: paste your calendar export link', 'SIGARRA: your username and password', 'Or type your timetable by hand']
+      summary: 'Classes and exams come from SIGARRA, deadlines from Moodle. The server syncs them, so they show on all your devices.',
+      planned: ['Moodle: your calendar export link', 'SIGARRA: your username and password', 'Or type your timetable by hand']
     });
     var b = document.createElement('button');
     b.type = 'button';
@@ -94,10 +100,14 @@
   if (!data) {
     var tag = document.createElement('script');
     tag.src = 'modules/uni/data/uni.js';
-    tag.onload = function () {
-      if (!window.UNI_DATA || window.UNI_DATA === data) return;
-      useData(window.UNI_DATA);
+    var done = function () {
+      loading = false;
+      if (window.UNI_DATA && window.UNI_DATA !== data) return useData(window.UNI_DATA);
+      var body = document.querySelector('#module-uni .module-body');
+      if (body && body.querySelector('[data-uni-loading]')) { body.innerHTML = ''; Dashboard.refresh(); }
     };
+    tag.onload = done;
+    tag.onerror = done;
     document.head.appendChild(tag);
   }
 
@@ -110,6 +120,7 @@
     render: function (el) {
       if (mounted === el) return;
       if (data) mountPanel(el);
+      else if (loading) { if (!el.childNodes.length) renderLoading(el); }
       else if (!el.childNodes.length) renderSetup(el);
     },
     itemsFor: function (date) {

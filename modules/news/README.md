@@ -37,8 +37,9 @@ or from JS: `import { mount } from './modules/news/news-panel.js'; mount(el, { a
 | `limit` | `60` | Max headlines shown |
 | `compact` | off | Hide images and summaries for a small tile |
 
-The panel uses shadow DOM and picks up the shell's theme from `--dash-bg`, `--dash-fg`, `--dash-muted`,
-`--dash-accent`, `--dash-border` and `--dash-radius` when set; otherwise it follows light/dark mode.
+The panel uses shadow DOM and reads the dashboard's design tokens (`css/tokens.css`), which reach inside
+because CSS variables inherit; a page that hosts it links that file (`node server.mjs` serves it for the
+standalone page). A shell that names the panel itself can hide its title with `--news-title-display: none`.
 It fires a `news-updated` event (detail = the JSON payload) after each load.
 
 ## Edit the outlets

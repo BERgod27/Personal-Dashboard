@@ -58,8 +58,9 @@ const CSP = [
   "default-src 'self'",
   // Only this site's own scripts: public CDNs would let anyone's npm package run here.
   "script-src 'self'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' data: https://fonts.gstatic.com",
+  // Fonts are self-hosted (fonts/), so no font CDN is allowed.
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self' data:",
   "img-src 'self' data: https:",
   "connect-src 'self'",
   "frame-ancestors 'none'",

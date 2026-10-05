@@ -47,6 +47,23 @@
     return el('span', 'chip cat-' + c.id, c.label);
   }
 
+  /* A quiet empty or error state: icon tile, title, one line of help. */
+  var ICONS = {
+    tasks: '<path d="M13 5h8"/><path d="M13 12h8"/><path d="M13 19h8"/><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/>',
+    alert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>'
+  };
+  function emptyState(icon, title, text, cls) {
+    var box = el('div', 'empty-state' + (cls ? ' ' + cls : ''));
+    var tile = el('span', 'empty-icon');
+    tile.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[icon] + '</svg>';
+    var copy = el('div', 'empty-copy');
+    copy.appendChild(el('p', 'empty-title', title));
+    if (text) copy.appendChild(el('p', 'empty-text', text));
+    box.appendChild(tile);
+    box.appendChild(copy);
+    return box;
+  }
+
   /* ---------- day header + week strip ---------- */
 
   function renderHeader() {
@@ -136,7 +153,7 @@
     }
 
     if (!timed.length) {
-      var empty = el('p', 'timeline-empty', 'Nothing scheduled. Click an hour or use the box above to add something.');
+      var empty = el('p', 'timeline-empty', 'Nothing scheduled. Select an hour or use Quick add.');
       empty.style.top = Math.max(0, (10 - startH)) * HOUR_PX + 'px';
       tl.appendChild(empty);
     }
@@ -159,16 +176,18 @@
     var c = Dashboard.category(ev.category);
     var card = el('button', 'event cat-' + c.id + (positioned ? ' positioned' : ''));
     card.type = 'button';
-    var time = ev.start ? ev.start + (ev.end ? '–' + ev.end : '') : 'All day';
-    card.appendChild(el('span', 'event-time', time));
+    var timeText = ev.start ? ev.start + (ev.end ? '–' + ev.end : '') : 'All day';
+    var time = el('span', 'event-time', ev.start || 'All day');
+    if (ev.start && ev.end) time.appendChild(el('span', 'event-end', '–' + ev.end));
+    card.appendChild(time);
     var title = el('span', 'event-title', ev.title);
     card.appendChild(title);
     var meta = el('span', 'event-meta');
     if (ev.weekly) meta.appendChild(el('span', 'tag', 'weekly'));
-    if (ev.sample) meta.appendChild(el('span', 'chip sample', 'example'));
+    if (ev.sample) meta.appendChild(el('span', 'chip sample', 'Example'));
     if (ev.source) meta.appendChild(el('span', 'tag', 'from ' + ev.source));
     if (meta.childNodes.length) card.appendChild(meta);
-    card.setAttribute('aria-label', time + ', ' + ev.title + ', ' + c.label);
+    card.setAttribute('aria-label', timeText + ', ' + ev.title + ', ' + c.label);
     if (ev.source) {
       card.disabled = true;
     } else {
@@ -230,7 +249,7 @@
     ];
 
     if (!tasks.length) {
-      box.appendChild(el('p', 'empty', 'No tasks for this day. Type one in the box above, like “email professor tomorrow”.'));
+      box.appendChild(emptyState('tasks', 'No tasks for this day', 'Add one with Quick add, for example “email professor tomorrow”.'));
       return;
     }
 
@@ -263,7 +282,7 @@
         else title.addEventListener('click', function () { openEditor('task', t.id); });
         var meta = el('span', 'task-meta');
         if (t.due && t.due < state.date) meta.appendChild(el('span', 'due', dayLabel(t.due)));
-        if (t.sample) meta.appendChild(el('span', 'chip sample', 'example'));
+        if (t.sample) meta.appendChild(el('span', 'chip sample', 'Example'));
         meta.appendChild(chip(t.category));
         li.appendChild(cb);
         li.appendChild(label);
@@ -323,7 +342,8 @@
         m.render(body, { date: state.date, setDate: setDate });
       } catch (err) {
         console.error(m.id, err);
-        body.textContent = 'This module failed to load.';
+        body.textContent = '';
+        body.appendChild(emptyState('alert', m.title + ' could not load', 'Reload the page. If it keeps happening, the browser console has the details.', 'error-state module-error'));
       }
     });
   }

@@ -218,6 +218,15 @@
 
   var LABELS = { saved: 'Saved', saving: 'Saving…', offline: 'Offline, will save when back', error: 'Not saved yet, retrying' };
 
+  // Lucide icons (lucide.dev), drawn inline so they follow the text colour.
+  function icon(paths) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + paths + '</svg>'; }
+  var ICON = {
+    user: icon('<circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/>'),
+    uni: icon('<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>'),
+    out: icon('<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>'),
+    devices: icon('<path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"/><path d="M10 19v-3.96 3.15"/><path d="M7 19h5"/><rect width="6" height="10" x="16" y="12" rx="2"/>')
+  };
+
   function buildBar() {
     var bar = document.querySelector('.topbar');
     if (!bar || document.getElementById('online-bar')) return;
@@ -225,31 +234,39 @@
     wrap.id = 'online-bar';
     wrap.className = 'online-bar';
     wrap.innerHTML =
-      '<span class="sync-status" id="sync-status" aria-live="polite"></span>' +
+      '<span class="sync-status" id="sync-status" aria-live="polite"><span class="sync-label"></span></span>' +
       '<details class="account-menu">' +
-      '<summary class="btn ghost">Account</summary>' +
+      '<summary class="btn ghost account-btn" aria-label="Account">' + ICON.user + '<span class="account-name"></span></summary>' +
       '<div class="account-pop">' +
-      '<p class="muted small">Signed in as <b></b></p>' +
-      '<button class="btn small" type="button" data-act="uni">Uni connections</button>' +
-      '<button class="btn small" type="button" data-act="out">Sign out</button>' +
-      '<button class="btn small ghost" type="button" data-act="out-all">Sign out on all devices</button>' +
-      '<p class="muted small" data-f="version" hidden></p>' +
+      '<p class="account-who">Signed in as <b></b></p>' +
+      '<button class="menu-item" type="button" data-act="uni">' + ICON.uni + 'Uni connections</button>' +
+      '<button class="menu-item" type="button" data-act="out">' + ICON.out + 'Sign out</button>' +
+      '<button class="menu-item danger" type="button" data-act="out-all">' + ICON.devices + 'Sign out on all devices</button>' +
+      '<p class="account-version" data-f="version" hidden></p>' +
       '</div></details>';
-    wrap.querySelector('b').textContent = auth.json.user.username;
+    wrap.querySelector('.account-who b').textContent = auth.json.user.username;
+    wrap.querySelector('.account-name').textContent = auth.json.user.username;
     // The GitHub commit the server was built from: matches the newest commit once an update is live.
     var version = wrap.querySelector('[data-f="version"]');
     if (auth.json.version) { version.textContent = 'Version ' + auth.json.version; version.hidden = false; }
     var status = wrap.querySelector('#sync-status');
-    var paint = function (s) { status.textContent = LABELS[s]; status.dataset.state = s; };
+    var paint = function (s) { status.firstChild.textContent = LABELS[s]; status.title = LABELS[s]; status.dataset.state = s; };
     paint(state);
     listeners.push(paint);
+    var menu = wrap.querySelector('details');
     wrap.addEventListener('click', function (e) {
-      var act = e.target.getAttribute && e.target.getAttribute('data-act');
+      var t = e.target.closest && e.target.closest('[data-act]');
+      var act = t && t.getAttribute('data-act');
       if (!act) return;
-      wrap.querySelector('details').open = false;
+      menu.open = false;
       if (act === 'uni') openUni();
       if (act === 'out') signOut();
       if (act === 'out-all' && confirm('Sign out on every phone and computer, this one included?')) signOut(true);
+    });
+    // Close the menu on Escape or a click elsewhere, like any other menu.
+    document.addEventListener('click', function (e) { if (menu.open && !menu.contains(e.target)) menu.open = false; });
+    menu.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && menu.open) { menu.open = false; menu.querySelector('summary').focus(); }
     });
     bar.appendChild(wrap);
 
@@ -279,38 +296,43 @@
   function buildUniDialog() {
     var el = document.createElement('dialog');
     el.className = 'dialog uni-connect';
+    el.setAttribute('aria-labelledby', 'uc-title');
     el.innerHTML =
-      '<form method="dialog" class="dialog-body">' +
-      '<h2>Uni connections</h2>' +
-      '<p class="muted small">The server fetches these for you, so they work on every device. Saved links and passwords are encrypted.</p>' +
-      '<h3>Moodle deadlines</h3>' +
-      '<p class="muted small">Moodle → Calendar → Import or export calendars → Export calendar → All courses + Recent and next 60 days → Get calendar URL.</p>' +
+      '<form method="dialog">' +
+      '<div class="dialog-head"><h2 id="uc-title">Uni connections</h2>' +
+      '<p class="muted">The server fetches these for you, so they work on every device. Saved links and passwords are encrypted.</p></div>' +
+      '<div class="dialog-body">' +
+      '<section class="dialog-section"><h3>Moodle deadlines</h3>' +
+      '<p class="muted">In Moodle: Calendar, Import or export calendars, Export calendar. Choose All courses and Recent and next 60 days, then Get calendar URL.</p>' +
       '<div class="field"><label for="uc-moodle">Calendar URL <span data-f="moodleState"></span></label>' +
-      '<input id="uc-moodle" type="password" autocomplete="off" placeholder="Paste to set or replace"></div>' +
-      '<h3>SIGARRA</h3>' +
-      '<p class="muted small">Timetable, exams, course units, fees and print balance. The server signs in the same way as the U.Porto app.</p>' +
+      '<input id="uc-moodle" type="password" autocomplete="off" placeholder="Paste to set or replace"></div></section>' +
+      '<section class="dialog-section"><h3>SIGARRA</h3>' +
+      '<p class="muted">Timetable, exams, course units, fees and print balance. The server signs in the same way as the U.Porto app.</p>' +
       '<div class="field-row">' +
       '<div class="field"><label for="uc-user">Username</label><input id="uc-user" type="text" autocomplete="off" placeholder="up202301234"></div>' +
-      '<div class="field"><label for="uc-fac">Faculty (optional)</label><input id="uc-fac" type="text" placeholder="found automatically"></div>' +
+      '<div class="field"><label for="uc-fac">Faculty (optional)</label><input id="uc-fac" type="text" placeholder="Found automatically"></div>' +
       '</div>' +
       '<div class="field"><label for="uc-pw">Password <span data-f="pwState"></span></label>' +
-      '<input id="uc-pw" type="password" autocomplete="off" placeholder="Your SIGARRA password"></div>' +
+      '<input id="uc-pw" type="password" autocomplete="off"></div>' +
       '<label class="check" for="uc-remember"><input id="uc-remember" type="checkbox"> Remember it on the server (encrypted) so SIGARRA syncs on its own</label>' +
-      '<details class="localsync"><summary class="small">Sync from your own computer (if SIGARRA blocks the server)</summary>' +
-      '<p class="muted small">SIGARRA can turn the server away. Run a small script on your computer instead: it signs in from your own network and your SIGARRA password stays with you. <span data-f="localState"></span></p>' +
-      '<div class="field-row">' +
+      '<details class="disclosure localsync"><summary>Sync from your own computer if SIGARRA blocks the server</summary>' +
+      '<div class="disclosure-body">' +
+      '<p>SIGARRA can turn the server away. A small script on your computer signs in from your own network instead, and your SIGARRA password stays with you. <span data-f="localState"></span></p>' +
+      '<div class="row">' +
       '<button class="btn small" type="button" data-act="synckey">Create a sync key</button>' +
-      '<button class="btn small ghost" type="button" data-act="synckey-off" hidden>Turn off local sync</button>' +
+      '<button class="btn small ghost danger" type="button" data-act="synckey-off" hidden>Turn off local sync</button>' +
       '</div>' +
-      '<div class="field" data-f="keybox" hidden><label>Your sync key (copy it now, shown once)</label>' +
-      '<input data-f="keyval" type="text" readonly></div>' +
-      '<p class="muted small">Then follow server/tools/README to run it.</p>' +
-      '</details>' +
-      '<details><summary class="small">Type the timetable by hand instead</summary>' +
-      '<div class="field"><label for="uc-csv">One class per line: day,start,end,course,type,room,teacher</label>' +
-      '<textarea id="uc-csv" rows="4" placeholder="Mon,08:30,10:30,ES,TP,B208,ABC"></textarea></div></details>' +
-      '<p class="small" data-f="sources"></p>' +
-      '<p class="small" data-f="msg" aria-live="polite"></p>' +
+      '<div class="field" data-f="keybox" hidden><label for="uc-key">Your sync key (copy it now, it is shown once)</label>' +
+      '<input id="uc-key" class="mono" data-f="keyval" type="text" readonly></div>' +
+      '<p>Then follow server/tools/README to run it.</p>' +
+      '</div></details>' +
+      '<details class="disclosure"><summary>Type the timetable by hand instead</summary>' +
+      '<div class="disclosure-body"><div class="field"><label for="uc-csv">One class per line: day, start, end, course, type, room, teacher</label>' +
+      '<textarea id="uc-csv" class="mono" rows="4" placeholder="Mon,08:30,10:30,ES,TP,B208,ABC"></textarea></div></div></details>' +
+      '</section>' +
+      '<ul class="sources" data-f="sources" aria-label="Last sync"></ul>' +
+      '<p class="form-msg" data-f="msg" aria-live="polite"></p>' +
+      '</div>' +
       '<div class="dialog-actions"><span class="spacer"></span>' +
       '<button class="btn" type="button" data-act="close">Close</button>' +
       '<button class="btn primary" type="button" data-act="save">Save and sync</button></div>' +
@@ -323,15 +345,23 @@
       var d = window.UNI_DATA;
       var src = (d && d.sources) || {};
       var names = { moodle: 'Moodle', sigarra: 'SIGARRA', manual: 'Manual timetable' };
-      $('[data-f="sources"]').textContent = Object.keys(src).map(function (k) {
+      var list = $('[data-f="sources"]');
+      list.textContent = '';
+      Object.keys(src).forEach(function (k) {
         var s = src[k];
         var when = s.synced_at ? new Date(s.synced_at).toLocaleString() : 'never';
         var warn = s.ok && s.warnings && s.warnings.length ? ' (not refreshed: ' + s.warnings.join('; ') + ')' : '';
-        return (names[k] || k) + ': ' + (s.ok ? 'synced ' + when + warn : 'failed (' + s.error + ')');
-      }).join(' · ');
+        var li = document.createElement('li');
+        li.className = !s.ok ? 'is-bad' : warn ? 'is-warn' : '';
+        var name = document.createElement('b');
+        name.textContent = names[k] || k;
+        li.appendChild(name);
+        li.appendChild(document.createTextNode(s.ok ? ' synced ' + when + warn : ' failed: ' + s.error));
+        list.appendChild(li);
+      });
       var p = d && d.profile;
       if (p && p.faculties && p.faculties.length) {
-        $('#uc-fac').placeholder = 'found: ' + p.faculties.join(', ').toUpperCase();
+        $('#uc-fac').placeholder = 'Found: ' + p.faculties.join(', ').toUpperCase();
       }
     }
 
@@ -410,7 +440,8 @@
     }
 
     el.addEventListener('click', function (e) {
-      var act = e.target.getAttribute && e.target.getAttribute('data-act');
+      var t = e.target.closest && e.target.closest('[data-act]');
+      var act = t && t.getAttribute('data-act');
       if (act === 'close') el.close();
       if (act === 'save') save();
       if (act === 'synckey') makeSyncKey();

@@ -47,12 +47,14 @@
     return n;
   }
 
+  // Lucide icons (lucide.dev)
   var ICON = {
-    spark: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l1.9 4.6 4.6 1.9-4.6 1.9L12 16.5l-1.9-4.6L5.5 10l4.6-1.9z"/><path d="M18.5 15.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z"/></svg>',
-    close: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
-    fresh: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
-    send: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
-    stop: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2" class="fill"/></svg>'
+    ask: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></svg>',
+    close: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+    fresh: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>',
+    send: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>',
+    stop: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="10" height="10" x="7" y="7" rx="1.5" class="fill"/></svg>',
+    arrow: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>'
   };
 
   /* ---------- a small, safe Markdown renderer (everything is escaped first) */
@@ -112,18 +114,17 @@
 
   /* ---------- UI */
   function build() {
-    el.fab = h('button', { class: 'tutor-fab', type: 'button', 'aria-label': 'Ask the tutor', 'aria-expanded': 'false', 'aria-controls': 'tutor-panel', html: ICON.spark + '<span>Ask</span>' });
+    el.fab = h('button', { class: 'tutor-fab', type: 'button', 'aria-label': 'Ask the tutor', 'aria-expanded': 'false', 'aria-controls': 'tutor-panel', html: ICON.ask + '<span>Ask</span>' });
     el.list = h('div', { class: 'tt-list', role: 'log', 'aria-live': 'polite' });
-    el.input = h('textarea', { id: 'tutor-input', rows: '1', placeholder: 'Ask about your classes, exams, training… or anything you are studying', enterkeyhint: 'send' });
+    el.input = h('textarea', { id: 'tutor-input', rows: '1', placeholder: 'Ask about your classes, exams, training or anything you are studying', enterkeyhint: 'send' });
     el.send = h('button', { class: 'btn primary icon tt-send', type: 'submit', 'aria-label': 'Send', html: ICON.send });
     el.note = h('p', { class: 'tt-note muted small' });
     var form = h('form', { class: 'tt-composer', autocomplete: 'off' }, [h('label', { class: 'sr-only', for: 'tutor-input', text: 'Your question' }), el.input, el.send]);
     var newBtn = h('button', { class: 'btn ghost icon', type: 'button', 'aria-label': 'New chat', title: 'New chat', html: ICON.fresh });
     var closeBtn = h('button', { class: 'btn ghost icon', type: 'button', 'aria-label': 'Close', title: 'Close', html: ICON.close });
-    el.panel = h('section', { class: 'tutor-panel', id: 'tutor-panel', role: 'dialog', 'aria-label': 'Tutor', hidden: '' }, [
+    el.panel = h('section', { class: 'tutor-panel', id: 'tutor-panel', role: 'dialog', 'aria-labelledby': 'tutor-title', hidden: '' }, [
       h('header', { class: 'tt-head' }, [
-        h('span', { class: 'tt-mark', 'aria-hidden': 'true', html: ICON.spark }),
-        h('div', { class: 'tt-title' }, [h('h2', { text: 'Tutor' }), h('p', { class: 'muted small', text: 'Knows your uni, gym and meals' })]),
+        h('div', { class: 'tt-title' }, [h('h2', { id: 'tutor-title', text: 'Tutor' }), h('p', { text: 'Answers from your timetable, deadlines, workouts and meals' })]),
         newBtn, closeBtn
       ]),
       el.list, el.note, form
@@ -180,16 +181,18 @@
   function draw() {
     el.list.textContent = '';
     if (!messages.length) {
-      var chips = h('div', { class: 'tt-chips' });
+      var list = h('ul', { class: 'tt-suggest', 'aria-label': 'Suggested questions' });
       SUGGESTIONS.forEach(function (s) {
-        var c = h('button', { class: 'tt-chip', type: 'button', text: s });
+        var c = h('button', { class: 'tt-suggestion', type: 'button', html: '<span></span>' + ICON.arrow });
+        c.firstChild.textContent = s;
         c.addEventListener('click', function () { ask(s); });
-        chips.appendChild(c);
+        list.appendChild(h('li', null, [c]));
       });
       el.list.appendChild(h('div', { class: 'tt-empty' }, [
-        h('p', { class: 'tt-hello', text: 'Hi Bernardo. What do you want to know?' }),
-        h('p', { class: 'muted small', text: 'I can see your timetable, deadlines, exams, workouts, meals and the news, and I can help you study anything.' }),
-        chips
+        h('p', { class: 'tt-empty-title', text: 'Ask about anything on this dashboard' }),
+        h('p', { class: 'tt-empty-text', text: 'The tutor reads your timetable, deadlines, exams, workouts, meals and the news, and can help you study.' }),
+        h('p', { class: 'tt-suggest-label', text: 'Try asking' }),
+        list
       ]));
     }
     messages.forEach(function (m) { el.list.appendChild(bubble(m)); });
@@ -217,7 +220,7 @@
     var answer = { role: 'assistant', content: '' };
     var b = bubble(answer);
     b.classList.add('is-typing');
-    b.innerHTML = '<span class="tt-dots" aria-label="Thinking"><i></i><i></i><i></i></span>';
+    b.innerHTML = '<span class="tt-thinking">Thinking…</span>';
     el.list.appendChild(b);
     el.list.scrollTop = el.list.scrollHeight;
 

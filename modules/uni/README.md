@@ -53,9 +53,8 @@ const panel = await mountUniPanel(document.querySelector("#uni"), {
 ```
 
 `renderUni(data, opts)` returns the panel HTML as a string if the shell prefers to render itself.
-Theme with CSS variables on any ancestor: `--uni-bg --uni-fg --uni-muted --uni-line --uni-accent`
-(falls back to `--panel-bg --text --text-muted --border --accent`). Dark mode follows the system
-unless the element has `data-theme="light"`.
+Colours, type and spacing come from the dashboard's design tokens, so a page that mounts the panel
+links `css/tokens.css` (the standalone `index.html` does, and `sync_uni.py serve` serves it).
 
 ## Data contract (`schema: "uni/1"`)
 

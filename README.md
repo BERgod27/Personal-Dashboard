@@ -28,7 +28,9 @@ Keys: ← / → change day, `t` today, `/` focus quick-add.
 ## Layout
 ```
 index.html            page shell
-css/app.css           styles (light + dark)
+css/tokens.css        design tokens: colours, type, spacing, radii, motion (dark theme)
+css/app.css           shell and shared component styles, built on the tokens
+fonts/                Geist and Geist Mono (self-hosted, OFL)
 js/store.js           data store + date helpers (Store, D)
 js/core.js            areas, module registry, quick-add parser (Dashboard)
 js/modules/*.js       adapters that register each module with the dashboard

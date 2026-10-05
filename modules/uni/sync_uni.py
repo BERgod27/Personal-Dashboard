@@ -459,7 +459,18 @@ def cmd_sync(args):
 def cmd_serve(port: int):
     import functools
     import http.server
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(HERE))
+    # The page links the dashboard's design tokens and fonts; serve just those from the repo root.
+    shared = {"/css/tokens.css", "/fonts/Geist-Variable.woff2", "/fonts/GeistMono-Variable.woff2"}
+    repo = HERE.parent.parent
+
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def translate_path(self, path):
+            clean = path.split("?", 1)[0].split("#", 1)[0]
+            if clean in shared:
+                return str(repo / clean.lstrip("/"))
+            return super().translate_path(path)
+
+    handler = functools.partial(Handler, directory=str(HERE))
     print(f"Uni panel preview at http://localhost:{port}/index.html  (Ctrl+C to stop)")
     http.server.ThreadingHTTPServer(("127.0.0.1", port), handler).serve_forever()
 
