@@ -252,28 +252,29 @@
   }
 
   // ---------- drawings ----------
+  // Lucide icons (lucide.dev), 24px grid, drawn at 16px with a 1.5px stroke.
   var ICONS = {
-    check: '<path d="M5 12.5l4.2 4.2L19 7"/>',
-    plus: '<path d="M12 5v14M5 12h14"/>',
-    x: '<path d="M6 6l12 12M18 6L6 18"/>',
-    dots: '<circle class="f" cx="5.5" cy="12" r="1.6"/><circle class="f" cx="12" cy="12" r="1.6"/><circle class="f" cx="18.5" cy="12" r="1.6"/>',
-    timer: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M9.5 2.8h5M18.6 6.2l1.4-1.4"/>',
-    trophy: '<path d="M7.5 4.5h9v4.5a4.5 4.5 0 0 1-9 0z"/><path d="M7.5 6.5H4.8a2.6 2.6 0 0 0 2.9 3.6M16.5 6.5h2.7a2.6 2.6 0 0 1-2.9 3.6M12 13.5v3.5M8.5 20h7M9.5 17h5v3h-5z"/>',
-    play: '<path class="f" d="M8 5.6v12.8c0 .8.9 1.3 1.6.8l9.6-6.4a1 1 0 0 0 0-1.6L9.6 4.8C8.9 4.3 8 4.8 8 5.6z"/>',
-    repeat: '<path d="M17 3.5l3 3-3 3"/><path d="M4 11.5v-1a4 4 0 0 1 4-4h12M7 20.5l-3-3 3-3"/><path d="M20 12.5v1a4 4 0 0 1-4 4H4"/>',
-    left: '<path d="M14.5 6l-6 6 6 6"/>',
-    right: '<path d="M9.5 6l6 6-6 6"/>',
-    search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/>',
-    clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
-    weight: '<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>',
-    layers: '<path d="M12 4l8.5 4.5L12 13 3.5 8.5z"/><path d="M3.5 12.5L12 17l8.5-4.5M3.5 16.5L12 21l8.5-4.5"/>',
-    heart: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z"/><path d="M5.5 12.5h3.2l1.6-2.6 2.4 5 1.6-2.4h4.2"/>',
-    edit: '<path d="M4.5 19.5l1-4.2L15.8 5a2 2 0 0 1 2.9 0l.3.3a2 2 0 0 1 0 2.9L8.7 18.5z"/><path d="M14 6.8l3.2 3.2"/>',
-    trash: '<path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l1 12.5h9l1-12.5"/>',
-    up: '<path d="M6 14.5l6-6 6 6"/>',
-    down: '<path d="M6 9.5l6 6 6-6"/>',
-    swap: '<path d="M7 4.5L4 7.5l3 3M4 7.5h13M17 13.5l3 3-3 3M20 16.5H7"/>',
-    flame: '<path d="M12 21c-3.9 0-6.5-2.6-6.5-6.2 0-3.4 2.4-5.4 3.6-7.6.3 1.7 1.2 2.8 2.2 3.2.2-2.9 1.6-5.6 4-7.4-.2 3 1.2 4.7 2.4 6.4.9 1.3 1.3 2.7 1.3 4.2C18.5 18.4 15.9 21 12 21z"/>'
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+    x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+    dots: '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+    timer: '<line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/>',
+    trophy: '<path d="M10 14.66V17a1 1 0 0 1-1 1 2 2 0 0 0-2 2v2"/><path d="M14 14.66V17a1 1 0 0 0 1 1 2 2 0 0 1 2 2v2"/><path d="M17.916 10H19.5A2.5 2.5 0 0 0 22 7.5V5a1 1 0 0 0-1-1h-3"/><path d="M4 22h16"/><path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"/><path d="M6.084 10H4.5A2.5 2.5 0 0 1 2 7.5V5a1 1 0 0 1 1-1h3"/>',
+    play: '<path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/>',
+    repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+    left: '<path d="m15 18-6-6 6-6"/>',
+    right: '<path d="m9 18 6-6-6-6"/>',
+    search: '<path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/>',
+    clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+    weight: '<path d="M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z"/><path d="m2.5 21.5 1.4-1.4"/><path d="m20.1 3.9 1.4-1.4"/><path d="M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z"/><path d="m9.6 14.4 4.8-4.8"/>',
+    layers: '<path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/>',
+    heart: '<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/><path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
+    edit: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+    trash: '<path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+    up: '<path d="m18 15-6-6-6 6"/>',
+    down: '<path d="m6 9 6 6 6-6"/>',
+    swap: '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
+    flame: '<path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/>'
   };
   function ic(name, cls) {
     return '<svg class="wt-ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>';
@@ -563,7 +564,7 @@
         '</div>';
     }
     function stat(icon, v, l, sub) {
-      return '<div class="wt-stat"><span class="wt-stat-ic">' + ic(icon) + '</span><span class="wt-stat-l">' + esc(l) + '</span><b>' + esc(v) + '</b>' +
+      return '<div class="wt-stat" data-icon="' + icon + '"><span class="wt-stat-l">' + esc(l) + '</span><b>' + esc(v) + '</b>' +
         (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div>';
     }
 
@@ -581,26 +582,25 @@
     function renderStart() {
       var last = data.sessions.slice().sort(byDateDesc)[0];
       var h = '<div class="wt-start">' +
-        '<div class="wt-card wt-quick"><div class="wt-quick-art">' + bodySvg('front', { chest: 2, shoulders: 3, biceps: 1, core: 2, quads: 4, calves: 1 }) +
-        bodySvg('back', { back: 4, triceps: 2, glutes: 3, hamstrings: 2, calves: 1, shoulders: 1 }) + '</div>' +
-        '<div class="wt-quick-text"><h3>Ready to train?</h3><p>Start an empty workout and add exercises as you go, or pick one of your routines below.</p>' +
+        '<div class="wt-card wt-quick">' +
+        '<div class="wt-quick-text"><h3>New workout</h3><p>Start empty and add exercises as you go, or start from one of your routines.</p>' +
         '<div class="wt-actions"><button class="wt-btn wt-primary" data-a="start">' + ic('play') + 'Start empty workout</button>' +
         (last ? '<button class="wt-btn" data-a="start-from" data-id="' + esc(last.id) + '">' + ic('repeat') + 'Repeat ' + esc(last.title || 'last workout') + '</button>' : '') +
         '</div></div></div>';
       var rs = routines();
       if (rs.length) {
-        h += '<div class="wt-sec-head"><h3>Your routines</h3><span>Made from the workouts you named</span></div><div class="wt-routines">';
+        h += '<div class="wt-sec-head"><h3>Routines</h3><span>From the workouts you named</span></div><div class="wt-routines">';
         rs.forEach(function (s) {
           var muscles = [];
           s.exercises.forEach(function (ex) { var m = muscleOf(ex.name); if (muscles.indexOf(m) < 0) muscles.push(m); });
           h += '<article class="wt-card wt-routine"><div class="wt-routine-head"><h4>' + esc(s.title) + '</h4><span>' + esc(relDay(s.date)) + '</span></div>' +
             '<div class="wt-routine-thumbs">' + muscles.slice(0, 5).map(function (m) { return thumb(m, 'sm'); }).join('') + '</div>' +
             '<p>' + esc(s.exercises.slice(0, 4).map(function (ex) { return ex.name; }).join(' · ')) + (s.exercises.length > 4 ? ' · +' + (s.exercises.length - 4) + ' more' : '') + '</p>' +
-            '<button class="wt-btn wt-soft" data-a="start-from" data-id="' + esc(s.id) + '">' + ic('play') + 'Start routine</button></article>';
+            '<button class="wt-btn" data-a="start-from" data-id="' + esc(s.id) + '">' + ic('play') + 'Start routine</button></article>';
         });
         h += '</div>';
       } else if (!data.sessions.length) {
-        h += '<p class="wt-hint">Tip: give a workout a name like “Push day” when you finish it and it becomes a routine you can start again in one tap.</p>';
+        h += '<p class="wt-hint">Name a workout when you finish it, for example “Push day”, and it becomes a routine you can start again.</p>';
       }
       return h + '</div>';
     }
@@ -635,7 +635,7 @@
 
       d.exercises.forEach(function (ex, ei) { h += renderExercise(ex, ei); });
       if (!d.exercises.length) {
-        h += '<div class="wt-card wt-emptyex">' + thumb('other', 'lg') + '<p><b>No exercises yet</b><br>Add the first one to start logging sets.</p></div>';
+        h += '<div class="wt-card wt-emptyex">' + thumb('other') + '<p><b>No exercises yet</b><br>Add the first one to start logging sets.</p></div>';
       }
       h += '<button class="wt-btn wt-add-ex" data-a="add-ex">' + ic('plus') + 'Add exercise</button>';
       h += '<div class="wt-card wt-notes"><label><span>Notes</span><textarea data-f="notes" rows="2" placeholder="How did it feel?">' + esc(d.notes) + '</textarea></label></div>';
@@ -806,8 +806,8 @@
     }
 
     function emptyState(title, text) {
-      return '<div class="wt-card wt-empty"><div class="wt-empty-art">' + bodySvg('front', {}) + '</div><h3>' + esc(title) + '</h3><p>' + esc(text) + '</p>' +
-        '<button class="wt-btn wt-primary" data-a="go-log">' + ic('play') + 'Start a workout</button></div>';
+      return '<div class="wt-card wt-empty"><span class="wt-empty-ic">' + ic('weight') + '</span><div class="wt-empty-copy"><h3>' + esc(title) + '</h3><p>' + esc(text) + '</p>' +
+        '<button class="wt-btn wt-primary" data-a="go-log">' + ic('play') + 'Start a workout</button></div></div>';
     }
 
     // ----- progress tab -----

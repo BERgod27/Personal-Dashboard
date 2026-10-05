@@ -27,7 +27,7 @@ Data lives in the browser's `localStorage` under `pd.meals.v1`. Built-in food id
 ```
 
 - `meals.js` injects `meals.css` itself (resolved next to the script), and all styles are scoped under `.pdm`.
-- Theme it from the shell by setting any of `--pd-surface`, `--pd-surface-2`, `--pd-text`, `--pd-muted`, `--pd-border`, `--pd-accent`, `--pd-accent-text`, `--pd-warn`, `--pd-radius`, `--pd-font` on a parent element.
+- Colours, type and spacing come from the dashboard's design tokens, so a page that mounts it links `css/tokens.css` (the standalone `index.html` does).
 - Options: `hideTitle` (skip the "Meals" heading), `tab` (`today` | `plan` | `foods` | `goals`).
 - `PDModules.meals.summary(date?)` works without mounting and returns
   `{date, kcal, protein, carbs, fat, goals, planned: [{slot, label}]}` for an overview card.

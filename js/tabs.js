@@ -10,8 +10,8 @@
 
   var VIEWS = {
     today: { title: 'Today' },
-    uni: { title: 'Uni', sub: 'Your timetable and what is due next.' },
-    workouts: { title: 'Workouts', sub: 'Log your sessions and watch your lifts go up.' },
+    uni: { title: 'Uni', sub: 'Timetable, exams and deadlines from SIGARRA and Moodle.' },
+    workouts: { title: 'Workouts', sub: 'Log sessions and track each exercise over time.' },
     meals: { title: 'Refeições', sub: 'Planeia a semana e regista o que comes.' },
     news: { title: 'News', sub: 'Headlines from Portugal and the world.' }
   };

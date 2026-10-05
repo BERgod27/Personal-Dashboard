@@ -4,16 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bernardo's Day</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="preload" href="fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/app.css">
 <link rel="stylesheet" href="css/online.css">
 <link rel="stylesheet" href="css/tutor.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<meta name="theme-color" content="#f3f5f8" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#08101d" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0b0b0d">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 </head>
 <body>
@@ -22,47 +20,58 @@
   <aside class="rail">
     <header class="topbar">
       <div class="brand">
-        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-mark" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M8 2v3"/><path d="M16 2v3"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg></span>
         <span class="brand-name">Bernardo's Day</span>
       </div>
-      <button class="btn ghost settings-btn" id="open-settings" type="button" aria-label="Data &amp; backup"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg><span class="btn-label">Data &amp; backup</span></button>
+      <button class="btn ghost settings-btn" id="open-settings" type="button" aria-label="Data and backup"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg><span class="btn-label">Data and backup</span></button>
     </header>
     <nav class="tabs" id="tabs" aria-label="Sections">
-      <a class="tab" href="#today" data-view="today"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.6" class="fill"/></svg><span>Today</span></a>
-      <a class="tab" href="#uni" data-view="uni"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 9.5 12 5l9.5 4.5L12 14z"/><path d="M6.5 11.6V16c0 1.4 2.5 3 5.5 3s5.5-1.6 5.5-3v-4.4M21.5 9.5v5"/></svg><span>Uni</span></a>
-      <a class="tab" href="#workouts" data-view="workouts"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/></svg><span>Workouts</span></a>
-      <a class="tab" href="#meals" data-view="meals"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M4.5 3v5a2.5 2.5 0 0 0 5 0V3M7 11v10M17 21V3c-2.5 1-4 3.5-4 7v3h4"/></svg><span>Refeições</span></a>
-      <a class="tab" href="#news" data-view="news"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h12.5v13a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M16.5 9.5H20v9a2 2 0 0 1-2 2M7.5 9h5.5M7.5 12.5h5.5M7.5 16h3.5"/></svg><span>News</span></a>
+      <a class="tab" href="#today" data-view="today"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v3"/><path d="M16 2v3"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M8 13h.01"/><path d="M12 13h.01"/><path d="M16 13h.01"/><path d="M8 17h.01"/><path d="M12 17h.01"/></svg><span>Today</span><kbd class="tab-key" aria-hidden="true">1</kbd></a>
+      <a class="tab" href="#uni" data-view="uni"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg><span>Uni</span><kbd class="tab-key" aria-hidden="true">2</kbd></a>
+      <a class="tab" href="#workouts" data-view="workouts"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z"/><path d="m2.5 21.5 1.4-1.4"/><path d="m20.1 3.9 1.4-1.4"/><path d="M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z"/><path d="m9.6 14.4 4.8-4.8"/></svg><span>Workouts</span><kbd class="tab-key" aria-hidden="true">3</kbd></a>
+      <a class="tab" href="#meals" data-view="meals"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg><span>Refeições</span><kbd class="tab-key" aria-hidden="true">4</kbd></a>
+      <a class="tab" href="#news" data-view="news"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18h-5"/><path d="M18 14h-8"/><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="10" y="6" rx="1"/></svg><span>News</span><kbd class="tab-key" aria-hidden="true">5</kbd></a>
     </nav>
   </aside>
 
 <div class="app" id="app" data-view="today">
   <section class="view view-today" id="view-today" aria-label="Today">
     <div class="banner" id="sample-banner" hidden>
-      <span>Entries marked <b class="chip sample">example</b> are made up so you can see how things look.</span>
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      <span class="banner-text">Items marked <span class="tag-sample">Example</span> are sample data to show how the planner looks.</span>
       <button class="btn small" id="clear-samples" type="button">Remove examples</button>
     </div>
     <div class="banner warn" id="storage-banner" hidden>
-      <span>This browser is blocking storage, so changes will be lost when you close the page. Use Data &amp; backup to save a copy.</span>
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+      <span class="banner-text">This browser is blocking storage, so changes are lost when the page closes. Save a copy from Data and backup.</span>
     </div>
 
-    <section class="dayhead">
-      <div class="dayhead-title">
-        <h1 id="day-title">Saturday, 3 October</h1>
-        <p class="eyebrow" id="day-eyebrow">Today</p>
+    <header class="page-head dayhead">
+      <div class="page-title">
+        <h1 id="day-title">Monday 5 October</h1>
+        <p class="page-meta" id="day-eyebrow">Today · Week 41</p>
       </div>
-      <nav class="daynav" aria-label="Change day">
-        <button class="btn icon" id="prev-day" type="button" aria-label="Previous day"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
-        <button class="btn" id="go-today" type="button">Today</button>
-        <button class="btn icon" id="next-day" type="button" aria-label="Next day"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+      <nav class="btn-group daynav" aria-label="Change day">
+        <button class="btn icon" id="prev-day" type="button" aria-label="Previous day" title="Previous day (←)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+        <button class="btn" id="go-today" type="button" title="Today (T)">Today</button>
+        <button class="btn icon" id="next-day" type="button" aria-label="Next day" title="Next day (→)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
       </nav>
-      <ol class="weekstrip" id="weekstrip" aria-label="This week"></ol>
-    </section>
+    </header>
+
+    <ol class="weekstrip" id="weekstrip" aria-label="This week"></ol>
 
     <form class="quickadd" id="quickadd" autocomplete="off">
-      <label class="sr-only" for="quickadd-input">Quick add</label>
-      <input id="quickadd-input" type="text" placeholder="Add anything: “Calculus 9:00-10:30 #uni weekly”, “gym 18h”, “buy oats tomorrow”">
-      <button class="btn primary" type="submit">Add</button>
+      <div class="field-head">
+        <label for="quickadd-input">Quick add</label>
+        <span class="field-hint">Press <kbd>/</kbd> to type</span>
+      </div>
+      <div class="quickadd-row">
+        <div class="input-icon">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          <input id="quickadd-input" class="input" type="text" placeholder="Calculus 9:00-10:30 #uni weekly · gym 18h · buy oats tomorrow" aria-describedby="quickadd-preview">
+        </div>
+        <button class="btn primary" type="submit">Add</button>
+      </div>
       <p class="quickadd-preview" id="quickadd-preview" aria-live="polite"></p>
     </form>
 
@@ -70,11 +79,13 @@
       <section class="panel schedule" aria-labelledby="schedule-h">
         <div class="panel-head">
           <h2 id="schedule-h">Schedule</h2>
-          <span class="muted" id="schedule-count"></span>
+          <span class="panel-meta" id="schedule-count"></span>
         </div>
-        <div class="allday" id="allday" hidden></div>
-        <div class="timeline-wrap" id="timeline-wrap">
-          <div class="timeline" id="timeline"></div>
+        <div class="panel-body">
+          <div class="allday" id="allday" hidden></div>
+          <div class="timeline-wrap" id="timeline-wrap">
+            <div class="timeline" id="timeline"></div>
+          </div>
         </div>
       </section>
 
@@ -82,76 +93,83 @@
         <section class="panel" aria-labelledby="tasks-h">
           <div class="panel-head">
             <h2 id="tasks-h">Tasks</h2>
-            <span class="muted" id="tasks-count"></span>
+            <span class="panel-meta" id="tasks-count"></span>
           </div>
-          <div id="tasks"></div>
+          <div class="panel-body tasks" id="tasks"></div>
         </section>
 
         <section class="panel" aria-labelledby="note-h">
           <div class="panel-head">
             <h2 id="note-h">Notes for the day</h2>
-            <span class="muted small" id="note-saved"></span>
+            <span class="panel-meta" id="note-saved"></span>
           </div>
-          <label class="sr-only" for="day-note">Notes for the day</label>
-          <textarea id="day-note" rows="4" placeholder="Anything to remember about this day"></textarea>
+          <div class="panel-body">
+            <textarea id="day-note" class="input" rows="4" aria-labelledby="note-h" placeholder="Anything to remember about this day"></textarea>
+          </div>
         </section>
       </div>
     </div>
   </section>
 
   <section class="view view-module" id="view-module" aria-labelledby="view-title">
-    <header class="view-head">
-      <h1 id="view-title"></h1>
-      <p class="view-sub" id="view-sub"></p>
+    <header class="page-head view-head">
+      <div class="page-title">
+        <h1 id="view-title"></h1>
+        <p class="page-meta" id="view-sub"></p>
+      </div>
     </header>
     <div class="modules" id="modules"></div>
   </section>
 
-  <footer class="foot muted small">Saved in this browser only. Make a backup from Data &amp; backup before switching devices.</footer>
+  <footer class="foot">Saved in this browser only. Make a backup from Data and backup before switching devices.</footer>
 </div>
 </div>
 
-<dialog id="item-dialog" class="dialog">
+<dialog id="item-dialog" class="dialog" aria-labelledby="item-dialog-title">
   <form id="item-form" method="dialog">
-    <h2 id="item-dialog-title">Edit</h2>
-    <div class="field">
-      <label for="f-title">Title</label>
-      <input id="f-title" type="text" required>
+    <div class="dialog-head">
+      <h2 id="item-dialog-title">Edit</h2>
     </div>
-    <div class="field-row">
+    <div class="dialog-body">
       <div class="field">
-        <label for="f-kind">Type</label>
-        <select id="f-kind">
-          <option value="event">Event</option>
-          <option value="task">Task</option>
-        </select>
+        <label for="f-title">Title</label>
+        <input id="f-title" class="input" type="text" required>
       </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-kind">Type</label>
+          <select id="f-kind" class="input">
+            <option value="event">Event</option>
+            <option value="task">Task</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-category">Area</label>
+          <select id="f-category" class="input"></select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="f-date">Date</label>
+          <input id="f-date" class="input" type="date">
+        </div>
+        <div class="field event-only">
+          <label for="f-start">Starts</label>
+          <input id="f-start" class="input" type="time">
+        </div>
+        <div class="field event-only">
+          <label for="f-end">Ends</label>
+          <input id="f-end" class="input" type="time">
+        </div>
+      </div>
+      <label class="check event-only" for="f-weekly"><input id="f-weekly" type="checkbox"> Repeats every week</label>
       <div class="field">
-        <label for="f-category">Area</label>
-        <select id="f-category"></select>
+        <label for="f-notes">Notes</label>
+        <textarea id="f-notes" class="input" rows="2"></textarea>
       </div>
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label for="f-date">Date</label>
-        <input id="f-date" type="date">
-      </div>
-      <div class="field event-only">
-        <label for="f-start">Starts</label>
-        <input id="f-start" type="time">
-      </div>
-      <div class="field event-only">
-        <label for="f-end">Ends</label>
-        <input id="f-end" type="time">
-      </div>
-    </div>
-    <label class="check event-only" for="f-weekly"><input id="f-weekly" type="checkbox"> Repeats every week</label>
-    <div class="field">
-      <label for="f-notes">Notes</label>
-      <textarea id="f-notes" rows="2"></textarea>
     </div>
     <div class="dialog-actions">
-      <button class="btn danger" id="f-delete" type="button">Delete</button>
+      <button class="btn ghost danger" id="f-delete" type="button">Delete</button>
       <span class="spacer"></span>
       <button class="btn" value="cancel" type="button" id="f-cancel">Cancel</button>
       <button class="btn primary" id="f-save" type="submit">Save</button>
@@ -159,37 +177,48 @@
   </form>
 </dialog>
 
-<dialog id="settings-dialog" class="dialog">
-  <div class="dialog-body">
-    <h2>Data &amp; backup</h2>
+<dialog id="settings-dialog" class="dialog" aria-labelledby="settings-title">
+  <div class="dialog-head">
+    <h2 id="settings-title">Data and backup</h2>
     <p class="muted">Everything lives in this browser. Copy a backup to move it to another device or keep it safe.</p>
-    <h3>Back up</h3>
-    <div class="row">
-      <button class="btn primary" id="copy-backup" type="button">Copy backup</button>
-      <button class="btn" id="download-backup" type="button" hidden>Save backup file</button>
-      <span class="muted small" id="backup-status" aria-live="polite"></span>
-    </div>
-    <label class="sr-only" for="backup-text">Backup text</label>
-    <textarea id="backup-text" rows="3" readonly></textarea>
-    <h3>Restore</h3>
-    <p class="muted small">Paste a backup below or pick a backup file. This replaces what is here now.</p>
-    <label class="sr-only" for="restore-text">Backup to restore</label>
-    <textarea id="restore-text" rows="3" placeholder="Paste backup here"></textarea>
-    <div class="row">
-      <label class="btn" for="restore-file">Choose file</label>
-      <input id="restore-file" type="file" accept="application/json,.json" class="sr-only">
-      <button class="btn primary" id="restore-btn" type="button">Restore</button>
-      <span class="muted small" id="restore-status" aria-live="polite"></span>
-    </div>
-    <h3>Start over</h3>
-    <div class="row">
-      <button class="btn danger" id="erase-btn" type="button">Erase everything</button>
-      <button class="btn danger solid" id="erase-confirm" type="button" hidden>Yes, erase all data</button>
-    </div>
-    <div class="dialog-actions">
-      <span class="spacer"></span>
-      <button class="btn" id="settings-close" type="button">Close</button>
-    </div>
+  </div>
+  <div class="dialog-body">
+    <section class="dialog-section">
+      <h3>Back up</h3>
+      <div class="row">
+        <button class="btn primary" id="copy-backup" type="button">Copy backup</button>
+        <button class="btn" id="download-backup" type="button" hidden>Save backup file</button>
+        <span class="status-text" id="backup-status" aria-live="polite"></span>
+      </div>
+      <label class="sr-only" for="backup-text">Backup text</label>
+      <textarea id="backup-text" class="input mono" rows="3" readonly></textarea>
+    </section>
+    <section class="dialog-section">
+      <h3>Restore</h3>
+      <p class="muted">Paste a backup or choose a backup file. This replaces what is here now.</p>
+      <div class="field">
+        <label for="restore-text">Backup to restore</label>
+        <textarea id="restore-text" class="input mono" rows="3" placeholder="Paste the backup text here"></textarea>
+      </div>
+      <div class="row">
+        <label class="btn" for="restore-file">Choose file</label>
+        <input id="restore-file" type="file" accept="application/json,.json" class="sr-only">
+        <button class="btn primary" id="restore-btn" type="button">Restore</button>
+        <span class="status-text" id="restore-status" aria-live="polite"></span>
+      </div>
+    </section>
+    <section class="dialog-section">
+      <h3>Start over</h3>
+      <p class="muted">Deletes every event, task, note and module entry in this browser.</p>
+      <div class="row">
+        <button class="btn danger" id="erase-btn" type="button">Erase everything</button>
+        <button class="btn danger solid" id="erase-confirm" type="button" hidden>Yes, erase all data</button>
+      </div>
+    </section>
+  </div>
+  <div class="dialog-actions">
+    <span class="spacer"></span>
+    <button class="btn" id="settings-close" type="button">Close</button>
   </div>
 </dialog>
 

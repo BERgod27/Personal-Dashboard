@@ -90,8 +90,14 @@ export async function refresh() {
   return inflight;
 }
 
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.css': 'text/css; charset=utf-8' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.css': 'text/css; charset=utf-8', '.woff2': 'font/woff2' };
 const STATIC = new Set(['/index.html', '/news-panel.js', '/feeds.json', '/data/news.json']);
+// The dashboard's design tokens and fonts, so the panel page looks the same when opened from this helper.
+const SHARED = new Map([
+  ['/css/tokens.css', '../../css/tokens.css'],
+  ['/fonts/Geist-Variable.woff2', '../../fonts/Geist-Variable.woff2'],
+  ['/fonts/GeistMono-Variable.woff2', '../../fonts/GeistMono-Variable.woff2'],
+]);
 
 function send(res, code, body, type = 'application/json; charset=utf-8') {
   res.writeHead(code, { 'content-type': type, 'access-control-allow-origin': '*', 'cache-control': 'no-store' });
@@ -122,6 +128,7 @@ async function serve() {
       if (url.pathname === '/api/news/refresh') return send(res, 200, view(await refresh(), url.searchParams));
       const path = url.pathname === '/' ? '/index.html' : normalize(url.pathname);
       if (STATIC.has(path)) return send(res, 200, await readFile(join(ROOT, path)), TYPES[extname(path)]);
+      if (SHARED.has(path)) return send(res, 200, await readFile(join(ROOT, SHARED.get(path))), TYPES[extname(path)]);
       send(res, 404, { error: 'not found' });
     } catch (e) {
       send(res, 500, { error: e.message });

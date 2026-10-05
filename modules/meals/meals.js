@@ -443,6 +443,17 @@
     for (var i = 2; i < arguments.length; i++) append(el, arguments[i]);
     return el;
   }
+  // Lucide icons (lucide.dev) for the icon-only buttons.
+  var ICONS = {
+    left: '<path d="m15 18-6-6 6-6"/>',
+    right: '<path d="m9 18 6-6-6-6"/>',
+    x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
+  };
+  function icon(name) {
+    var t = document.createElement('span');
+    t.innerHTML = '<svg class="pdm-ic" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>';
+    return t.firstChild;
+  }
   function append(el, c) {
     if (c == null || c === false) return;
     if (Array.isArray(c)) c.forEach(function (x) { append(el, x); });
@@ -614,13 +625,13 @@
       return function (ev) {
         var btn = ev.currentTarget;
         if (btn.getAttribute('data-armed')) { action(); return; }
-        var orig = btn.textContent;
+        var orig = btn.innerHTML;
         btn.setAttribute('data-armed', '1');
         btn.classList.add('armed');
         btn.textContent = armedLabel;
         setTimeout(function () {
           if (!btn.isConnected) return;
-          btn.removeAttribute('data-armed'); btn.classList.remove('armed'); btn.textContent = orig;
+          btn.removeAttribute('data-armed'); btn.classList.remove('armed'); btn.innerHTML = orig;
         }, 4000);
       };
     }
@@ -670,11 +681,11 @@
       }
 
       var head = h('div', { class: 'pdm-row pdm-datenav' },
-        h('button', { class: 'pdm-btn ghost', 'aria-label': 'Dia anterior', onclick: function () { view.date = addDays(view.date, -1); render(); } }, '‹'),
+        h('button', { class: 'pdm-btn ghost icon', 'aria-label': 'Dia anterior', title: 'Dia anterior', onclick: function () { view.date = addDays(view.date, -1); render(); } }, icon('left')),
         h('strong', { class: 'pdm-date' }, fmtDate(date, { weekday: 'long', day: 'numeric', month: 'long' })),
-        h('button', { class: 'pdm-btn ghost', 'aria-label': 'Dia seguinte', onclick: function () { view.date = addDays(view.date, 1); render(); } }, '›'),
+        h('button', { class: 'pdm-btn ghost icon', 'aria-label': 'Dia seguinte', title: 'Dia seguinte', onclick: function () { view.date = addDays(view.date, 1); render(); } }, icon('right')),
         date !== today() ? h('button', { class: 'pdm-btn ghost', onclick: function () { view.date = today(); render(); } }, 'Hoje') : null,
-        hasPlan ? h('button', { class: 'pdm-btn', onclick: function () {
+        hasPlan ? h('button', { class: 'pdm-btn primary', onclick: function () {
           var n = 0; SLOTS.forEach(function (s) { n += logPlanned(s[0]); });
           save(state); flash(n ? n + (n > 1 ? ' itens planeados registados' : ' item planeado registado') : 'Não há nada planeado para registar');
         } }, 'Registar o plano todo') : null);
@@ -717,7 +728,7 @@
               h('div', { class: 'grow' }, h('div', null, e.name, e.grams ? h('span', { class: 'pdm-muted' }, ' · ' + r0(e.grams) + ' g') : null), macroLine(e)),
               h('button', { class: 'pdm-x', 'aria-label': 'Remover ' + e.name, onclick: function () {
                 state.log[date][key] = items.filter(function (x) { return x.id !== e.id; }); commit();
-              } }, '×'));
+              } }, icon('x')));
           })) : null,
           h('div', { class: 'pdm-row' }, pick, grams, h('span', { class: 'pdm-muted' }, 'g'), h('button', { class: 'pdm-btn', onclick: add }, 'Adicionar'), datalist(listId, true)));
       });
@@ -732,7 +743,7 @@
       var quick = h('details', { class: 'pdm-card' },
         h('summary', null, 'Adicionar rápido (sem procurar alimento)'),
         h('div', { class: 'pdm-row wrap' }, qName, qSlot, qK, qP, qC, qF,
-          h('button', { class: 'pdm-btn', onclick: function () {
+          h('button', { class: 'pdm-btn primary', onclick: function () {
             if (!qName.value.trim() || !(num(qK.value, 0) > 0)) { flash('Indica um nome e as calorias'); return; }
             var slot = qSlot.value;
             state.log[date] = state.log[date] || {};
@@ -773,9 +784,9 @@
       pick.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') add(); });
 
       var nav = h('div', { class: 'pdm-row pdm-datenav' },
-        h('button', { class: 'pdm-btn ghost', 'aria-label': 'Semana anterior', onclick: function () { view.week = addDays(view.week, -7); render(); } }, '‹'),
+        h('button', { class: 'pdm-btn ghost icon', 'aria-label': 'Semana anterior', title: 'Semana anterior', onclick: function () { view.week = addDays(view.week, -7); render(); } }, icon('left')),
         h('strong', { class: 'pdm-date' }, 'Semana de ' + fmtDate(wk, { day: 'numeric', month: 'long' })),
-        h('button', { class: 'pdm-btn ghost', 'aria-label': 'Semana seguinte', onclick: function () { view.week = addDays(view.week, 7); render(); } }, '›'),
+        h('button', { class: 'pdm-btn ghost icon', 'aria-label': 'Semana seguinte', title: 'Semana seguinte', onclick: function () { view.week = addDays(view.week, 7); render(); } }, icon('right')),
         wk !== mondayOf(today()) ? h('button', { class: 'pdm-btn ghost', onclick: function () { view.week = mondayOf(today()); render(); } }, 'Esta semana') : null,
         h('span', { class: 'grow' }),
         h('button', { class: 'pdm-btn ghost', onclick: function () {
@@ -795,7 +806,7 @@
         }) }, 'Limpar semana'));
 
       var form = h('div', { class: 'pdm-card' }, h('div', { class: 'pdm-row wrap' }, daySel, slotSel, pick, grams, h('span', { class: 'pdm-muted' }, 'g'),
-        h('button', { class: 'pdm-btn', onclick: add }, 'Adicionar ao plano'), datalist('pdm-dl-plan', true)));
+        h('button', { class: 'pdm-btn primary', onclick: add }, 'Adicionar ao plano'), datalist('pdm-dl-plan', true)));
 
       var grid = h('div', { class: 'pdm-week' }, days.map(function (d, i) {
         var p = state.plan[d] || {};
@@ -810,7 +821,7 @@
                 return h('li', { class: e.kind === 'note' ? 'is-note' : null }, h('span', { class: 'grow' }, planEntryLabel(state, e)),
                   h('button', { class: 'pdm-x', 'aria-label': 'Remover', onclick: function () {
                     p[s[0]] = list.filter(function (x) { return x.id !== e.id; }); commit();
-                  } }, '×'));
+                  } }, icon('x')));
               })));
           }),
           !Object.keys(p).some(function (k) { return p[k].length; }) ? h('div', { class: 'pdm-muted' }, 'Nada planeado') : null);
@@ -869,13 +880,13 @@
         d.items.length ? h('ul', { class: 'pdm-list tight' }, d.items.map(function (it, i) {
           var f = findFood(state, it.foodId);
           return h('li', null, h('span', { class: 'grow' }, (f ? f.name : it.foodId) + ' · ' + r0(it.grams) + ' g'),
-            h('button', { class: 'pdm-x', 'aria-label': 'Remover ingrediente', onclick: function () { d.items.splice(i, 1); render(); } }, '×'));
+            h('button', { class: 'pdm-x', 'aria-label': 'Remover ingrediente', onclick: function () { d.items.splice(i, 1); render(); } }, icon('x')));
         })) : null,
         h('div', { class: 'pdm-row' }, dPick, dGrams, h('span', { class: 'pdm-muted' }, 'g'), h('button', { class: 'pdm-btn ghost', onclick: addIng }, 'Adicionar ingrediente'), datalist('pdm-dl-foods', false)),
         h('div', { class: 'pdm-row spread' }, d.items.length ? macroLine(dm) : h('span'),
           h('span', null,
             d.id ? h('button', { class: 'pdm-btn ghost', onclick: function () { view.draft = { name: '', items: [] }; render(); } }, 'Cancelar') : null,
-            h('button', { class: 'pdm-btn', onclick: function () {
+            h('button', { class: 'pdm-btn primary', onclick: function () {
               if (!d.name.trim() || !d.items.length) { flash('Dá um nome à refeição e adiciona pelo menos um ingrediente'); return; }
               var meal = { id: d.id || uid(), name: d.name.trim(), items: d.items.slice() };
               var idx = state.meals.findIndex(function (m) { return m.id === meal.id; });
@@ -889,7 +900,7 @@
             h('button', { class: 'pdm-btn small ghost', onclick: function () { view.draft = { id: m.id, name: m.name, items: m.items.slice() }; render(); } }, 'Editar'),
             h('button', { class: 'pdm-x', 'aria-label': 'Apagar ' + m.name, title: 'O que já registaste fica', onclick: twoStep('Apagar?', function () {
               state.meals = state.meals.filter(function (x) { return x.id !== m.id; }); commit();
-            }) }, '×'));
+            }) }, icon('x')));
         })) : h('div', { class: 'pdm-muted' }, 'Guarda as refeições que comes muitas vezes para as registar ou planear de uma vez.')));
 
       // Custom food
@@ -900,7 +911,7 @@
       var fF = h('input', { class: 'pdm-input w-num', type: 'number', min: '0', placeholder: 'G g', 'aria-label': 'Gordura (g)' });
       out.push(h('section', { class: 'pdm-card' }, h('h3', null, 'Adicionar alimento'),
         h('div', { class: 'pdm-muted' }, 'Valores por 100 g, do rótulo.'),
-        h('div', { class: 'pdm-row wrap' }, fN, fK, fP, fC, fF, h('button', { class: 'pdm-btn', onclick: function () {
+        h('div', { class: 'pdm-row wrap' }, fN, fK, fP, fC, fF, h('button', { class: 'pdm-btn primary', onclick: function () {
           var name = fN.value.trim();
           if (!name || !(num(fK.value, -1) >= 0)) { flash('Indica o nome do alimento e as calorias'); return; }
           if (byName(allFoods(state), name)) { flash('Já existe um alimento com esse nome'); return; }
@@ -937,7 +948,7 @@
               h('td', { class: 'pdm-num' }, r1(f.carbs)), h('td', { class: 'pdm-num' }, r1(f.fat)),
               h('td', null, f.builtin ? null : h('button', { class: 'pdm-x', 'aria-label': 'Apagar ' + f.name, title: 'As refeições guardadas que o usam perdem esse ingrediente', onclick: twoStep('Apagar?', function () {
                 state.customFoods = state.customFoods.filter(function (x) { return x.id !== f.id; }); commit();
-              }) }, '×')));
+              }) }, icon('x'))));
       }
       filter.addEventListener('input', function () { view.foodFilter = filter.value; drawList(); });
       groupSel.addEventListener('change', function () { view.foodGroup = groupSel.value; drawList(); });

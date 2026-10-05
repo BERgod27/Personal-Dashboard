@@ -26,7 +26,7 @@ placeholder is gone). In the dashboard:
 - Data is kept in the shell's Store under `Store.moduleData('workout')`, so it is in
   the dashboard's Data & backup export. Anything logged in the standalone page is
   copied over the first time.
-- The panel spans the full Modules row and uses the shell's theme tokens.
+- The panel spans the full Modules row and uses the dashboard's design tokens (`css/tokens.css`).
 - Workouts logged on a day appear as all-day items on that day's schedule.
 - New workouts default to the day the dashboard is showing.
 
