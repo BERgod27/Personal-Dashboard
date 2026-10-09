@@ -3,6 +3,7 @@
  *
  * Mount it into any element:
  *   <link rel="stylesheet" href="modules/workouts/workouts.css">
+ *   <script src="modules/workouts/exercises.js"></script>   (optional: the full exercise library)
  *   <script src="modules/workouts/workouts.js"></script>
  *   DashboardModules.workouts.mount(document.getElementById('panel'));
  *
@@ -22,6 +23,7 @@
   var STORAGE_KEY = 'pd.workouts.v1';
   var DRAFT_KEY = 'pd.workouts.draft.v1';
   var REST_CHOICES = [0, 30, 45, 60, 90, 120, 150, 180, 240, 300];
+  var PICK_PAGE = 60; // library rows drawn at once in the picker
 
   // ---------- storage ----------
   // Default storage is this module's own localStorage key. The dashboard
@@ -97,7 +99,54 @@
     ['Swimming', 'cardio', 'Cardio'], ['Jump rope', 'cardio', 'Cardio']
   ];
   var LIB = {};
-  LIBRARY.forEach(function (x) { LIB[key(x[0])] = { name: x[0], muscle: x[1], equipment: x[2] }; });
+  // The full library comes from exercises.js, built by tools/build_exercises.py from
+  // hasaneyldrm/exercises-dataset (MIT, the dataset openGym uses). The names above stay
+  // first and keep their spelling; they borrow how-to steps from their dataset twin.
+  var DB = global.WorkoutExercises || { alias: {}, list: [] };
+  function secList(csv, muscle) { return String(csv || '').split(' ').filter(function (m) { return m && m !== muscle && MUSCLES[m]; }); }
+  var ALL = LIBRARY.map(function (x) {
+    var a = DB.alias[key(x[0])];
+    return (LIB[key(x[0])] = { name: x[0], muscle: x[1], equipment: x[2], sec: secList(a && a[1], x[1]), id: a && a[0], popular: true });
+  });
+  DB.list.forEach(function (x) {
+    var k = key(x[0]);
+    if (LIB[k] || !MUSCLES[x[1]]) return;
+    ALL.push(LIB[k] = { name: x[0], muscle: x[1], equipment: x[2], sec: secList(x[3], x[1]), id: x[4] });
+  });
+
+  // Step-by-step instructions are ~650 KB, so they load the first time someone opens "How to".
+  // A script tag (not fetch) so it also works from file://.
+  var SCRIPT_BASE = (function () { var c = document.currentScript; return c && c.src ? c.src.replace(/[^\/]*$/, '') : ''; })();
+  var howto = { status: global.WorkoutExerciseHowTo ? 'ready' : 'idle', waiting: [] };
+  function loadHowTo(cb) {
+    if (howto.status === 'ready' || howto.status === 'failed') { cb(); return; }
+    howto.waiting.push(cb);
+    if (howto.status === 'loading') return;
+    howto.status = 'loading';
+    var tag = document.createElement('script');
+    tag.src = SCRIPT_BASE + 'exercise-howto.js';
+    tag.onload = tag.onerror = function () {
+      howto.status = global.WorkoutExerciseHowTo ? 'ready' : 'failed';
+      if (howto.status === 'failed') tag.remove();
+      var w = howto.waiting; howto.waiting = [];
+      w.forEach(function (f) { f(); });
+    };
+    document.head.appendChild(tag);
+  }
+
+  // Starter routines: [name, program, [[exercise, sets, target reps], ...]].
+  // Every exercise name is in LIBRARY or the dataset, so muscles and how-to steps resolve.
+  var TEMPLATES = [
+    ['Push', 'Push · Pull · Legs', [['Bench press', 4, '6–8'], ['Overhead press', 3, '8–10'], ['Incline dumbbell press', 3, '8–12'], ['Lateral raise', 3, '12–15'], ['Triceps pushdown', 3, '10–12'], ['Overhead triceps extension', 2, '10–12']]],
+    ['Pull', 'Push · Pull · Legs', [['Deadlift', 3, '5'], ['Pull-up', 3, '6–10'], ['Barbell row', 3, '8–10'], ['Cable rear delt row (with rope)', 3, '12–15'], ['Barbell curl', 3, '8–12'], ['Hammer curl', 2, '10–12']]],
+    ['Legs', 'Push · Pull · Legs', [['Squat', 4, '6–8'], ['Romanian deadlift', 3, '8–10'], ['Leg press', 3, '10–12'], ['Lying leg curl', 3, '10–12'], ['Standing calf raise', 4, '12–15'], ['Hanging leg raise', 3, '10–15']]],
+    ['Upper', 'Upper · Lower', [['Bench press', 4, '6–8'], ['Barbell row', 4, '6–8'], ['Dumbbell shoulder press', 3, '8–10'], ['Lat pulldown', 3, '10–12'], ['Dumbbell curl', 2, '10–12'], ['Triceps pushdown', 2, '10–12']]],
+    ['Lower', 'Upper · Lower', [['Squat', 4, '6–8'], ['Romanian deadlift', 3, '8–10'], ['Bulgarian split squat', 3, '8–10'], ['Leg extension', 2, '12–15'], ['Seated leg curl', 2, '12–15'], ['Standing calf raise', 3, '12–15']]],
+    ['5×5 A', 'Beginner strength', [['Squat', 5, '5'], ['Bench press', 5, '5'], ['Barbell row', 5, '5']]],
+    ['5×5 B', 'Beginner strength', [['Squat', 5, '5'], ['Overhead press', 5, '5'], ['Deadlift', 1, '5']]],
+    ['Full body · dumbbells', 'Home or hotel gym', [['Goblet squat', 3, '10–12'], ['Dumbbell bench press', 3, '8–12'], ['Dumbbell row', 3, '8–12'], ['Dumbbell shoulder press', 3, '8–12'], ['Dumbbell romanian deadlift', 3, '10–12'], ['Hammer curl', 2, '10–12']]],
+    ['Bodyweight', 'No equipment', [['Push-up', 3, '8–15'], ['Inverted row', 3, '8–12'], ['Split squats', 3, '10–12'], ['Glute bridge', 3, '12–15'], ['Dips', 3, '6–12'], ['Hanging leg raise', 3, '8–12']]]
+  ];
 
   // Best guess for names typed by hand (English and Portuguese gym words). Order matters.
   var GUESSES = [
@@ -274,6 +323,7 @@
     up: '<path d="m18 15-6-6-6 6"/>',
     down: '<path d="m6 9 6 6 6-6"/>',
     swap: '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
+    info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
     flame: '<path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/>'
   };
   function ic(name, cls) {
@@ -602,6 +652,18 @@
       } else if (!data.sessions.length) {
         h += '<p class="wt-hint">Name a workout when you finish it, for example “Push day”, and it becomes a routine you can start again.</p>';
       }
+      h += '<div class="wt-sec-head"><h3>Templates</h3><span>Common splits to start from</span></div><div class="wt-routines wt-templates">';
+      TEMPLATES.forEach(function (tpl, i) {
+        var muscles = [];
+        tpl[2].forEach(function (x) { var m = muscleOf(x[0]); if (muscles.indexOf(m) < 0) muscles.push(m); });
+        var sets = tpl[2].reduce(function (a, x) { return a + x[1]; }, 0);
+        h += '<article class="wt-card wt-routine"><div class="wt-routine-head"><h4>' + esc(tpl[0]) + '</h4><span>' + esc(tpl[1]) + '</span></div>' +
+          '<div class="wt-routine-thumbs">' + muscles.slice(0, 5).map(function (m) { return thumb(m, 'sm'); }).join('') + '</div>' +
+          '<p>' + esc(tpl[2].map(function (x) { return x[0]; }).join(' · ')) + '</p>' +
+          '<span class="wt-tpl-meta">' + plural(tpl[2].length, 'exercise') + ' · ' + plural(sets, 'set') + '</span>' +
+          '<button class="wt-btn" data-a="start-template" data-i="' + i + '">' + ic('play') + 'Start template</button></article>';
+      });
+      h += '</div>';
       return h + '</div>';
     }
 
@@ -652,6 +714,7 @@
       var rest = ex.rest != null ? +ex.rest : defaultRest();
       var h = '<section class="wt-card wt-exc" data-ex="' + ei + '"><header class="wt-exc-head">' + thumb(m) +
         '<div class="wt-exc-title"><h4>' + esc(ex.name) + '</h4><span>' + esc(MUSCLES[m].label) + (equipmentOf(ex.name) && !cardio ? ' · ' + esc(equipmentOf(ex.name)) : '') +
+        (ex.target ? ' · ' + ex.sets.filter(function (st) { return !st.warmup; }).length + ' × ' + esc(ex.target) : '') +
         (last ? ' · last ' + esc(relDay(last.date).toLowerCase()) : '') + '</span></div>' +
         '<label class="wt-rest-chip" title="Rest timer after each set">' + ic('timer') + '<select data-a="rest" data-ex="' + ei + '" aria-label="Rest timer for ' + esc(ex.name) + '">' +
         REST_CHOICES.map(function (s) { return '<option value="' + s + '"' + (s === rest ? ' selected' : '') + '>' + restLabel(s) + '</option>'; }).join('') + '</select></label>' +
@@ -661,8 +724,10 @@
           (ei > 0 ? '<button class="wt-btn" data-a="move-up" data-ex="' + ei + '">' + ic('up') + 'Move up</button>' : '') +
           (ei < state.draft.exercises.length - 1 ? '<button class="wt-btn" data-a="move-down" data-ex="' + ei + '">' + ic('down') + 'Move down</button>' : '') +
           '<button class="wt-btn" data-a="replace" data-ex="' + ei + '">' + ic('swap') + 'Replace</button>' +
+          (LIB[key(ex.name)] ? '<button class="wt-btn" data-a="howto" data-ex="' + ei + '" aria-expanded="' + (state.howFor === ei) + '">' + ic('info') + (state.howFor === ei ? 'Hide how-to' : 'How to') + '</button>' : '') +
           '<button class="wt-btn wt-ghost-danger" data-a="del-ex" data-ex="' + ei + '">' + ic('trash') + 'Remove</button></div>';
       }
+      if (state.howFor === ei) h += renderHowTo(ex.name, ei);
       h += '<div class="wt-sets' + (cardio ? ' is-cardio' : '') + '" role="table" aria-label="Sets for ' + esc(ex.name) + '">' +
         '<div class="wt-set-row wt-set-head" role="row"><span role="columnheader">Set</span><span role="columnheader">Previous</span>' +
         '<span role="columnheader">' + (cardio ? distUnit() : (bw ? '+' : '') + data.unit) + '</span><span role="columnheader">' + (cardio ? 'min' : 'Reps') + '</span>' +
@@ -674,7 +739,7 @@
         if (!st.warmup) n++;
         var a = cardio ? 'km' : 'weight', b = cardio ? 'min' : 'reps';
         var phA = p ? (cardio ? (num(p.km) || '') : (num(p.weight) || (bw ? 'BW' : ''))) : (bw ? 'BW' : '');
-        var phB = p ? (cardio ? (num(p.min) || '') : (num(p.reps) || '')) : '';
+        var phB = p ? (cardio ? (num(p.min) || '') : (num(p.reps) || '')) : (ex.target && !cardio ? ex.target : '');
         h += '<div class="wt-set-row' + (st.done ? ' is-done' : '') + (st.warmup ? ' is-warm' : '') + '" role="row">' +
           '<button class="wt-setno" data-a="warm" data-ex="' + ei + '" data-set="' + si + '" title="Tap to mark as a warm-up set" aria-label="Set ' + (si + 1) + (st.warmup ? ', warm-up' : '') + '">' + (st.warmup ? 'W' : n) + '</button>' +
           '<button class="wt-prev" data-a="use-prev" data-ex="' + ei + '" data-set="' + si + '"' + (p ? ' title="Copy last time\'s numbers"' : ' disabled') + '>' + esc(prevText) + '</button>' +
@@ -691,21 +756,53 @@
     function pickerItems() {
       var counts = {}, names = {};
       data.sessions.forEach(function (s) { s.exercises.forEach(function (ex) { var k = key(ex.name); if (!k) return; counts[k] = (counts[k] || 0) + 1; names[k] = normName(ex.name); }); });
-      var items = LIBRARY.map(function (x) { return { name: x[0], k: key(x[0]), muscle: x[1], equipment: x[2], count: counts[key(x[0])] || 0 }; });
+      var items = ALL.map(function (x) { var k = key(x.name); return { name: x.name, k: k, muscle: x.muscle, equipment: x.equipment, popular: x.popular, count: counts[k] || 0 }; });
       Object.keys(names).forEach(function (k) { if (!LIB[k]) items.push({ name: names[k], k: k, muscle: muscleOf(names[k]), equipment: '', count: counts[k] }); });
       return items;
     }
-    function renderPickList() {
-      var p = state.picker, q = key(p.q);
-      var items = pickerItems().filter(function (it) {
-        return (p.muscle === 'all' || it.muscle === p.muscle) && (!q || it.k.indexOf(q) >= 0 || MUSCLES[it.muscle].label.toLowerCase().indexOf(q) >= 0);
+    // Every word typed has to appear in the name, muscle or equipment: "db press" finds nothing,
+    // "dumbbell press" finds the presses done with dumbbells.
+    function pickMatches() {
+      var p = state.picker, words = key(p.q).split(' ').filter(Boolean);
+      return pickerItems().filter(function (it) {
+        if (p.muscle !== 'all' && it.muscle !== p.muscle) return false;
+        if (!words.length) return true;
+        var hay = it.k + ' ' + MUSCLES[it.muscle].label.toLowerCase() + ' ' + String(it.equipment).toLowerCase();
+        return words.every(function (w) { return hay.indexOf(w) >= 0; });
       });
+    }
+    // Equipment chips come from what the search and muscle filter left, most common first,
+    // so every chip has results behind it (the same idea as openGym's library).
+    function equipmentChoices(items) {
+      var c = {};
+      items.forEach(function (it) { if (it.equipment && it.muscle !== 'cardio') c[it.equipment] = (c[it.equipment] || 0) + 1; });
+      return Object.keys(c).sort(function (a, b) { return c[b] - c[a] || a.localeCompare(b); });
+    }
+    function renderEqChips(choices) {
+      var p = state.picker;
+      if (choices.length < 2) return '';
+      return ['all'].concat(choices).map(function (e) {
+        return '<button class="wt-chip" data-a="pick-eq" data-e="' + esc(e) + '" aria-pressed="' + (p.eq === e) + '">' + (e === 'all' ? 'Any equipment' : esc(e)) + '</button>';
+      }).join('');
+    }
+    function renderPickList(matches) {
+      var p = state.picker, q = key(p.q);
+      var items = matches || pickMatches();
+      if (p.eq !== 'all') items = items.filter(function (it) { return it.equipment === p.eq; });
       var used = items.filter(function (it) { return it.count; }).sort(function (a, b) { return b.count - a.count || a.name.localeCompare(b.name); });
-      var rest = items.filter(function (it) { return !it.count; }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+      var rest = items.filter(function (it) { return !it.count; });
+      function starts(it) { return q && it.k.indexOf(q) === 0 ? 0 : 1; }
+      rest.sort(function (a, b) { return (b.popular ? 1 : 0) - (a.popular ? 1 : 0) || starts(a) - starts(b) || a.name.localeCompare(b.name); });
+      var popular = q ? [] : rest.filter(function (it) { return it.popular; });
+      var others = q ? rest : rest.filter(function (it) { return !it.popular; });
       function row(it) {
-        return '<button class="wt-pick-row" data-a="pick" data-name="' + esc(it.name) + '">' + thumb(it.muscle) + '<span class="wt-pick-txt"><b>' + esc(it.name) + '</b><small>' +
+        var open = p.info === it.k, lib = LIB[it.k];
+        return '<div class="wt-pick-item' + (open ? ' is-open' : '') + '"><div class="wt-pick-line">' +
+          '<button class="wt-pick-row" data-a="pick" data-name="' + esc(it.name) + '">' + thumb(it.muscle) + '<span class="wt-pick-txt"><b>' + esc(it.name) + '</b><small>' +
           esc(MUSCLES[it.muscle].label + (it.equipment && it.muscle !== 'cardio' ? ' · ' + it.equipment : '')) + '</small></span>' +
-          (it.count ? '<span class="wt-pick-count">' + plural(it.count, 'time') + '</span>' : '') + '</button>';
+          (it.count ? '<span class="wt-pick-count">' + plural(it.count, 'time') + '</span>' : '') + '</button>' +
+          (lib ? '<button class="wt-iconbtn wt-pick-info" data-a="pick-info" data-k="' + esc(it.k) + '" aria-expanded="' + open + '" aria-label="How to do ' + esc(it.name) + '" title="How to">' + ic('info') + '</button>' : '') +
+          '</div>' + (open ? renderHowTo(it.name) : '') + '</div>';
       }
       var h = '';
       var typed = normName(p.q);
@@ -715,19 +812,58 @@
           esc(MUSCLES[gm].label) + (p.muscle === 'all' ? ' (pick a muscle above to change it)' : '') + '</small></span>' + ic('plus') + '</button>';
       }
       if (used.length) h += '<div class="wt-pick-sec">Done before</div>' + used.map(row).join('');
-      if (rest.length) h += '<div class="wt-pick-sec">' + (used.length ? 'More exercises' : 'Exercises') + '</div>' + rest.map(row).join('');
-      if (!items.length && !typed) h += '<p class="wt-hint">Nothing here yet.</p>';
+      if (popular.length) h += '<div class="wt-pick-sec">Popular</div>' + popular.map(row).join('');
+      if (others.length) {
+        var shown = others.slice(0, p.limit);
+        h += '<div class="wt-pick-sec">' + (q ? others.length + (others.length === 1 ? ' match' : ' matches') : 'Full library · ' + fmtN(others.length)) + '</div>' + shown.map(row).join('');
+        if (others.length > shown.length) h += '<button class="wt-btn wt-pick-more" data-a="pick-more">Show ' + Math.min(PICK_PAGE, others.length - shown.length) + ' more</button>';
+      }
+      if (!items.length && !typed) h += '<p class="wt-hint">No exercises match. Try another word or clear a filter.</p>';
       return h;
     }
+    function refreshPicker() {
+      var matches = pickMatches(), choices = equipmentChoices(matches);
+      if (state.picker.eq !== 'all' && choices.indexOf(state.picker.eq) < 0) state.picker.eq = 'all';
+      var eqEl = layer.querySelector('.wt-pick-eq');
+      if (eqEl) { eqEl.innerHTML = renderEqChips(choices); eqEl.hidden = choices.length < 2; }
+      layer.querySelector('.wt-pick-list').innerHTML = renderPickList(matches);
+    }
+    // Muscles worked (main one solid, helpers lighter) and the dataset's steps.
+    function renderHowTo(name, ei) {
+      var lib = LIB[key(name)];
+      if (!lib) return '';
+      var levels = {}; levels[lib.muscle] = 4;
+      lib.sec.forEach(function (m) { levels[m] = levels[m] || 2; });
+      var views = ['front', 'back'].filter(function (v) { return Object.keys(levels).some(function (m) { return MUSCLES[m] && MUSCLES[m].view === v; }); });
+      var h = '<div class="wt-howto">';
+      if (views.length) h += '<div class="wt-figures">' + views.map(function (v) { return '<figure>' + bodySvg(v, levels) + '</figure>'; }).join('') + '</div>';
+      h += '<div class="wt-howto-text"><p class="wt-howto-muscles"><b>' + esc(MUSCLES[lib.muscle].label) + '</b>' +
+        (lib.sec.length ? '<span> · also ' + esc(lib.sec.map(function (m) { return MUSCLES[m].label.toLowerCase(); }).join(', ')) + '</span>' : '') + '</p>';
+      var steps = lib.id && global.WorkoutExerciseHowTo && global.WorkoutExerciseHowTo[lib.id];
+      if (steps && steps.length) h += '<ol>' + steps.map(function (st) { return '<li>' + esc(st) + '</li>'; }).join('') + '</ol>';
+      else if (lib.id && howto.status !== 'ready' && howto.status !== 'failed') h += '<p class="wt-hint">Loading steps…</p>';
+      else if (lib.id && howto.status === 'failed') h += '<p class="wt-hint">Couldn’t load the steps. Check your connection and open this again.</p>';
+      else h += '<p class="wt-hint">No written steps for this one yet.</p>';
+      if (ei != null) h += '<button class="wt-btn wt-howto-close" data-a="howto" data-ex="' + ei + '">' + ic('x') + 'Hide how-to</button>';
+      return h + '</div></div>';
+    }
+    function needHowTo(name, after) {
+      var lib = LIB[key(name)];
+      if (!lib || !lib.id || global.WorkoutExerciseHowTo) return;
+      if (howto.status === 'failed') howto.status = 'idle';
+      loadHowTo(after);
+    }
     function renderPicker() {
-      var p = state.picker;
+      var p = state.picker, matches = pickMatches(), eqChoices = equipmentChoices(matches);
+      if (p.eq !== 'all' && eqChoices.indexOf(p.eq) < 0) p.eq = 'all';
       return '<div class="wt-sheet-wrap" data-close="1"><div class="wt-sheet" role="dialog" aria-modal="true" aria-label="' + (p.mode === 'replace' ? 'Replace exercise' : 'Add exercise') + '">' +
         '<div class="wt-sheet-head"><h3>' + (p.mode === 'replace' ? 'Replace exercise' : 'Add exercise') + '</h3><button class="wt-iconbtn" data-a="close-picker" aria-label="Close">' + ic('x') + '</button></div>' +
-        '<label class="wt-search">' + ic('search') + '<input data-a="pick-q" placeholder="Search or type a new exercise" value="' + esc(p.q) + '" autocomplete="off" aria-label="Search exercises"></label>' +
-        '<div class="wt-chips">' + ['all'].concat(MUSCLE_ORDER).map(function (m) {
+        '<label class="wt-search">' + ic('search') + '<input data-a="pick-q" placeholder="Search ' + fmtN(ALL.length) + ' exercises or type a new one" value="' + esc(p.q) + '" autocomplete="off" aria-label="Search exercises"></label>' +
+        '<div class="wt-chips" role="group" aria-label="Muscle">' + ['all'].concat(MUSCLE_ORDER).map(function (m) {
           return '<button class="wt-chip" data-a="pick-muscle" data-m="' + m + '" aria-pressed="' + (p.muscle === m) + '">' + (m === 'all' ? 'All' : MUSCLES[m].label) + '</button>';
         }).join('') + '</div>' +
-        '<div class="wt-pick-list">' + renderPickList() + '</div></div></div>';
+        '<div class="wt-chips wt-pick-eq" role="group" aria-label="Equipment"' + (eqChoices.length < 2 ? ' hidden' : '') + '>' + renderEqChips(eqChoices) + '</div>' +
+        '<div class="wt-pick-list">' + renderPickList(matches) + '</div></div></div>';
     }
 
     // ----- rest bar -----
@@ -986,6 +1122,19 @@
 
     // ----- actions -----
     function blankSet(prev) { return { weight: '', reps: '', km: '', min: '', done: false, warmup: !!(prev && prev.warmup) }; }
+    function newPicker(mode, ei) { return { mode: mode, ex: ei, q: '', muscle: 'all', eq: 'all', limit: PICK_PAGE, info: null }; }
+    // A template starts a workout with its exercises, set count and target reps; last
+    // time's numbers still show in the Previous column as usual.
+    function draftFromTemplate(tpl) {
+      var d = newDraft();
+      d.title = tpl[0]; d.startedAt = Date.now();
+      d.exercises = tpl[2].map(function (x) {
+        var last = lastFor(x[0]), sets = [];
+        for (var i = 0; i < x[1]; i++) sets.push(blankSet());
+        return { name: x[0], kind: kindOf(x[0], last && last.ex.sets), rest: last && last.ex.rest != null ? last.ex.rest : undefined, target: x[2], sets: sets };
+      });
+      return d;
+    }
     function draftFrom(s, keepValues) {
       return {
         date: keepValues ? s.date : defaultDate, title: s.title || '', notes: keepValues ? s.notes || '' : '',
@@ -1052,28 +1201,57 @@
       switch (a) {
         case 'start':
           if (active()) { state.tab = 'log'; break; }
-          state.draft = newDraft(); state.draft.startedAt = Date.now(); state.tab = 'log'; saveDraft(); break;
+          state.draft = newDraft(); state.draft.startedAt = Date.now(); state.tab = 'log'; state.howFor = null; saveDraft(); break;
         case 'start-from':
           if (active()) { state.tab = 'log'; state.flash = 'Finish or discard this workout first'; break; }
           var src = data.sessions.filter(function (x) { return x.id === t.dataset.id; })[0];
           if (!src) return;
-          state.draft = draftFrom(src, false); state.tab = 'log'; saveDraft(); break;
+          state.draft = draftFrom(src, false); state.tab = 'log'; state.howFor = null; saveDraft(); break;
         case 'go-log': state.tab = 'log'; break;
-        case 'add-ex': state.picker = { mode: 'add', q: '', muscle: 'all' }; state.menuFor = null; break;
-        case 'replace': state.picker = { mode: 'replace', ex: ei, q: '', muscle: 'all' }; break;
+        case 'add-ex': state.picker = newPicker('add'); state.menuFor = null; break;
+        case 'replace': state.picker = newPicker('replace', ei); break;
         case 'close-picker': state.picker = null; break;
         case 'pick': addExercise(t.dataset.name); break;
         case 'pick-new': addExercise(state.picker.q); break;
         case 'pick-muscle':
-          state.picker.muscle = t.dataset.m;
-          layer.querySelectorAll('.wt-chip').forEach(function (c) { c.setAttribute('aria-pressed', String(c === t)); });
-          layer.querySelector('.wt-pick-list').innerHTML = renderPickList();
+          state.picker.muscle = t.dataset.m; state.picker.limit = PICK_PAGE;
+          layer.querySelectorAll('[data-a="pick-muscle"]').forEach(function (c) { c.setAttribute('aria-pressed', String(c === t)); });
+          refreshPicker();
           return;
+        case 'pick-eq':
+          state.picker.eq = t.dataset.e; state.picker.limit = PICK_PAGE;
+          refreshPicker();
+          return;
+        case 'pick-more':
+          var list = layer.querySelector('.wt-pick-list'), top = list.scrollTop;
+          state.picker.limit += PICK_PAGE;
+          list.innerHTML = renderPickList(); list.scrollTop = top;
+          return;
+        case 'pick-info':
+          var pk = t.dataset.k, pl = layer.querySelector('.wt-pick-list'), ptop = pl.scrollTop;
+          state.picker.info = state.picker.info === pk ? null : pk;
+          pl.innerHTML = renderPickList(); pl.scrollTop = ptop;
+          var again = pl.querySelector('[data-a="pick-info"][data-k="' + pk.replace(/["\\]/g, '\\$&') + '"]'); if (again) again.focus();
+          if (state.picker.info) needHowTo(pk, function () {
+            if (!state.picker || state.picker.info !== pk) return;
+            var l = layer.querySelector('.wt-pick-list'), lt = l.scrollTop;
+            l.innerHTML = renderPickList(); l.scrollTop = lt;
+          });
+          return;
+        case 'howto':
+          state.howFor = state.howFor === ei ? null : ei; state.menuFor = null;
+          if (state.howFor != null) needHowTo(ex.name, render);
+          break;
+        case 'start-template':
+          if (active()) { state.tab = 'log'; state.flash = 'Finish or discard this workout first'; break; }
+          var tpl = TEMPLATES[+t.dataset.i];
+          if (!tpl) return;
+          state.draft = draftFromTemplate(tpl); state.tab = 'log'; state.howFor = null; saveDraft(); break;
         case 'menu': state.menuFor = state.menuFor === ei ? null : ei; break;
         case 'move-up': case 'move-down':
           var to = a === 'move-up' ? ei - 1 : ei + 1;
-          d.exercises.splice(to, 0, d.exercises.splice(ei, 1)[0]); state.menuFor = null; saveDraft(); break;
-        case 'del-ex': d.exercises.splice(ei, 1); state.menuFor = null; saveDraft(); break;
+          d.exercises.splice(to, 0, d.exercises.splice(ei, 1)[0]); state.menuFor = null; state.howFor = null; saveDraft(); break;
+        case 'del-ex': d.exercises.splice(ei, 1); state.menuFor = null; state.howFor = null; saveDraft(); break;
         case 'add-set':
           var lastSet = ex.sets[ex.sets.length - 1];
           var ns = blankSet();
@@ -1101,11 +1279,11 @@
         case 'discard-no': state.confirmDiscard = false; break;
         case 'discard-yes':
           var wasEditing = !!state.editingId;
-          state.confirmDiscard = false; state.editingId = null; state.draft = newDraft(); state.rest = null;
+          state.confirmDiscard = false; state.editingId = null; state.draft = newDraft(); state.rest = null; state.howFor = null;
           if (wasEditing) state.tab = 'history';
           saveDraft(); break;
         case 'save':
-          var s = cleanDraft();
+          var s = cleanDraft(); state.howFor = null;
           if (!s.exercises.length) { toast('Fill in at least one set first'); return; }
           if (state.editingId) {
             var idx = data.sessions.findIndex(function (x) { return x.id === state.editingId; });
@@ -1196,8 +1374,8 @@
     function onInput(e) {
       var t = e.target, f = t.dataset.f;
       if (t.dataset.a === 'pick-q' && state.picker) {
-        state.picker.q = t.value;
-        layer.querySelector('.wt-pick-list').innerHTML = renderPickList();
+        state.picker.q = t.value; state.picker.limit = PICK_PAGE;
+        refreshPicker();
         return;
       }
       if (!f || state.tab !== 'log' || !active()) return;

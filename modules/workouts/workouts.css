@@ -160,6 +160,7 @@
 .wt-routine-thumbs { display: flex; gap: var(--space-1); }
 .wt-routine p { color: var(--text-2); font-size: var(--fs-13); flex: 1; }
 .wt-routine .wt-btn { align-self: stretch; }
+.wt-tpl-meta { font-size: var(--fs-12); color: var(--text-3); margin-top: calc(-1 * var(--space-2)); }
 
 /* ---------- live workout ---------- */
 .wt-live { padding: var(--space-4); }
@@ -333,6 +334,28 @@
 .wt-pick-count { font-size: var(--fs-12); color: var(--text-3); white-space: nowrap; }
 .wt-pick-new { margin-bottom: var(--space-1); box-shadow: inset 0 0 0 1px var(--border-strong); }
 .wt-pick-new .wt-ic { color: var(--text-2); }
+.wt-pick-line { display: flex; align-items: center; gap: var(--space-1); }
+.wt-pick-line .wt-pick-row { flex: 1; min-width: 0; }
+.wt-root .wt-pick-info { flex: none; color: var(--text-3); }
+.wt-pick-item.is-open { background: var(--surface-2); border-radius: var(--radius-sm); }
+.wt-root .wt-pick-more { width: 100%; margin: var(--space-2) 0 var(--space-3); }
+.wt-pick-eq { margin-top: calc(-1 * var(--space-1)); }
+.wt-pick-eq[hidden] { display: none; }
+
+/* how-to: muscles worked + steps (picker row and exercise card) */
+.wt-howto { display: flex; gap: var(--space-4); align-items: flex-start; padding: var(--space-2) var(--space-2) var(--space-3); }
+.wt-exc .wt-howto { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--border); }
+.wt-howto .wt-figures { margin: 0; gap: var(--space-2); }
+.wt-howto .wt-figures .wt-body { width: 52px; }
+.wt-howto-text { flex: 1; min-width: 0; font-size: var(--fs-13); color: var(--text-2); }
+.wt-howto-muscles b { color: var(--text-1); font-weight: var(--fw-medium); }
+.wt-howto ol { margin: var(--space-2) 0 0; padding-left: 1.25em; display: grid; gap: var(--space-1); max-width: 68ch; }
+.wt-howto ol li::marker { color: var(--text-3); }
+.wt-howto .wt-hint { margin-top: var(--space-2) !important; }
+.wt-root .wt-howto-close { margin-top: var(--space-3); min-height: var(--control-h-sm); font-size: var(--fs-12); padding: 0 10px; }
+@media (max-width: 479px) {
+  .wt-howto { flex-direction: column; gap: var(--space-2); }
+}
 
 /* ---------- history ---------- */
 .wt-hist-layout { display: grid; gap: var(--space-3); }

@@ -3,6 +3,7 @@
  *
  * In index.html, after core.js, load:
  *   <link rel="stylesheet" href="modules/workouts/workouts.css">
+ *   <script src="modules/workouts/exercises.js"></script>   (optional: the full exercise library)
  *   <script src="modules/workouts/workouts.js"></script>
  *   <script src="modules/workouts/register.js"></script>
  *
