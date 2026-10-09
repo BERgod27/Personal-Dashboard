@@ -3,7 +3,10 @@
  *
  * In index.html, after core.js, load:
  *   <link rel="stylesheet" href="modules/workouts/workouts.css">
+ *   <link rel="stylesheet" href="modules/workouts/insights.css">
  *   <script src="modules/workouts/workouts.js"></script>
+ *   <script src="modules/workouts/insights.js"></script>
+ *   <script src="modules/workouts/transfer.js"></script>
  *   <script src="modules/workouts/register.js"></script>
  *
  * Data lives in the shell's Store under Store.moduleData('workout'), so it is
