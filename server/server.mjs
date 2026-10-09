@@ -4,7 +4,7 @@
 //
 //   npm start                        (see README.md in this folder for env vars and deploy)
 //
-// Node 22.13+; one dependency (pg) and only when DATABASE_URL is set.
+// Node 22.13+; dependencies are in package.json (pg is loaded only when DATABASE_URL is set).
 
 import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -12,8 +12,8 @@ import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDb, store as makeStore } from './db.mjs';
 import { hashPassword, verifyPassword, verifyDummy, newToken, sha256, safeEqual, secretBox, rateLimiter } from './security.mjs';
-import { syncMoodleIcs, syncSigarra, manualClasses, build, forClient } from './uni.mjs';
-import { isCredentialError } from './sigarra.mjs';
+import { syncMoodleIcs, manualClasses, build, forClient } from './uni.mjs';
+import { syncSigarra, isCredentialError } from './sigarra.mjs';
 import { tutorConfig, checkMessages, buildContext, streamAnswer, explainError } from './tutor.mjs';
 
 const WEB_ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -87,6 +87,11 @@ function send(res, code, body, type = 'application/json; charset=utf-8', extra =
 
 const fail = (res, code, error) => send(res, code, { error });
 const redirect = (res, to) => { res.writeHead(302, headers({ location: to, 'cache-control': 'no-store' })); res.end(); };
+// Thrown from a route: the request handler answers with this status and message.
+const httpError = (status, message) => Object.assign(new Error(message), { status });
+
+// The key in an "Authorization: Bearer <key>" header ('' if there is none).
+const bearer = (req) => (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
 
 function isHttps(req) {
   return (req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https' || process.env.FORCE_SECURE_COOKIE === '1';
@@ -105,15 +110,15 @@ function sessionCookie(req, token, maxAge) {
 }
 
 async function readJson(req, limit = MAX_DOC_BYTES + 64 * 1024) {
-  if (!/^application\/json\b/i.test(req.headers['content-type'] || '')) throw Object.assign(new Error('expected JSON'), { status: 415 });
+  if (!/^application\/json\b/i.test(req.headers['content-type'] || '')) throw httpError(415, 'expected JSON');
   const chunks = [];
   let size = 0;
   for await (const c of req) {
     size += c.length;
-    if (size > limit) throw Object.assign(new Error('request too large'), { status: 413 });
+    if (size > limit) throw httpError(413, 'request too large');
     chunks.push(c);
   }
-  try { return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'); } catch { throw Object.assign(new Error('bad JSON'), { status: 400 }); }
+  try { return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'); } catch { throw httpError(400, 'bad JSON'); }
 }
 
 // Requests that change something must come from this site (cookies are SameSite=Lax too).
@@ -164,15 +169,16 @@ async function serveStatic(req, res, pathname) {
 
 // ---------------------------------------------------------------- news
 
-// The news module's own fetcher (modules/news/server.mjs) does the work; this keeps the
-// last result in memory and in the database so a cold start can answer instantly.
+// The news module's own code (modules/news/server.mjs) fetches and filters the headlines; this
+// keeps the last result in memory and in the database so a cold start can answer instantly.
+const newsModule = () => import('../modules/news/server.mjs');
 const news = { data: null, at: 0, running: null };
 const NEWS_KEY = 'news.cache';
 
 async function refreshNews() {
   if (news.running) return news.running;
   news.running = (async () => {
-    const { refresh } = await import('../modules/news/server.mjs');
+    const { refresh } = await newsModule();
     let data = await refresh();
     // If every feed failed this time, keep showing the last headlines (with the new feed errors).
     if (!data.items.length && news.data?.items?.length) data = { ...news.data, feeds: data.feeds, stale: true };
@@ -183,31 +189,24 @@ async function refreshNews() {
   return news.running;
 }
 
+// After a restart, start from the copy saved in the database.
+async function loadSavedNews() {
+  if (news.data) return;
+  const saved = await S.getServer(0, NEWS_KEY);
+  if (saved) { news.data = saved.data; news.at = saved.at; }
+}
+
 async function getNews(force) {
-  if (!news.data) {
-    const saved = await S.getServer(0, NEWS_KEY);
-    if (saved) { news.data = saved.data; news.at = saved.at; }
-  }
+  await loadSavedNews();
   const maxAge = (news.data?.refreshMinutes ?? 15) * 60e3;
   if (force || !news.data) return refreshNews();
   if (Date.now() - news.at > maxAge) refreshNews().catch((e) => console.error('[news]', e.message));
   return news.data;
 }
 
-function newsView(data, params) {
-  const cat = params.get('category');
-  const limit = Number(params.get('limit')) || 0;
-  let items = cat && cat !== 'all' ? data.items.filter((i) => i.category === cat) : data.items;
-  if (limit) items = items.slice(0, limit);
-  return { ...data, items };
-}
-
 // The last headlines, without fetching (for the tutor's context).
 async function cachedNews() {
-  if (!news.data) {
-    const saved = await S.getServer(0, NEWS_KEY).catch(() => null);
-    if (saved) { news.data = saved.data; news.at = saved.at; }
-  }
+  await loadSavedNews().catch(() => {});
   return news.data;
 }
 
@@ -240,9 +239,8 @@ function moodleHostOk(u) {
 
 function checkMoodleUrl(raw) {
   let u;
-  try { u = new URL(raw); } catch { throw Object.assign(new Error('That Moodle calendar URL is not a valid link.'), { status: 400 }); }
-  const ok = moodleHostOk(u);
-  if (!ok) throw Object.assign(new Error(`The Moodle calendar URL must be an https link on ${MOODLE_HOSTS.join(', ')}.`), { status: 400 });
+  try { u = new URL(raw); } catch { throw httpError(400, 'That Moodle calendar URL is not a valid link.'); }
+  if (!moodleHostOk(u)) throw httpError(400, `The Moodle calendar URL must be an https link on ${MOODLE_HOSTS.join(', ')}.`);
   return u.href;
 }
 
@@ -369,8 +367,7 @@ async function route(req, res) {
   if (path === '/api/cron' && method === 'POST') {
     const secret = process.env.CRON_SECRET;
     // Header only: a key in the URL would end up in the host's request logs.
-    const given = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-    if (!secret || !safeEqual(given, secret)) return fail(res, 401, 'bad cron key');
+    if (!secret || !safeEqual(bearer(req), secret)) return fail(res, 401, 'bad cron key');
     const out = { news: null, uni: {} };
     try { const n = await getNews(false); out.news = n?.items?.length ?? 0; } catch (e) { out.news = e.message; }
     for (const id of await S.userIds()) {
@@ -387,7 +384,7 @@ async function route(req, res) {
   if (path === '/api/uni/push' && method === 'POST') {
     // Throttle by IP before any work, so a flood of bad keys can't hammer the database.
     if (pushIpLimit.tooMany('push-ip:' + clientIp(req))) return fail(res, 429, 'Too many requests. Try again later.');
-    const key = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+    const key = bearer(req);
     const body = await readJson(req, 512 * 1024);
     const name = String(body.user || '').trim().toLowerCase();
     const u = key && name ? await S.userByName(name) : null;
@@ -455,7 +452,8 @@ async function route(req, res) {
   if (path === '/api/news' || path === '/api/news/refresh') {
     try {
       const data = await getNews(path.endsWith('/refresh'));
-      return send(res, 200, newsView(data, url.searchParams));
+      const { view } = await newsModule();
+      return send(res, 200, view(data, url.searchParams));
     } catch (e) { return fail(res, 502, 'News could not be loaded: ' + e.message); }
   }
 

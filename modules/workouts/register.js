@@ -13,9 +13,6 @@
  * Data lives in the shell's Store under Store.moduleData('workout'), so it is
  * part of the dashboard's Data & backup export. Workouts logged earlier in the
  * standalone page (localStorage 'pd.workouts.v1') are copied over once.
- *
- * If the placeholder js/modules/workout.js already registered 'workout', this
- * replaces its behaviour in place instead of adding a second panel.
  */
 (function () {
   'use strict';
@@ -84,7 +81,5 @@
     }
   };
 
-  var existing = Dashboard.modules().filter(function (m) { return m.id === ID; })[0];
-  if (existing) Object.assign(existing, def);
-  else Dashboard.registerModule(def);
+  Dashboard.registerModule(def);
 })();

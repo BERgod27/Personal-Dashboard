@@ -1,23 +1,22 @@
 /*
  * Core: areas (categories), the module registry, and the quick-add parser.
  *
- * Adding a module (e.g. js/modules/workout.js):
+ * Adding a module (modules/workouts/register.js is a full example):
  *
  *   Dashboard.registerModule({
  *     id: 'workout',                 // also the key under Store.moduleData()
  *     title: 'Workouts',
  *     category: 'workout',           // colour/area it belongs to
- *     order: 20,                     // position in the Modules grid
+ *     order: 20,                     // sort order among the modules
  *     render: function (el, ctx) {}, // draw the panel; ctx.date is the day shown
  *     itemsFor: function (date) {    // optional: put things on the day's schedule
  *       return [{ id, title, start:'HH:MM', end:'HH:MM', category, source:'workout' }];
  *     },
- *     tasksFor: function (date) {},  // optional: same idea for the task list
- *     wide: true,                    // optional: panel spans the full row
- *     ownTitle: true                 // optional: the panel draws its own heading
+ *     tasksFor: function (date) {}   // optional: same idea for the task list
  *   });
  *
- * render() runs on every change, so mount once and update after that.
+ * Each module has its own tab, whose page header names it, so render() draws only
+ * the content. render() runs on every change, so mount once and update after that.
  * Call Dashboard.refresh() when the module's own data changes.
  *
  * Module items are read-only on the schedule; the module owns them.
@@ -34,8 +33,13 @@
 
   var modules = [];
 
+  /* Lower case without accents, so "Almoço" matches "almoco". */
+  function fold(s) {
+    return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
   function categoryFromTag(tag) {
-    tag = tag.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    tag = fold(tag);
     for (var i = 0; i < CATEGORIES.length; i++) {
       if (CATEGORIES[i].aliases.indexOf(tag) !== -1) return CATEGORIES[i].id;
     }
@@ -101,7 +105,7 @@
     WEEKDAYS.forEach(function (list) { names = names.concat(list); });
     var wdRe = new RegExp('\\s(every\\s+|on\\s+|[àa]s?\\s+)?(' + names.join('|') + ')(?:-feira)?\\.?(?=\\s)', 'i');
     s = s.replace(wdRe, function (m, prefix, name) {
-      var key = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      var key = fold(name);
       var idx = -1;
       WEEKDAYS.forEach(function (list, i) { if (list.indexOf(key) !== -1) idx = i; });
       if (idx === -1) return m;
@@ -137,18 +141,18 @@
 
     out.title = s.replace(/\s+/g, ' ').trim();
     if (out.start) out.kind = 'event';
-    if (!out.category) out.category = out.kind === 'event' ? guessCategory(out.title) : guessCategory(out.title, 'personal');
+    if (!out.category) out.category = guessCategory(out.title);
     return out;
   }
 
   /* Light keyword guess so "Gym" or "Almoço" land in the right area without a tag. */
-  function guessCategory(title, fallback) {
-    var words = title.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z-]+/);
+  function guessCategory(title) {
+    var words = fold(title).split(/[^a-z-]+/);
     for (var i = 0; i < words.length; i++) {
       var c = categoryFromTag(words[i]);
       if (c) return c;
     }
-    return fallback || 'personal';
+    return 'personal';
   }
 
   /* Does a stored event happen on this date? Handles weekly repeats. */
@@ -206,12 +210,6 @@
     /* Standard "not built yet" panel body, used until a module is real. */
     placeholder: function (el, opts) {
       el.innerHTML = '';
-      if (opts.title) {
-        var h = document.createElement('h3');
-        h.className = 'module-title';
-        h.textContent = opts.title;
-        el.appendChild(h);
-      }
       var status = document.createElement('p');
       status.className = 'module-status';
       status.innerHTML = '<span class="pill">' + opts.status + '</span>';

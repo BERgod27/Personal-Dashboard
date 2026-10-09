@@ -326,13 +326,9 @@
     Dashboard.modules().forEach(function (m) {
       var body = moduleBodies[m.id];
       if (!body) {
-        var sec = el('section', 'panel module cat-' + Dashboard.category(m.category).id + (m.wide ? ' wide' : ''));
+        // No heading here: the module's tab names it in the page header (js/tabs.js).
+        var sec = el('section', 'panel module cat-' + Dashboard.category(m.category).id);
         sec.id = 'module-' + m.id;
-        if (!m.ownTitle) {
-          var head = el('div', 'panel-head');
-          head.appendChild(el('h3', 'module-title', m.title));
-          sec.appendChild(head);
-        }
         body = el('div', 'module-body');
         sec.appendChild(body);
         grid.appendChild(sec);

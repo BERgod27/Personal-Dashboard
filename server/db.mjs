@@ -84,7 +84,6 @@ export async function openDb({ url = process.env.DATABASE_URL, sqlitePath = proc
 // Small helpers used by the routes.
 export function store(db) {
   return {
-    db,
     async countUsers() {
       const [r] = await db.q('SELECT COUNT(*) AS n FROM users');
       return Number(r.n);

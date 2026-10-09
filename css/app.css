@@ -357,10 +357,6 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 
 /* ---------- module screens ---------- */
 /* Each module gets its own screen: content sits on the page, no card around it. */
-.modules { display: block; }
-.module { min-width: 0; }
-.view-module .module > .panel-head { display: none; }            /* the page header names it */
-.view-module .module-body > .module-title { display: none; }
 .view-module .module { background: none; border: 0; border-radius: 0; }
 
 /* Dashboard.placeholder(): a module that has nothing to show yet */
@@ -466,6 +462,3 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 /* The panels style themselves from css/tokens.css (modules/*); only placement here. */
 .view-module #module-news { max-width: 880px; }
 .view-module news-panel { --news-title-display: none; }
-.module .uni-panel { font-size: var(--fs-14); }
-.view-module .uni-panel > header strong { display: none; }
-#module-workout { grid-column: 1 / -1; }
