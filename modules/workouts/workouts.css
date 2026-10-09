@@ -48,7 +48,6 @@
 .wt-root .wt-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 .wt-root .wt-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .wt-root .wt-primary .wt-ic { color: currentColor; }
-.wt-root .wt-soft { background: var(--surface-2); }
 .wt-root .wt-ghost-danger { border-color: transparent; background: transparent; color: var(--danger); }
 .wt-root .wt-ghost-danger .wt-ic { color: currentColor; }
 .wt-root .wt-ghost-danger:hover { background: var(--danger-soft); border-color: transparent; }
@@ -487,4 +486,3 @@
 .wt-root.wt-layer { display: contents; }
 html.wt-locked { overflow: hidden; }
 .wt-root.wt-embedded { max-width: none; padding: 0; font-family: inherit; }
-#module-workout { grid-column: 1 / -1; }

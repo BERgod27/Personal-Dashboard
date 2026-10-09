@@ -34,9 +34,18 @@ fonts/                Geist and Geist Mono (self-hosted, OFL)
 js/store.js           data store + date helpers (Store, D)
 js/core.js            areas, module registry, quick-add parser (Dashboard)
 js/modules/*.js       adapters that register each module with the dashboard
+                      (workouts registers itself in modules/workouts/register.js)
 modules/<name>/       the real modules (uni, workouts, meals, news), each with a README
 js/app.js             daily view, editor, backup/restore
 js/tabs.js            tab navigation (#today #uni #workouts #meals #news, keys 1-5)
+
+Online version only:
+server/               the server: accounts, synced data, uni and news sync, the tutor
+login.html            sign-in page (js/login.js)
+js/online.js          keeps the browser's data in sync with the account
+js/tutor.js           the Ask tutor chat
+css/online.css        sign-in page, account menu and Uni connections dialog
+css/tutor.css         the tutor chat
 ```
 
 ## Adding a module
@@ -44,4 +53,6 @@ Create `js/modules/<name>.js`, add a `<script>` tag for it in `index.html`
 before `js/app.js`, and call `Dashboard.registerModule({...})`. A module can
 draw its panel (`render`), put items on the schedule (`itemsFor(date)`) and add
 tasks (`tasksFor(date)`). Keep its data in `Store.moduleData('<name>')`.
+Each module shows on its own tab: add it to `VIEWS` and `ORDER` in `js/tabs.js`,
+to the tab bar in `index.html`, and to the view rules in `css/app.css`.
 See the comment at the top of `js/core.js`.

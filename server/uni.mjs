@@ -6,9 +6,6 @@
 
 import { LOCAL_TZ, offsetMinutes, zoned, iso, todayLocal, addDays, mondayOf } from './time.mjs';
 
-export { iso, zoned, mondayOf } from './time.mjs';
-export { syncSigarra } from './sigarra.mjs';
-
 const UA = 'personal-dashboard-uni/1.0';
 
 // ---------------------------------------------------------------- ICS (Moodle calendar export)
@@ -110,9 +107,10 @@ export function manualClasses(csv, weeks = 2, today = todayLocal()) {
   const lines = String(csv || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   if (!lines.length) return [];
   const head = lines[0].toLowerCase().split(',').map((h) => h.trim());
-  const rows = (head.includes('day') ? lines.slice(1) : lines).map((l) => {
+  const hasHead = head.includes('day');
+  const cols = hasHead ? head : ['day', 'start', 'end', 'course', 'type', 'room', 'teacher'];
+  const rows = (hasHead ? lines.slice(1) : lines).map((l) => {
     const cells = l.split(',').map((c) => c.trim());
-    const cols = head.includes('day') ? head : ['day', 'start', 'end', 'course', 'type', 'room', 'teacher'];
     return Object.fromEntries(cols.map((c, i) => [c, cells[i] || '']));
   });
   const first = mondayOf(today);

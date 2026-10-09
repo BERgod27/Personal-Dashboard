@@ -227,11 +227,11 @@
     var ctrl = new AbortController();
     setBusy(ctrl);
     var failed = null;
-    var view = (document.getElementById('app') || {}).dataset ? document.getElementById('app').dataset.view : null;
+    var app = document.getElementById('app');
+    var view = app ? app.dataset.view : null;
 
     // Push unsaved dashboard edits first, so the answer sees the latest data.
-    var ready = window.PDOnline.flush ? window.PDOnline.flush().catch(function () {}) : Promise.resolve();
-    ready.then(function () {
+    window.PDOnline.flush().catch(function () {}).then(function () {
       return fetch('/api/tutor', {
         method: 'POST', credentials: 'same-origin', signal: ctrl.signal,
         headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson' },

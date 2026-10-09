@@ -8,7 +8,7 @@
  * the server. Opened any other way (published page, file://, python http.server) it
  * finds no server and does nothing, so the dashboard keeps working locally.
  *
- * Exposes window.PDOnline = { user, openUni(), syncUni(), signOut(), status() }.
+ * Exposes window.PDOnline = { user, openUni(), syncUni(), signOut(), status(), flush() }.
  */
 (function () {
   'use strict';

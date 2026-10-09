@@ -1,8 +1,9 @@
 /*
  * Uni module: adapter for the panel in modules/uni/ (Moodle + SIGARRA).
  *
- * Data comes from modules/uni/sync_uni.py, which runs on your own computer and
- * writes modules/uni/data/uni.js (window.UNI_DATA) and uni.json.
+ * Data comes from modules/uni/data/uni.js (window.UNI_DATA): written by
+ * modules/uni/sync_uni.py on your own computer, or served from the account by
+ * server/server.mjs online, where js/online.js also sends new data after each sync.
  * Classes and exams go on the schedule and Moodle deadlines go in Tasks.
  * With no synced data, the panel says how to sync and can show example data.
  */
@@ -40,7 +41,6 @@
     el.innerHTML = '';
     if (window.PDOnline) return renderOnlineSetup(el);
     Dashboard.placeholder(el, {
-        title: 'Uni',
       status: 'Not synced yet',
       summary: 'Classes and exams come from SIGARRA, deadlines from Moodle. The sync runs on your computer, because the university sites only answer from there.',
       planned: [
@@ -71,7 +71,6 @@
   /* Hosted version (server/server.mjs): the server syncs, so setup is a form, not commands. */
   function renderOnlineSetup(el) {
     Dashboard.placeholder(el, {
-      title: 'Uni',
       status: 'Not connected yet',
       summary: 'Classes and exams come from SIGARRA, deadlines from Moodle. The server syncs them, so they show on all your devices.',
       planned: ['Moodle: your calendar export link', 'SIGARRA: your username and password', 'Or type your timetable by hand']
@@ -86,10 +85,8 @@
 
   function useData(d) {
     data = d; isSample = false;
-    if (mounted !== null || document.getElementById('module-uni')) {
-      var body = document.querySelector('#module-uni .module-body');
-      if (body) { body.innerHTML = ''; mounted = null; }
-    }
+    var body = document.querySelector('#module-uni .module-body');
+    if (body) { body.innerHTML = ''; mounted = null; }
     Dashboard.refresh();
   }
 
@@ -116,7 +113,6 @@
     title: 'Uni',
     category: 'uni',
     order: 10,
-    ownTitle: true,
     render: function (el) {
       if (mounted === el) return;
       if (data) mountPanel(el);

@@ -104,7 +104,8 @@ function send(res, code, body, type = 'application/json; charset=utf-8') {
   res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
 }
 
-function view(data, params) {
+// The headlines one request asked for: ?category= and ?limit=. server/server.mjs uses it too.
+export function view(data, params) {
   const cat = params.get('category');
   const limit = Number(params.get('limit')) || 0;
   let items = cat && cat !== 'all' ? data.items.filter((i) => i.category === cat) : data.items;

@@ -88,9 +88,10 @@ const looksLikeBotScreen = (r) =>
 
 function edgeBlock(r, what) {
   const who = looksLikeBotScreen(r) ? "SIGARRA's bot screen (Cloudflare)" : 'SIGARRA';
+  const said = answered(r);
   return Object.assign(
-    new SigarraError(`${who} refused the request from the server (${answered(r)}) while loading the ${what}. It does this to servers even when the U.Porto app works on your phone, so it is not your password.`, 'edge'),
-    { answered: answered(r) });
+    new SigarraError(`${who} refused the request from the server (${said}) while loading the ${what}. It does this to servers even when the U.Porto app works on your phone, so it is not your password.`, 'edge'),
+    { answered: said });
 }
 
 function check(r, what) {

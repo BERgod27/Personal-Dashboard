@@ -15,18 +15,17 @@ Data is saved in that browser's localStorage under `pd.workouts.v1`.
 Use **Settings** to back up: download a file, or copy the backup as text and paste it back to import (works where downloads are blocked).
 
 ## Hook it into the dashboard shell
-In `personal-dashboard/index.html`, after `js/modules/workout.js` and before `js/app.js`:
+In `personal-dashboard/index.html`, after `js/core.js` and before `js/app.js`:
 ```html
 <link rel="stylesheet" href="modules/workouts/workouts.css">
 <script src="modules/workouts/workouts.js"></script>
 <script src="modules/workouts/register.js"></script>
 ```
-`register.js` takes over the placeholder `workout` module (or registers it if the
-placeholder is gone). In the dashboard:
+`register.js` registers it as the `workout` module. In the dashboard:
 - Data is kept in the shell's Store under `Store.moduleData('workout')`, so it is in
   the dashboard's Data & backup export. Anything logged in the standalone page is
   copied over the first time.
-- The panel spans the full Modules row and uses the dashboard's design tokens (`css/tokens.css`).
+- The panel fills the Workouts tab and uses the dashboard's design tokens (`css/tokens.css`).
 - Workouts logged on a day appear as all-day items on that day's schedule.
 - New workouts default to the day the dashboard is showing.
 

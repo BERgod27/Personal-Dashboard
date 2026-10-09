@@ -81,7 +81,7 @@ When the dashboard is opened without this server (the published page, `file://`,
 | `ALLOW_MORE_USERS` | optional | `1` to allow more accounts with the sign-up code. |
 | `ANTHROPIC_API_KEY` | for the tutor | Anthropic API key (`sk-ant-...`) from console.anthropic.com. Without it the Ask button says the tutor isn't set up. |
 | `TUTOR_MODEL` | optional | Claude model for the tutor (default `claude-opus-5-5`; `claude-sonnet-5-5` costs about half). |
-| `TUTOR_EFFORT` | optional | `low`, `medium` (default), `high`: how hard Claude thinks before answering. Lower is faster and cheaper. |
+| `TUTOR_EFFORT` | optional | `low`, `medium` (default), `high`, `xhigh` or `max`: how hard Claude thinks before answering. Lower is faster and cheaper. |
 | `TUTOR_PER_HOUR`, `TUTOR_PER_DAY` | optional | Questions allowed per user (default 40 an hour, 200 a day), so a stuck tab can't run up the bill. |
 | `SIGARRA_BASE_URL` | tests only | Points the SIGARRA sync at another server (the tests run a fake SIGARRA). |
 

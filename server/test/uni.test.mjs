@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseIcs, moodleEventsToItems, syncMoodleIcs, manualClasses, build, forClient, iso, zoned } from '../uni.mjs';
+import { parseIcs, moodleEventsToItems, syncMoodleIcs, manualClasses, build, forClient } from '../uni.mjs';
+import { iso, zoned } from '../time.mjs';
 
 const ICS = [
   'BEGIN:VCALENDAR', 'VERSION:2.0',

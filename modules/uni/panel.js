@@ -544,5 +544,3 @@ export async function mountUniPanel(el, opts = {}) {
   }, 60_000);
   return { refresh: async () => { data = await load(); draw(); }, destroy: () => clearInterval(timer) };
 }
-
-if (typeof window !== "undefined") window.mountUniPanel = mountUniPanel;
