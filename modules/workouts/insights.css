@@ -1,0 +1,53 @@
+/* Progress insights and CSV card (insights.js, transfer.js). Loaded after
+   workouts.css and scoped under .wt-root like it; colours and sizes come from
+   css/tokens.css. */
+
+/* summary tiles: this week against last week */
+.wt-sumtiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.wt-root.is-wide .wt-sumtiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.wt-sumtiles .wt-tile { min-width: 0; }
+.wt-sumtiles .wt-tile b { display: block; }
+.wt-sumtiles .wt-tile small { display: flex; align-items: center; gap: 2px; font-size: var(--fs-12); color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wt-sumtiles .wt-tile small.is-up { color: var(--success); }
+.wt-sumtiles .wt-tile small .wt-ic { width: 12px; height: 12px; flex: none; }
+
+/* training calendar heatmap: one column per week, Monday at the top */
+.wt-heat {
+  display: grid; grid-auto-flow: column; gap: 3px;
+  grid-template-columns: auto repeat(var(--weeks), minmax(0, 1fr));
+  grid-template-rows: 16px repeat(7, auto);
+}
+.wt-heat i { display: block; aspect-ratio: 1; border-radius: 2px; background: var(--surface-3); }
+.wt-heat i.l1 { background: color-mix(in srgb, var(--wt-heat) 22%, var(--wt-body)); }
+.wt-heat i.l2 { background: color-mix(in srgb, var(--wt-heat) 42%, var(--wt-body)); }
+.wt-heat i.l3 { background: color-mix(in srgb, var(--wt-heat) 64%, var(--wt-body)); }
+.wt-heat i.l4 { background: color-mix(in srgb, var(--wt-heat) 86%, var(--wt-body)); }
+.wt-heat i.is-future { background: transparent; }
+.wt-heat i.is-today { box-shadow: 0 0 0 1px var(--text-2); }
+.wt-heat-m { font-size: var(--fs-12); line-height: 16px; color: var(--text-3); white-space: nowrap; min-width: 0; }
+.wt-heat b { font-size: 10px; line-height: 1; font-weight: var(--fw-regular); color: var(--text-3); display: flex; align-items: center; padding-right: var(--space-1); }
+
+/* recent records */
+.wt-prlist { list-style: none; margin: 0 calc(-1 * var(--space-2)); padding: 0; }
+.wt-root .wt-prlist button {
+  display: flex; align-items: center; gap: var(--space-3); width: 100%; padding: 6px var(--space-2); border: 0; border-radius: var(--radius-sm);
+  background: transparent; text-align: left; color: inherit; transition: background-color var(--dur-fast) var(--ease-out);
+}
+.wt-root .wt-prlist button:hover { background: var(--surface-2); }
+.wt-root .wt-prlist button:focus-visible { outline-offset: -2px; }
+.wt-prlist button > .wt-ic { color: var(--warning); flex: none; }
+.wt-prlist-r { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; }
+.wt-prlist-r em { font-style: normal; font-weight: var(--fw-medium); color: var(--success); font-variant-numeric: tabular-nums; }
+.wt-prlist-r small { font-size: var(--fs-12); color: var(--text-3); }
+
+/* recovery */
+.wt-recov { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.wt-recov li { display: grid; grid-template-columns: 8px minmax(0, 84px) 1fr auto; align-items: center; gap: var(--space-2); font-size: var(--fs-13); }
+.wt-recov i { width: 8px; height: 8px; border-radius: 50%; background: var(--warning); }
+.wt-recov i.is-ready { background: var(--success); }
+.wt-recov span { color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wt-recov small { color: var(--text-3); font-size: var(--fs-12); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wt-recov em { font-style: normal; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* rep-range bests reuse .wt-exhist; the date sits after the set */
+.wt-exhist b small { color: var(--text-3); font-weight: var(--fw-regular); font-size: var(--fs-12); margin-left: var(--space-1); }
