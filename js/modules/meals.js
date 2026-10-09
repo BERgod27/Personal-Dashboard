@@ -28,7 +28,6 @@
     title: 'Refeições',
     category: 'meal',
     order: 40,
-    wide: true,
     render: function (el, ctx) {
       drawTodayCard(ctx && ctx.date);
       if (mounted === el) return;
