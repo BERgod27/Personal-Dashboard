@@ -22,7 +22,7 @@ OUT = Path(__file__).resolve().parent.parent
 
 LICENSE = """MIT License
 
-Copyright (c) 2026 Hasan Emir Yildirim
+Copyright (c) 2026 Hasan Emir Yıldırım
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation and data files (the "Software"),
