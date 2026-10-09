@@ -182,6 +182,15 @@ function mealsSection(m, today) {
     if (items.length) out.push(`- ${d}: ${items.slice(0, 30).join('; ')}`);
   }
   if ((m.meals || []).length) out.push('Saved meals: ' + m.meals.slice(0, 30).map((x) => clip(x.name, 50)).join('; '));
+  if (g.water) out.push(`Water goal: ${r0(g.water)} ml; today: ${r0((m.water || {})[today])} ml`);
+  const body = Object.keys(m.body || {}).filter((d) => daysBetween(d, today) >= 0 && daysBetween(d, today) <= 30).sort().reverse();
+  if (body.length) {
+    out.push('Body check-ins (last 30 days, kg / cm):');
+    for (const d of body.slice(0, 15)) {
+      const b = m.body[d] || {};
+      out.push(`- ${d}: ` + ['weight', 'waist', 'neck', 'hips'].filter((k) => b[k]).map((k) => `${k} ${b[k]}`).join(', '));
+    }
+  }
   return section('Meals (Refeições tab, Portuguese UI)', out);
 }
 
