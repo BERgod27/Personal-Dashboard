@@ -54,8 +54,11 @@
     var first = s.split(/\r?\n/)[0] || '';
     return (first.match(/;/g) || []).length > (first.match(/,/g) || []).length ? ';' : ',';
   }
+  // A text cell starting with = + - @ would run as a formula in Excel or Sheets,
+  // so it gets a leading apostrophe (numbers like -2.5 are left alone).
   function cell(v) {
     var s = v == null ? '' : String(v);
+    if (/^[=+\-@\t\r]/.test(s) && !/^[+-]?\d+(\.\d+)?$/.test(s)) s = "'" + s;
     return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   }
 
@@ -189,7 +192,8 @@
     if (rows.length < 2) throw new Error('No rows found');
     var header = rows[0], col = columnMap(header), format = detectFormat(header);
     if (col.exercise == null || col.date == null) throw new Error('Needs a date column and an exercise column');
-    function get(r, f) { return col[f] != null ? String(r[col[f]] == null ? '' : r[col[f]]).trim() : ''; }
+    // A leading apostrophe before = + - @ is the one toCSV adds; drop it so the text comes back as it was.
+    function get(r, f) { return col[f] != null ? String(r[col[f]] == null ? '' : r[col[f]]).trim().replace(/^'(?=[=+\-@])/, '') : ''; }
 
     function weightOf(r) {
       var w, from;
@@ -224,7 +228,8 @@
       return /warm/.test(t) || so === 'w' || /^(yes|true|1|y|x)$/.test(w);
     }
 
-    var groups = {}, order = [], skipped = 0;
+    // No prototype: a session id or exercise named __proto__ in the file is just a key.
+    var groups = Object.create(null), order = [], skipped = 0;
     for (var i = 1; i < rows.length; i++) {
       var r = rows[i];
       var name = get(r, 'exercise').replace(/\s+/g, ' ');
@@ -243,7 +248,7 @@
       var gk = id || (at.date + '|' + title + '|' + (format === 'Hevy' || format === 'Strong' ? at.t || '' : ''));
       var g = groups[gk];
       if (!g) {
-        g = groups[gk] = { id: id || null, date: at.date, title: title, notes: '', start: at.t, end: null, duration: 0, exercises: [], byName: {} };
+        g = groups[gk] = { id: id || null, date: at.date, title: title, notes: '', start: at.t, end: null, duration: 0, exercises: [], byName: Object.create(null) };
         order.push(gk);
       }
       if (!g.notes && get(r, 'notes')) g.notes = get(r, 'notes');
