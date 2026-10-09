@@ -98,6 +98,14 @@
           <div class="panel-body tasks" id="tasks"></div>
         </section>
 
+        <section class="panel" id="nutrition-panel" aria-labelledby="nutrition-h" hidden>
+          <div class="panel-head">
+            <h2 id="nutrition-h">Nutrição</h2>
+            <a class="panel-meta" href="#meals">Abrir Refeições</a>
+          </div>
+          <div class="panel-body" id="today-nutrition"></div>
+        </section>
+
         <section class="panel" aria-labelledby="note-h">
           <div class="panel-head">
             <h2 id="note-h">Notes for the day</h2>
@@ -229,8 +237,11 @@
 <!-- Modules: each js/modules/*.js registers a panel; the real modules live in modules/<name>/ -->
 <script src="modules/meals/meals.js"></script>
 <link rel="stylesheet" href="modules/workouts/workouts.css">
+<link rel="stylesheet" href="modules/workouts/insights.css">
 <script src="modules/workouts/exercises.js"></script>
 <script src="modules/workouts/workouts.js"></script>
+<script src="modules/workouts/insights.js"></script>
+<script src="modules/workouts/transfer.js"></script>
 <script src="js/modules/uni.js"></script>
 <script src="js/modules/workout.js"></script>
 <script src="modules/workouts/register.js"></script>

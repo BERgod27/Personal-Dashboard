@@ -1019,7 +1019,7 @@
       if (state.progressEx && hist[state.progressEx]) return renderExerciseDetail(hist[state.progressEx]);
       state.progressEx = null;
       keys.sort(function (a, b) { return hist[b].points.length - hist[a].points.length || a.localeCompare(b); });
-      var h = '<div class="wt-prog-grid">' + renderMuscleCard() + renderWeeksCard() + '</div>';
+      var h = renderInsightsTop() + '<div class="wt-prog-grid">' + renderMuscleCard() + renderWeeksCard() + renderInsightsGrid() + '</div>';
       h += '<div class="wt-card wt-exlist"><div class="wt-card-head"><div><h3>Exercises</h3><span>Tap one for its chart and records</span></div></div>';
       keys.forEach(function (k) {
         var e = hist[k], pts = e.points, m = muscleOf(e.name);
@@ -1067,11 +1067,139 @@
         (metric === 'e1rm' ? 'Estimated one-rep max from your best set (Epley)' : 'Per session') + '</span></div>' + seg('metric', metrics, metric) + '</div>' +
         (series.length ? lineChart(series, e.name, fmt) : '<p class="wt-hint">No numbers for this yet.</p>') +
         (pts.length < 2 ? '<p class="wt-hint">Log this exercise again to see a trend.</p>' : '') + '</div>' +
+        (weighted ? renderRepRanges(pts) : '') +
         '<div class="wt-card"><div class="wt-card-head"><div><h3>History</h3></div></div><ul class="wt-exhist">' +
         pts.slice().reverse().map(function (p) {
           return '<li><span>' + esc(fmtDate(p.date, { day: 'numeric', month: 'short', year: 'numeric' })) + '</span><b>' + esc(summarizeSets(p.sets, data.unit)) + '</b></li>';
         }).join('') + '</ul></div>';
       return h;
+    }
+
+    // ----- progress insights (insights.js) and CSV (transfer.js) -----
+    // Both live in their own files; if one isn't loaded its cards are left out.
+    function Insights() { return global.DashboardModules.workoutInsights; }
+    function Transfer() { return global.DashboardModules.workoutTransfer; }
+    function round2(n) { return Math.round(n * 100) / 100; }
+    function shortVol(v) { return v >= 10000 ? round1(v / 1000) + 'k ' + data.unit : fmtN(v) + ' ' + data.unit; }
+
+    function renderInsightsTop() {
+      if (!Insights()) return '';
+      var c = Insights().consistency(data.sessions, today());
+      var tiles = [
+        ['Workouts this week', String(c.week.workouts), 'Last week ' + c.prev.workouts, c.week.workouts - c.prev.workouts],
+        ['Volume this week', shortVol(c.week.volume), 'Last week ' + shortVol(c.prev.volume), c.week.volume - c.prev.volume],
+        ['Working sets this week', String(c.week.sets), 'Last week ' + c.prev.sets, c.week.sets - c.prev.sets],
+        ['Week streak', plural(c.streak, 'week'), 'Longest ' + plural(c.longest, 'week'), 0]
+      ];
+      return '<div class="wt-tiles wt-sumtiles">' + tiles.map(function (t) {
+        return '<div class="wt-tile"><span>' + esc(t[0]) + '</span><b>' + esc(t[1]) + '</b><small' + (t[3] > 0 ? ' class="is-up"' : '') + '>' +
+          (t[3] > 0 ? ic('up') : '') + esc(t[2]) + '</small></div>';
+      }).join('') + '</div>' + renderHeatmap();
+    }
+
+    function renderHeatmap() {
+      var weeks = wide ? 52 : 17, hm = Insights().heatmap(data.sessions, today(), weeks);
+      var lastMonth = '';
+      var cols = hm.cols.map(function (col) {
+        var m = fmtDate(col[0].date, { month: 'short' }), label = m !== lastMonth ? m : '';
+        lastMonth = m;
+        return '<span class="wt-heat-m">' + esc(label) + '</span>' + col.map(function (d) {
+          if (d.future) return '<i class="is-future"></i>';
+          var tip = fmtDate(d.date) + (d.workouts ? ' · ' + (d.titles.length ? d.titles.join(', ') : plural(d.workouts, 'workout')) + ' · ' + plural(d.sets, 'set') : ' · rest');
+          return '<i class="l' + d.level + (d.date === today() ? ' is-today' : '') + '" title="' + esc(tip) + '"></i>';
+        }).join('');
+      }).join('');
+      return '<div class="wt-card wt-heatcard"><div class="wt-card-head"><div><h3>Training calendar</h3><span>' +
+        plural(hm.activeDays, 'day') + ' trained in the last ' + weeks + ' weeks</span></div></div>' +
+        '<div class="wt-heat" style="--weeks:' + weeks + '" role="img" aria-label="' + esc(plural(hm.activeDays, 'day') + ' trained in the last ' + weeks + ' weeks') + '">' +
+        '<span class="wt-heat-m"></span><b>Mon</b><b></b><b>Wed</b><b></b><b>Fri</b><b></b><b></b>' +
+        cols + '</div>' +
+        '<div class="wt-legend"><span>Fewer sets</span><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>More</span></div></div>';
+    }
+
+    function renderInsightsGrid() {
+      return Insights() ? renderRecordsCard() + renderRecoveryCard() : '';
+    }
+
+    function renderRecordsCard() {
+      var recs = Insights().records(data.sessions, 6);
+      var h = '<div class="wt-card"><div class="wt-card-head"><div><h3>Recent records</h3><span>Each time you beat an earlier best</span></div></div>';
+      if (!recs.length) return h + '<p class="wt-hint">Beat an earlier best and it shows up here.</p></div>';
+      return h + '<ul class="wt-prlist">' + recs.map(function (r) {
+        var u = r.kind === 'reps' ? 'reps' : r.kind === 'km' ? distUnit() : data.unit;
+        var what = r.kind === 'e1rm' ? 'Est. 1RM ' + round2(r.value) + ' ' + u + (r.set ? ' · ' + r.set.weight + ' × ' + r.set.reps : '')
+          : r.kind === 'weight' ? 'Heaviest ' + round2(r.value) + ' ' + u
+          : r.kind === 'reps' ? 'Best set ' + r.value + ' reps'
+          : 'Longest ' + round2(r.value) + ' ' + u;
+        var gain = '+' + round2(r.value - r.prev) + ' ' + u;
+        return '<li><button data-a="open-pr" data-k="' + esc(r.key) + '">' + ic('trophy') + '<span class="wt-pick-txt"><b>' + esc(normName(r.name)) + '</b><small>' +
+          esc(what) + '</small></span><span class="wt-prlist-r"><em>' + esc(gain) + '</em><small>' + esc(relDay(r.date)) + '</small></span></button></li>';
+      }).join('') + '</ul></div>';
+    }
+
+    // Under 48 hours since a muscle's last working set reads as still recovering.
+    function renderRecoveryCard() {
+      var list = Insights().recovery(data.sessions, today(), muscleOf).filter(function (r) { return MUSCLES[r.muscle] && MUSCLES[r.muscle].view; });
+      var h = '<div class="wt-card"><div class="wt-card-head"><div><h3>Recovery</h3><span>Time since each muscle group was last trained</span></div></div>';
+      if (!list.length) return h + '<p class="wt-hint">Log a workout to see which muscles are rested.</p></div>';
+      return h + '<ul class="wt-recov">' + list.map(function (r) {
+        var ready = r.days >= 2;
+        return '<li><i class="' + (ready ? 'is-ready' : 'is-rest') + '"></i><span>' + esc(MUSCLES[r.muscle].label) + '</span>' +
+          '<small>' + esc(ready ? 'Ready' : 'Recovering') + ' · ' + plural(r.sets, 'set') + '</small><em>' + esc(r.days === 0 ? 'Today' : r.days === 1 ? 'Yesterday' : r.days + ' days ago') + '</em></li>';
+      }).join('') + '</ul></div>';
+    }
+
+    function renderRepRanges(pts) {
+      if (!Insights()) return '';
+      var rows = Insights().repRangeBests(pts);
+      if (!rows.length) return '';
+      return '<div class="wt-card"><div class="wt-card-head"><div><h3>Best by rep range</h3><span>Heaviest working set at each rep count</span></div></div><ul class="wt-exhist">' +
+        rows.map(function (r) {
+          return '<li><span>' + esc(r.label) + '</span><b>' + esc(r.best.weight + ' ' + data.unit + ' × ' + r.best.reps) +
+            ' <small>' + esc(fmtDate(r.best.date, { day: 'numeric', month: 'short', year: 'numeric' })) + '</small></b></li>';
+        }).join('') + '</ul></div>';
+    }
+
+    function renderTransferCard() {
+      if (!Transfer()) return '';
+      return '<div class="wt-card"><h3>Spreadsheet (CSV)</h3><p class="wt-hint">One row per set, ready for Excel, Numbers or Google Sheets. ' +
+        'Import reads this file and exports from Strong, Hevy and FitNotes. Workouts you already have are skipped, and weights in the other unit are converted.</p>' +
+        '<div class="wt-actions"><button class="wt-btn" data-a="export-csv">Download CSV</button>' +
+        '<button class="wt-btn" data-a="csv-pick">Import CSV</button>' +
+        '<input type="file" accept=".csv,text/csv" data-a="import-csv" hidden></div></div>';
+    }
+
+    function download(text, type, name) {
+      // Downloads are blocked in some frames; the copy box in Backup always works.
+      try {
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(new Blob([text], { type: type })); link.download = name;
+        document.body.appendChild(link); link.click(); link.remove();
+        setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
+      } catch (err) { toast('Download blocked here'); }
+    }
+
+    function exportCSV() {
+      if (!data.sessions.length) { toast('Nothing logged yet'); return; }
+      download(Transfer().toCSV(data), 'text/csv', 'workouts-' + today() + '.csv');
+    }
+
+    function importCSV(text) {
+      var T = Transfer(), res;
+      try { res = T.fromCSV(text, data.unit); }
+      catch (err) { toast('Could not read that CSV. ' + err.message); return; }
+      var ids = {}, sigs = {}, added = 0, dup = 0, now = Date.now();
+      data.sessions.forEach(function (s) { ids[s.id] = 1; sigs[T.signature(s)] = 1; });
+      res.sessions.forEach(function (s, i) {
+        var sig = T.signature(s);
+        if (ids[s.id] || sigs[sig]) { dup++; return; }
+        s.createdAt = now + i;
+        data.sessions.push(s); ids[s.id] = 1; sigs[sig] = 1; added++;
+      });
+      state.flash = (added ? 'Imported ' + plural(added, 'workout') + (/Strong|Hevy|FitNotes/.test(res.format) ? ' from ' + res.format : '') : 'Nothing new to import') +
+        (dup ? ' · ' + dup + ' already in your log' : '') + (res.skipped ? ' · ' + plural(res.skipped, 'row') + ' skipped' : '');
+      if (added) persist();
+      render();
     }
 
     // ----- settings -----
@@ -1084,12 +1212,13 @@
         '<div class="wt-card"><h3>Rest timer</h3><div class="wt-row"><select data-a="rest-default" aria-label="Default rest">' +
         REST_CHOICES.map(function (s) { return '<option value="' + s + '"' + (s === rest ? ' selected' : '') + '>' + (s ? restLabel(s) + (s < 60 ? '' : ' min') : 'Off') + '</option>'; }).join('') + '</select>' +
         '<span class="wt-hint">Starts when you tick a set. Each exercise can have its own time.</span></div></div>' +
+        renderTransferCard() +
         '<div class="wt-card"><h3>Backup</h3><p class="wt-hint">Your workouts are saved with the rest of the dashboard. Export a file to back them up or move them to another device.</p>' +
         '<div class="wt-actions"><button class="wt-btn" data-a="export">Download file</button>' +
         '<button class="wt-btn" data-a="import-pick">Import file</button>' +
-        '<input type="file" accept="application/json,.json" data-a="import" hidden></div>' +
+        '<input type="file" accept="application/json,.json,.csv,text/csv" data-a="import" hidden></div>' +
         '<p class="wt-hint">Or copy and paste the backup as text:</p>' +
-        '<textarea data-a="backup-text" rows="3" class="wt-mono" placeholder="Paste a backup here to import it" aria-label="Backup text"></textarea>' +
+        '<textarea data-a="backup-text" rows="3" class="wt-mono" placeholder="Paste a backup or CSV here to import it" aria-label="Backup text"></textarea>' +
         '<div class="wt-actions"><button class="wt-btn" data-a="copy">Copy backup</button><button class="wt-btn" data-a="paste-import">Import pasted text</button></div></div></div>';
     }
 
@@ -1358,11 +1487,14 @@
           importText(el.querySelector('textarea[data-a="backup-text"]').value);
           return;
         case 'import-pick': el.querySelector('input[data-a="import"]').click(); return;
+        case 'export-csv': exportCSV(); return;
+        case 'csv-pick': el.querySelector('input[data-a="import-csv"]').click(); return;
+        case 'open-pr': state.progressEx = t.dataset.k; state.metric = null; break;
         default: return;
       }
       var hadPicker = a === 'add-ex' || a === 'replace';
       render();
-      if (a === 'open-ex' || a === 'close-ex' || (a === 'save' && state.tab === 'history')) {
+      if (a === 'open-ex' || a === 'close-ex' || a === 'open-pr' || (a === 'save' && state.tab === 'history')) {
         var top = el.getBoundingClientRect().top;
         if (top < 0) global.scrollTo(0, global.scrollY + top - 80);
       }
@@ -1395,10 +1527,11 @@
         state.draft.exercises[+t.dataset.ex].rest = +t.value; saveDraft(); render();
       } else if (a === 'rest-default') { data.rest = +t.value; persist(); render(); }
       else if (a === 'unit') { data.unit = t.value; persist(); render(); }
-      else if (a === 'import' && t.files && t.files[0]) {
+      else if ((a === 'import' || a === 'import-csv') && t.files && t.files[0]) {
         var reader = new FileReader();
         reader.onload = function () { importText(reader.result); };
         reader.readAsText(t.files[0]);
+        t.value = '';
       }
     }
 
@@ -1411,6 +1544,7 @@
     }
 
     function importText(text) {
+      if (Transfer() && Transfer().looksLikeCSV(text)) return importCSV(text);
       try {
         var incoming = JSON.parse(text);
         // Also accept a full dashboard backup, which nests workouts under modules.workout.

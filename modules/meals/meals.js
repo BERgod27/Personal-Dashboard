@@ -415,6 +415,8 @@
   function fmtDate(s, opts) { return parseYmd(s).toLocaleDateString(LOCALE, opts || { weekday: 'short', day: 'numeric', month: 'short' }); }
   function r0(n) { return Math.round(n || 0); }
   function r1(n) { return Math.round((n || 0) * 10) / 10; }
+  function dec(n, digits) { return Number(n).toLocaleString(LOCALE, { maximumFractionDigits: digits == null ? 1 : digits }); }
+  function signed(n, digits) { return (n > 0 ? '+' : n < 0 ? '−' : '') + dec(Math.abs(n), digits); }
   // Lower case without accents or punctuation, so "feijao frade" finds "Feijão-frade".
   function fold(s) {
     return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -447,7 +449,8 @@
   var ICONS = {
     left: '<path d="m15 18-6-6 6-6"/>',
     right: '<path d="m9 18 6-6-6-6"/>',
-    x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
+    x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+    minus: '<path d="M5 12h14"/>'
   };
   function icon(name) {
     var t = document.createElement('span');
@@ -465,12 +468,15 @@
   function emptyState() {
     return {
       version: 1,
-      goals: { kcal: 2200, protein: 140, carbs: 250, fat: 70 },
+      goals: { kcal: 2200, protein: 140, carbs: 250, fat: 70, water: 2000 },
       customFoods: [],   // {id, name, kcal, protein, carbs, fat} per 100 g
       meals: [],         // saved meals: {id, name, items: [{foodId, grams}]}
       plan: {},          // 'YYYY-MM-DD' -> {slot: [{id, kind: 'food'|'meal'|'note', foodId, mealId, grams, text}]}
       log: {},           // 'YYYY-MM-DD' -> {slot: [{id, name, grams, kcal, protein, carbs, fat}]}
-      shopping: {}       // week monday 'YYYY-MM-DD' -> {key: true} for ticked items
+      shopping: {},      // week monday 'YYYY-MM-DD' -> {key: true} for ticked items
+      water: {},         // 'YYYY-MM-DD' -> ml drunk that day
+      body: {},          // 'YYYY-MM-DD' -> {weight (kg), waist, neck, hips (cm)}, any subset
+      profile: { sex: '', birthYear: null, height: null, activity: 1.375, goal: 'maintain', rate: 0.5, glass: 250 }
     };
   }
 
@@ -485,6 +491,9 @@
   function upgrade(s) {
     var base = emptyState();
     Object.keys(base).forEach(function (k) { if (s[k] == null) s[k] = base[k]; });
+    ['goals', 'profile'].forEach(function (k) {
+      Object.keys(base[k]).forEach(function (f) { if (s[k][f] === undefined) s[k][f] = base[k][f]; });
+    });
     Object.keys(s.log).forEach(function (date) {
       var day = s.log[date] || {};
       Object.keys(day).forEach(function (slot) {
@@ -603,8 +612,159 @@
     SLOTS.forEach(function (s) {
       (p[s[0]] || []).forEach(function (e) { planned.push({ slot: s[0], label: planEntryLabel(state, e) }); });
     });
-    return { date: date, kcal: r0(t.kcal), protein: r0(t.protein), carbs: r0(t.carbs), fat: r0(t.fat), goals: state.goals, planned: planned };
+    return { date: date, kcal: r0(t.kcal), protein: r0(t.protein), carbs: r0(t.carbs), fat: r0(t.fat), goals: state.goals, planned: planned,
+      water: waterOn(state, date), body: bodySummary(state, date) };
   }
+
+  /* ---------- body, water and goal maths ----------
+     Ideas from SparkyFitness (github.com/CodeWithCJ/SparkyFitness): water and body check-ins
+     beside the food log, a goal calculator from BMR and activity, and an adaptive estimate of
+     daily burn from logged intake and the weight trend. Its licence is non-commercial, so
+     nothing here is copied from it; the formulas are the standard published ones. */
+
+  var KCAL_PER_KG = 7700;   // energy in 1 kg of body weight change, the usual rule of thumb
+  var ACTIVITY = [
+    [1.2, 'Sedentário (trabalho sentado, pouco exercício)'],
+    [1.375, 'Pouco ativo (exercício 1 a 3 dias por semana)'],
+    [1.55, 'Ativo (exercício 3 a 5 dias por semana)'],
+    [1.725, 'Muito ativo (exercício 6 a 7 dias por semana)'],
+    [1.9, 'Extremamente ativo (treino duro e trabalho físico)']
+  ];
+  var GOAL_MODES = [['lose', 'Perder peso'], ['maintain', 'Manter o peso'], ['gain', 'Ganhar peso']];
+  var RATES = [0.25, 0.5, 0.75, 1];
+
+  function waterOn(state, date) { return num(state.water[date], 0); }
+
+  // Weigh-ins as [{date, kg}] sorted by date, optionally only between two dates (inclusive).
+  function weighIns(state, from, to) {
+    return Object.keys(state.body).sort().filter(function (d) {
+      var b = state.body[d];
+      return b && b.weight > 0 && (!from || d >= from) && (!to || d <= to);
+    }).map(function (d) { return { date: d, kg: state.body[d].weight }; });
+  }
+  function dayNumber(s) { return Math.round(parseYmd(s).getTime() / 864e5); }
+
+  // Smoothed weight per weigh-in day: an exponential moving average that carries over the days
+  // in between, so a heavy salty dinner moves it by a tenth of the jump, not the whole of it.
+  function weightTrend(list) {
+    var out = [], t = null, last = null;
+    list.forEach(function (w) {
+      if (t == null) t = w.kg;
+      else t = t + (1 - Math.pow(0.9, Math.max(1, dayNumber(w.date) - last))) * (w.kg - t);
+      last = dayNumber(w.date);
+      out.push({ date: w.date, kg: w.kg, trend: t });
+    });
+    return out;
+  }
+
+  // Least-squares slope of the weigh-ins, in kg per day; null with fewer than 2 points or 7 days.
+  function weightSlope(list) {
+    if (list.length < 2) return null;
+    var xs = list.map(function (w) { return dayNumber(w.date); });
+    if (xs[xs.length - 1] - xs[0] < 7) return null;
+    var n = list.length, mx = 0, my = 0;
+    for (var i = 0; i < n; i++) { mx += xs[i] / n; my += list[i].kg / n; }
+    var sxy = 0, sxx = 0;
+    for (var j = 0; j < n; j++) { sxy += (xs[j] - mx) * (list[j].kg - my); sxx += (xs[j] - mx) * (xs[j] - mx); }
+    return sxx ? sxy / sxx : null;
+  }
+
+  function latestBody(state, key, upTo) {
+    var days = Object.keys(state.body).sort().reverse();
+    for (var i = 0; i < days.length; i++) {
+      if (upTo && days[i] > upTo) continue;
+      var v = state.body[days[i]] && state.body[days[i]][key];
+      if (v > 0) return { date: days[i], value: v };
+    }
+    return null;
+  }
+
+  // Mifflin-St Jeor resting energy, kcal/day.
+  function bmr(sex, kg, cm, age) {
+    if (!(kg > 0 && cm > 0 && age > 0) || (sex !== 'm' && sex !== 'f')) return null;
+    return 10 * kg + 6.25 * cm - 5 * age + (sex === 'm' ? 5 : -161);
+  }
+
+  // U.S. Navy circumference method, % body fat. Women also need hips.
+  function navyBodyFat(sex, cm, waist, neck, hips) {
+    var log10 = Math.log10 || function (x) { return Math.log(x) / Math.LN10; };
+    if (!(cm > 0 && waist > 0 && neck > 0)) return null;
+    var v;
+    if (sex === 'm' && waist > neck) v = 495 / (1.0324 - 0.19077 * log10(waist - neck) + 0.15456 * log10(cm)) - 450;
+    else if (sex === 'f' && hips > 0 && waist + hips > neck) v = 495 / (1.29579 - 0.35004 * log10(waist + hips - neck) + 0.221 * log10(cm)) - 450;
+    else return null;
+    return v > 2 && v < 70 ? v : null;
+  }
+
+  function bmi(kg, cm) { return kg > 0 && cm > 0 ? kg / Math.pow(cm / 100, 2) : null; }
+
+  // Calories and macros for a daily burn (TDEE) and the profile's goal.
+  // Protein by body weight, fat at 25% of calories, carbs fill the rest. Never below a floor
+  // that is commonly treated as the minimum without medical supervision.
+  function targetsFor(profile, tdee, kg) {
+    var delta = profile.goal === 'lose' ? -1 : profile.goal === 'gain' ? 1 : 0;
+    var kcal = tdee + delta * num(profile.rate, 0.5) * KCAL_PER_KG / 7;
+    var floor = profile.sex === 'f' ? 1200 : 1500;
+    var floored = kcal < floor;
+    kcal = Math.max(floor, kcal);
+    var protein = kg * (profile.goal === 'lose' ? 2 : profile.goal === 'gain' ? 1.8 : 1.6);
+    var fat = kcal * 0.25 / 9;
+    var carbs = Math.max(0, (kcal - protein * 4 - fat * 9) / 4);
+    var round5 = function (n) { return Math.round(n / 5) * 5; };
+    return { kcal: Math.round(kcal / 10) * 10, protein: round5(protein), carbs: round5(carbs), fat: round5(fat), floored: floored };
+  }
+
+  function profileAge(profile, date) {
+    var y = parseInt(profile.birthYear, 10);
+    return y > 1900 ? parseYmd(date).getFullYear() - y : null;
+  }
+
+  // Burn estimated from the profile alone (BMR x activity).
+  function formulaTdee(state, date) {
+    var p = state.profile, w = latestBody(state, 'weight', date);
+    var b = w && bmr(p.sex, w.value, num(p.height, 0), profileAge(p, date));
+    return b ? { bmr: b, tdee: b * num(p.activity, 1.375), kg: w.value } : null;
+  }
+
+  // Burn estimated from what was eaten and how the weight moved over the last 28 complete days:
+  // average intake minus the energy stored or lost. Needs 14 logged days and a 7-day weight span.
+  var ADAPT_DAYS = 28, ADAPT_MIN_LOGGED = 14;
+  function adaptiveTdee(state, date) {
+    var end = addDays(date, -1), start = addDays(date, -ADAPT_DAYS);
+    var logged = 0, total = 0;
+    for (var d = start; d <= end; d = addDays(d, 1)) {
+      var k = dayTotals(state, d).kcal;
+      if (k > 0) { logged++; total += k; }
+    }
+    var slope = weightSlope(weighIns(state, start, end));
+    var out = { logged: logged, needed: ADAPT_MIN_LOGGED, ready: false };
+    if (logged < ADAPT_MIN_LOGGED || slope == null) return out;
+    out.avgIntake = total / logged;
+    out.kgPerWeek = slope * 7;
+    out.tdee = out.avgIntake - slope * KCAL_PER_KG;
+    out.ready = out.tdee > 800 && out.tdee < 6000;
+    return out;
+  }
+
+  function bodySummary(state, date) {
+    var list = weightTrend(weighIns(state, null, date));
+    var last = list[list.length - 1];
+    var slope = weightSlope(weighIns(state, addDays(date, -27), date));
+    return last ? { weight: last.kg, weightDate: last.date, trend: r1(last.trend), kgPerWeek: slope == null ? null : Math.round(slope * 70) / 10 } : null;
+  }
+
+  function setWater(state, date, ml) {
+    if (ml > 0) state.water[date] = Math.round(ml); else delete state.water[date];
+  }
+  function setBody(state, date, key, v) {
+    var b = Object.assign({}, state.body[date]);
+    if (v > 0) b[key] = r1(v); else delete b[key];
+    if (Object.keys(b).length) state.body[date] = b; else delete state.body[date];
+  }
+
+  // Panels mounted on this page, so a change made through the module API (the Today card)
+  // reaches them before they save their own copy of the data.
+  var instances = [];
 
   /* ---------- UI ---------- */
 
@@ -613,7 +773,8 @@
     options = options || {};
     ensureStyles();
     var state = load();
-    var view = { tab: options.tab || 'today', date: today(), week: mondayOf(today()), draft: { name: '', items: [] }, foodFilter: '', foodGroup: '', msg: '' };
+    var view = { tab: options.tab || 'today', date: today(), week: mondayOf(today()), draft: { name: '', items: [] }, foodFilter: '', foodGroup: '', msg: '',
+      bodyDate: today(), bodyRange: 90 };
 
     root.classList.add('pdm');
 
@@ -638,6 +799,8 @@
 
     function onStorage(ev) { if (ev.key === STORAGE_KEY) { state = load(); render(); } }
     window.addEventListener('storage', onStorage);
+    function reload() { state = load(); render(); }
+    instances.push(reload);
 
     function datalist(id, includeMeals) {
       var opts = [];
@@ -752,7 +915,7 @@
             commit();
           } }, 'Adicionar')));
 
-      return [head, totals, h('div', { class: 'pdm-slots' }, slots), quick];
+      return [head, totals, renderWaterWeight(date), h('div', { class: 'pdm-slots' }, slots), quick];
     }
 
     /* --- Week plan --- */
@@ -958,13 +1121,215 @@
       return out;
     }
 
+    /* --- Water and weight (on the Today tab) --- */
+    function renderWaterWeight(date) {
+      var water = waterOn(state, date);
+      var goal = num(state.goals.water, 2000);
+      var glass = num(state.profile.glass, 250) || 250;
+      function addWater(ml) { setWater(state, date, water + ml); commit(); }
+
+      var b = state.body[date] || {};
+      var prev = latestBody(state, 'weight', date);
+      var wIn = h('input', { class: 'pdm-input w-num', type: 'number', min: '0', step: '0.1', inputmode: 'decimal', value: b.weight || '',
+        placeholder: prev ? dec(prev.value) : 'kg', 'aria-label': 'Peso (kg)' });
+      function saveWeight() {
+        var v = num(wIn.value, 0);
+        if (wIn.value.trim() && !(v > 20 && v < 400)) { flash('Indica o peso em kg, por exemplo 72,5'); return; }
+        setBody(state, date, 'weight', v); commit();
+      }
+      wIn.addEventListener('keydown', function (e) { if (e.key === 'Enter') saveWeight(); });
+      var bs = bodySummary(state, date);
+
+      return h('section', { class: 'pdm-card pdm-wb' },
+        h('div', { class: 'pdm-stack' },
+          bar('Água', water, goal, 'ml'),
+          h('div', { class: 'pdm-row wrap' },
+            h('button', { class: 'pdm-btn', onclick: function () { addWater(glass); } }, '+' + glass + ' ml'),
+            h('button', { class: 'pdm-btn', onclick: function () { addWater(500); } }, '+500 ml'),
+            water > 0 ? h('button', { class: 'pdm-btn ghost icon', 'aria-label': 'Tirar ' + glass + ' ml', title: 'Tirar ' + glass + ' ml', onclick: function () { addWater(-glass); } }, icon('minus')) : null)),
+        h('div', { class: 'pdm-stack' },
+          h('div', { class: 'pdm-bar-head' }, h('span', null, 'Peso'),
+            h('span', { class: 'pdm-num' }, bs ? 'tendência ' + dec(bs.trend) + ' kg' + (bs.kgPerWeek != null ? ' · ' + signed(bs.kgPerWeek) + ' kg/sem' : '') : 'sem registos')),
+          h('div', { class: 'pdm-row' }, wIn, h('span', { class: 'pdm-muted' }, 'kg'),
+            h('button', { class: 'pdm-btn', onclick: saveWeight }, b.weight ? 'Atualizar' : 'Guardar'),
+            h('button', { class: 'pdm-btn ghost', onclick: function () { view.tab = 'body'; view.bodyDate = date; render(); } }, 'Medidas'))));
+    }
+
+    /* --- Body: check-ins, weight trend, measurements --- */
+    function weightChart(points, goalLine) {
+      var W = 600, H = 160, P = 6;
+      if (points.length < 2) return h('div', { class: 'pdm-muted' }, points.length ? 'Regista mais um dia para veres o gráfico.' : 'Ainda não há pesagens neste período.');
+      var vals = [];
+      points.forEach(function (p) { vals.push(p.kg, p.trend); });
+      var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+      if (hi - lo < 2) { var mid = (hi + lo) / 2; lo = mid - 1; hi = mid + 1; }
+      var x0 = dayNumber(points[0].date), span = Math.max(1, dayNumber(points[points.length - 1].date) - x0);
+      function x(p) { return (P + (dayNumber(p.date) - x0) / span * (W - 2 * P)).toFixed(1); }
+      function y(v) { return (P + (hi - v) / (hi - lo) * (H - 2 * P)).toFixed(1); }
+      var line = points.map(function (p, i) { return (i ? 'L' : 'M') + x(p) + ' ' + y(p.trend); }).join(' ');
+      var dots = points.map(function (p) { return '<path d="M' + x(p) + ' ' + y(p.kg) + 'h0"/>'; }).join('');
+      var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true">' +
+        '<g class="pdm-wdots">' + dots + '</g><path class="pdm-wline" d="' + line + '"/></svg>';
+      var wrap = h('div', { class: 'pdm-wchart', role: 'img', 'aria-label': 'Peso de ' + fmtDate(points[0].date) + ' a ' + fmtDate(points[points.length - 1].date) + ': de ' + dec(points[0].trend) + ' para ' + dec(points[points.length - 1].trend) + ' kg (tendência)' });
+      wrap.innerHTML = svg;
+      append(wrap, [
+        h('span', { class: 'pdm-wlabel top' }, dec(hi) + ' kg'),
+        h('span', { class: 'pdm-wlabel bottom' }, dec(lo) + ' kg')]);
+      return h('div', { class: 'pdm-stack' }, wrap,
+        h('div', { class: 'pdm-row spread pdm-muted' }, h('span', null, fmtDate(points[0].date, { day: 'numeric', month: 'short' })),
+          h('span', { class: 'pdm-legend' }, h('i', { class: 'dot' }), 'pesagem', h('i', { class: 'ln' }), 'tendência'),
+          h('span', null, fmtDate(points[points.length - 1].date, { day: 'numeric', month: 'short' }))));
+    }
+
+    function renderBody() {
+      var date = view.bodyDate;
+      var p = state.profile;
+      var b = state.body[date] || {};
+      var inputs = {};
+      function measure(key, label, unit) {
+        inputs[key] = h('input', { class: 'pdm-input w-num', type: 'number', min: '0', step: '0.1', inputmode: 'decimal', value: b[key] || '', 'aria-label': label + ' (' + unit + ')' });
+        inputs[key].addEventListener('keydown', function (e) { if (e.key === 'Enter') saveAll(); });
+        return h('label', { class: 'pdm-field' }, h('span', null, label), h('span', { class: 'pdm-row' }, inputs[key], h('span', { class: 'pdm-muted' }, unit)));
+      }
+      function saveAll() {
+        var bad = Object.keys(inputs).filter(function (k) { var v = inputs[k].value.trim(); return v && !(num(v, 0) > 0 && num(v, 0) < 400); });
+        if (bad.length) { flash('Os valores têm de ser números positivos'); return; }
+        Object.keys(inputs).forEach(function (k) { setBody(state, date, k, num(inputs[k].value, 0)); });
+        commit(); flash('Medições de ' + fmtDate(date) + ' guardadas');
+      }
+
+      var head = h('div', { class: 'pdm-row pdm-datenav' },
+        h('button', { class: 'pdm-btn ghost icon', 'aria-label': 'Dia anterior', title: 'Dia anterior', onclick: function () { view.bodyDate = addDays(date, -1); render(); } }, icon('left')),
+        h('strong', { class: 'pdm-date' }, fmtDate(date, { weekday: 'long', day: 'numeric', month: 'long' })),
+        h('button', { class: 'pdm-btn ghost icon', 'aria-label': 'Dia seguinte', title: 'Dia seguinte', onclick: function () { view.bodyDate = addDays(date, 1); render(); } }, icon('right')),
+        date !== today() ? h('button', { class: 'pdm-btn ghost', onclick: function () { view.bodyDate = today(); render(); } }, 'Hoje') : null);
+
+      // Derived numbers use the latest values up to this day.
+      var w = latestBody(state, 'weight', date);
+      var cm = num(p.height, 0);
+      var derived = [];
+      var bm = w && bmi(w.value, cm);
+      if (bm) derived.push('IMC ' + dec(bm));
+      var waist = latestBody(state, 'waist', date), neck = latestBody(state, 'neck', date), hips = latestBody(state, 'hips', date);
+      var bf = waist && neck && navyBodyFat(p.sex, cm, waist.value, neck.value, hips && hips.value);
+      if (bf) derived.push('gordura corporal ≈ ' + dec(bf) + ' % (método da Marinha dos EUA)');
+      if (bf && w) derived.push('massa magra ≈ ' + dec(w.value * (1 - bf / 100)) + ' kg');
+      if (waist && cm) derived.push('cintura/altura ' + dec(waist.value / cm, 2));
+      var hint = !cm || !p.sex ? 'Indica o sexo e a altura em Objetivos e histórico para veres o IMC e a gordura corporal estimada.'
+        : !bf ? 'Com cintura e pescoço' + (p.sex === 'f' ? ' e anca' : '') + ' estimamos a gordura corporal.' : null;
+
+      var form = h('section', { class: 'pdm-card' }, h('h3', null, 'Medições'),
+        h('div', { class: 'pdm-goals' }, measure('weight', 'Peso', 'kg'), measure('waist', 'Cintura', 'cm'), measure('neck', 'Pescoço', 'cm'), measure('hips', 'Anca', 'cm')),
+        h('div', { class: 'pdm-row wrap' }, h('button', { class: 'pdm-btn primary', onclick: saveAll }, 'Guardar medições'),
+          h('span', { class: 'pdm-muted' }, 'Mede a cintura à altura do umbigo e o pescoço logo abaixo da maçã de Adão, de manhã.')),
+        derived.length ? h('div', { class: 'pdm-derived' }, derived.join(' · ')) : null,
+        hint ? h('div', { class: 'pdm-muted' }, hint) : null);
+
+      // Weight chart and stats over the chosen range.
+      var from = addDays(today(), -(view.bodyRange - 1));
+      var all = weightTrend(weighIns(state));
+      var pts = all.filter(function (x) { return x.date >= from; });
+      var last = all[all.length - 1];
+      function changeOver(days) {
+        if (!last) return null;
+        var ref = null, cut = addDays(last.date, -days);
+        all.forEach(function (x) { if (x.date <= cut) ref = x; });
+        return ref ? last.trend - ref.trend : null;
+      }
+      var slope = weightSlope(weighIns(state, addDays(today(), -27), today()));
+      function stat(label, value) { return h('div', { class: 'pdm-stat' }, h('span', { class: 'pdm-label' }, label), h('strong', { class: 'pdm-num' }, value)); }
+      var c7 = changeOver(7), c30 = changeOver(30);
+      var rangeSel = h('select', { class: 'pdm-input pdm-fit', 'aria-label': 'Período', onchange: function (e) { view.bodyRange = +e.target.value; render(); } },
+        [[30, '30 dias'], [90, '90 dias'], [365, '1 ano']].map(function (o) { return h('option', { value: o[0], selected: view.bodyRange === o[0] ? true : null }, o[1]); }));
+      var chart = h('section', { class: 'pdm-card' },
+        h('div', { class: 'pdm-row spread' }, h('h3', null, 'Peso'), rangeSel),
+        last ? h('div', { class: 'pdm-stats' },
+          stat('Tendência', dec(last.trend) + ' kg'),
+          stat('7 dias', c7 == null ? '—' : signed(c7) + ' kg'),
+          stat('30 dias', c30 == null ? '—' : signed(c30) + ' kg'),
+          stat('Ritmo (4 semanas)', slope == null ? '—' : signed(slope * 7, 2) + ' kg/sem')) : null,
+        weightChart(pts),
+        last ? h('div', { class: 'pdm-muted' }, 'A tendência é uma média que suaviza as variações de água e sal de um dia para o outro. Pesa-te de manhã, depois da casa de banho.') : null);
+
+      // History table, newest first.
+      var days = Object.keys(state.body).sort().reverse();
+      var trendBy = {};
+      all.forEach(function (x) { trendBy[x.date] = x.trend; });
+      function cell(v) { return h('td', { class: 'pdm-num' }, v > 0 ? dec(v) : '—'); }
+      var history = h('section', { class: 'pdm-card' }, h('h3', null, 'Histórico'),
+        days.length ? h('div', { class: 'pdm-scroll' }, h('table', { class: 'pdm-table' },
+          h('thead', null, h('tr', null, ['Data', 'Peso', 'Tendência', 'Cintura', 'Pescoço', 'Anca', ''].map(function (t, i) { return h('th', { class: i && t ? 'pdm-num' : null }, t); }))),
+          h('tbody', null, days.map(function (d) {
+            var e = state.body[d];
+            return h('tr', null,
+              h('td', null, h('button', { class: 'pdm-link', onclick: function () { view.bodyDate = d; render(); } }, fmtDate(d, { day: 'numeric', month: 'short', year: 'numeric' }))),
+              cell(e.weight), cell(trendBy[d]), cell(e.waist), cell(e.neck), cell(e.hips),
+              h('td', null, h('button', { class: 'pdm-x', 'aria-label': 'Apagar medições de ' + fmtDate(d), onclick: twoStep('Apagar?', function () { delete state.body[d]; commit(); }) }, icon('x'))));
+          })))) : h('div', { class: 'pdm-muted' }, 'Ainda não registaste medições.'));
+
+      return [head, form, chart, history];
+    }
+
+    /* --- Goal calculator (on the Goals tab) --- */
+    function renderCalculator() {
+      var p = state.profile;
+      function set(key, v) { p[key] = v; commit(); }
+      function sel(key, label, opts) {
+        return h('label', { class: 'pdm-field' }, h('span', null, label),
+          h('select', { class: 'pdm-input', onchange: function (e) { var v = e.target.value; set(key, /^[\d.]+$/.test(v) ? +v : v); } },
+            opts.map(function (o) { return h('option', { value: o[0], selected: String(p[key]) === String(o[0]) ? true : null }, o[1]); })));
+      }
+      function numField(key, label, unit, min, max) {
+        return h('label', { class: 'pdm-field' }, h('span', null, label),
+          h('span', { class: 'pdm-row' }, h('input', { class: 'pdm-input w-num', type: 'number', min: String(min), max: String(max), value: p[key] || '', onchange: function (e) {
+            var v = num(e.target.value, 0); set(key, v >= min && v <= max ? v : null);
+          } }), unit ? h('span', { class: 'pdm-muted' }, unit) : null));
+      }
+
+      var d = today();
+      var f = formulaTdee(state, d);
+      var a = adaptiveTdee(state, d);
+      var lines = [];
+      if (f) lines.push(h('div', null, 'Metabolismo basal ', h('strong', { class: 'pdm-num' }, r0(f.bmr) + ' kcal'), ' · gasto diário pela fórmula ', h('strong', { class: 'pdm-num' }, r0(f.tdee) + ' kcal')));
+      else lines.push(h('div', { class: 'pdm-muted' }, !latestBody(state, 'weight', d) ? 'Regista o teu peso (em Hoje ou Corpo) e preenche o perfil para calcular o gasto diário.' : 'Preenche o sexo, o ano de nascimento e a altura para calcular o gasto diário.'));
+      if (a.ready) lines.push(h('div', null, 'Pelos teus registos das últimas 4 semanas comeste em média ', h('strong', { class: 'pdm-num' }, r0(a.avgIntake) + ' kcal'),
+        ' e o peso variou ', h('strong', { class: 'pdm-num' }, signed(a.kgPerWeek, 2) + ' kg/sem'), ', por isso gastas cerca de ', h('strong', { class: 'pdm-num' }, r0(a.tdee) + ' kcal'), ' por dia.'));
+      else lines.push(h('div', { class: 'pdm-muted' }, 'Com ' + a.needed + ' dias de refeições registados nas últimas 4 semanas e pesagens com pelo menos uma semana de intervalo, o gasto passa a ser calculado pelos teus dados reais (tens ' + a.logged + ' ' + (a.logged === 1 ? 'dia' : 'dias') + ').'));
+
+      var base = a.ready ? a.tdee : f && f.tdee;
+      var kg = (f && f.kg) || (latestBody(state, 'weight', d) || {}).value;
+      var t = base && kg ? targetsFor(p, base, kg) : null;
+      var g = state.goals;
+      var same = t && t.kcal === g.kcal && t.protein === g.protein && t.carbs === g.carbs && t.fat === g.fat;
+
+      return h('section', { class: 'pdm-card' }, h('h3', null, 'Calcular objetivos'),
+        h('div', { class: 'pdm-goals' },
+          sel('sex', 'Sexo', [['', 'Escolher'], ['m', 'Masculino'], ['f', 'Feminino']]),
+          numField('birthYear', 'Ano de nascimento', '', 1920, new Date().getFullYear() - 10),
+          numField('height', 'Altura', 'cm', 100, 250),
+          numField('glass', 'Copo de água', 'ml', 50, 1000)),
+        h('div', { class: 'pdm-goals wide' },
+          sel('activity', 'Atividade', ACTIVITY),
+          sel('goal', 'Objetivo', GOAL_MODES),
+          p.goal !== 'maintain' ? sel('rate', 'Ritmo', RATES.map(function (r) { return [r, dec(r, 2) + ' kg por semana']; })) : null),
+        h('div', { class: 'pdm-calc' }, lines),
+        t ? h('div', { class: 'pdm-row wrap spread pdm-suggest' },
+          h('div', null, h('div', { class: 'pdm-label' }, 'Sugestão' + (a.ready ? ' (pelos teus dados)' : ' (pela fórmula)')),
+            h('div', { class: 'pdm-num' }, t.kcal + ' kcal · P ' + t.protein + ' g · HC ' + t.carbs + ' g · G ' + t.fat + ' g'),
+            t.floored ? h('div', { class: 'pdm-muted' }, 'Não sugerimos menos de ' + (p.sex === 'f' ? 1200 : 1500) + ' kcal por dia; um ritmo mais lento chega lá com segurança.') : null),
+          h('button', { class: 'pdm-btn primary', disabled: same ? true : null, onclick: function () {
+            g.kcal = t.kcal; g.protein = t.protein; g.carbs = t.carbs; g.fat = t.fat; commit(); flash('Objetivos atualizados');
+          } }, same ? 'Já estás a usar esta sugestão' : 'Usar estes objetivos')) : null,
+        h('div', { class: 'pdm-muted' }, 'Proteína de 1,6 a 2 g por kg de peso, gordura a 25 % das calorias e hidratos no resto. São estimativas: ajusta pelo que vês na balança ao fim de 2 a 3 semanas.'));
+    }
+
     /* --- Goals & data --- */
     function renderGoals() {
       var g = state.goals;
       function field(key, label, unit) {
         return h('label', { class: 'pdm-field' }, h('span', null, label),
           h('span', { class: 'pdm-row' }, h('input', { class: 'pdm-input w-num', type: 'number', min: '0', value: g[key], onchange: function (e) {
-            g[key] = Math.max(0, num(e.target.value, g[key])); save(state);
+            g[key] = Math.max(0, num(e.target.value, g[key])); commit();
           } }), h('span', { class: 'pdm-muted' }, unit)));
       }
 
@@ -1003,7 +1368,8 @@
         h('section', { class: 'pdm-card' }, h('h3', null, 'Últimos 7 dias'), chart,
           h('div', { class: 'pdm-muted' }, logged.length ? 'Média de ' + r0(avg) + ' kcal em ' + logged.length + (logged.length > 1 ? ' dias registados' : ' dia registado') + ' · objetivo ' + r0(g.kcal) : 'Ainda não há dias registados')),
         h('section', { class: 'pdm-card' }, h('h3', null, 'Objetivos diários'),
-          h('div', { class: 'pdm-goals' }, field('kcal', 'Calorias', 'kcal'), field('protein', 'Proteína', 'g'), field('carbs', 'Hidratos de carbono', 'g'), field('fat', 'Gordura', 'g'))),
+          h('div', { class: 'pdm-goals' }, field('kcal', 'Calorias', 'kcal'), field('protein', 'Proteína', 'g'), field('carbs', 'Hidratos de carbono', 'g'), field('fat', 'Gordura', 'g'), field('water', 'Água', 'ml'))),
+        renderCalculator(),
         h('section', { class: 'pdm-card' }, h('h3', null, 'Os teus dados'),
           h('div', { class: 'pdm-muted' }, 'Guardados neste browser (e na tua conta, com sessão iniciada). Exporta uma cópia para teres um backup.'),
           h('div', { class: 'pdm-row wrap' },
@@ -1034,8 +1400,9 @@
     }
 
     function render() {
-      var tabs = [['today', 'Hoje'], ['plan', 'Plano semanal'], ['foods', 'Alimentos e refeições'], ['goals', 'Objetivos e histórico']];
-      var body = view.tab === 'plan' ? renderPlan() : view.tab === 'foods' ? renderFoods() : view.tab === 'goals' ? renderGoals() : renderToday();
+      var tabs = [['today', 'Hoje'], ['plan', 'Plano semanal'], ['foods', 'Alimentos e refeições'], ['body', 'Corpo'], ['goals', 'Objetivos e histórico']];
+      var body = view.tab === 'plan' ? renderPlan() : view.tab === 'foods' ? renderFoods() : view.tab === 'body' ? renderBody()
+        : view.tab === 'goals' ? renderGoals() : renderToday();
       root.textContent = '';
       append(root, [
         options.hideTitle ? null : h('h2', { class: 'pdm-title' }, 'Refeições'),
@@ -1050,10 +1417,50 @@
     render();
 
     return {
-      unmount: function () { window.removeEventListener('storage', onStorage); root.textContent = ''; root.classList.remove('pdm'); },
+      unmount: function () {
+        window.removeEventListener('storage', onStorage);
+        instances = instances.filter(function (f) { return f !== reload; });
+        root.textContent = ''; root.classList.remove('pdm');
+      },
       refresh: function () { state = load(); render(); },
       summary: function (date) { return summaryFrom(state, date || today()); }
     };
+  }
+
+  // Compact read-out for the dashboard's Today page: calories and macros against goals,
+  // water with a one-tap glass, and the weight trend. Redraw it whenever the day or data changes.
+  function todayCard(el, date, opts) {
+    ensureStyles();
+    opts = opts || {};
+    var state = load();
+    var t = dayTotals(state, date), g = state.goals;
+    var water = waterOn(state, date), glass = num(state.profile.glass, 250) || 250;
+    var bs = bodySummary(state, date);
+    function mini(label, val, goal) {
+      var pct = goal > 0 ? Math.min(100, val / goal * 100) : 0;
+      return h('div', { class: 'pdm-bar' + (goal > 0 && val > goal * 1.05 ? ' over' : '') },
+        h('div', { class: 'pdm-bar-head' }, h('span', null, label), h('span', null, r0(val) + '/' + r0(goal))),
+        h('div', { class: 'pdm-track' }, h('div', { class: 'pdm-fill', style: 'width:' + pct + '%' })));
+    }
+    el.classList.add('pdm', 'pdm-todaycard');
+    el.textContent = '';
+    append(el, [
+      h('div', { class: 'pdm-bar' + (t.kcal > g.kcal * 1.05 ? ' over' : '') },
+        h('div', { class: 'pdm-bar-head' }, h('span', null, 'Calorias'), h('span', null, r0(t.kcal) + ' / ' + r0(g.kcal) + ' kcal')),
+        h('div', { class: 'pdm-track' }, h('div', { class: 'pdm-fill', style: 'width:' + (g.kcal > 0 ? Math.min(100, t.kcal / g.kcal * 100) : 0) + '%' }))),
+      h('div', { class: 'pdm-grid3 tight' }, mini('Proteína', t.protein, g.protein), mini('Hidratos', t.carbs, g.carbs), mini('Gordura', t.fat, g.fat)),
+      h('div', { class: 'pdm-row' },
+        h('div', { class: 'grow' }, h('div', { class: 'pdm-bar' + (water >= num(g.water, 2000) ? ' done' : '') },
+          h('div', { class: 'pdm-bar-head' }, h('span', null, 'Água'), h('span', null, r0(water) + ' / ' + r0(num(g.water, 2000)) + ' ml')),
+          h('div', { class: 'pdm-track' }, h('div', { class: 'pdm-fill water', style: 'width:' + Math.min(100, water / (num(g.water, 2000) || 1) * 100) + '%' })))),
+        h('button', { class: 'pdm-btn small', 'aria-label': 'Beber um copo (' + glass + ' ml)', onclick: function () {
+          window.PDModules.meals.addWater(glass, date);
+          if (opts.onChange) opts.onChange();
+        } }, '+' + glass + ' ml')),
+      h('div', { class: 'pdm-row spread pdm-muted' },
+        h('span', null, bs ? 'Peso ' + dec(bs.trend) + ' kg' + (bs.kgPerWeek != null ? ' · ' + signed(bs.kgPerWeek) + ' kg/sem' : '') : 'Sem pesagens ainda'),
+        opts.onOpen ? h('button', { class: 'pdm-link pdm-muted', onclick: opts.onOpen }, 'Abrir Refeições') : null)
+    ]);
   }
 
   window.PDModules = window.PDModules || {};
@@ -1063,6 +1470,17 @@
     storageKey: STORAGE_KEY,
     mount: mount,
     // Today's totals and plan without mounting the UI (for a dashboard overview card).
-    summary: function (date) { return summaryFrom(load(), date || today()); }
+    summary: function (date) { return summaryFrom(load(), date || today()); },
+    // Add (or with a negative number remove) water for a day, from outside the panel.
+    addWater: function (ml, date) {
+      var state = load(), d = date || today();
+      setWater(state, d, waterOn(state, d) + ml);
+      save(state);
+      instances.forEach(function (f) { f(); });
+    },
+    glassSize: function () { return num(load().profile.glass, 250) || 250; },
+    todayCard: todayCard,
+    // Pure maths, exposed for tests.
+    calc: { bmr: bmr, navyBodyFat: navyBodyFat, bmi: bmi, targetsFor: targetsFor, weightTrend: weightTrend, weightSlope: weightSlope }
   };
 })();
