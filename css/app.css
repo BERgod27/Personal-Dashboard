@@ -178,6 +178,18 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .skeleton-card .skeleton { height: 12px; }
 .skeleton-card .skeleton.lg { height: 20px; width: 40%; }
 
+/* ---------- tooltip (js/tooltip.js): icon buttons on hover and keyboard focus ---------- */
+.tooltip {
+  position: fixed; z-index: 90; max-width: min(280px, calc(100vw - 16px)); pointer-events: none;
+  display: grid; gap: 2px; padding: 6px var(--space-2);
+  background: var(--surface-4); color: var(--text-1); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-overlay); font-size: var(--fs-12); line-height: 1.4;
+  animation: fade var(--dur-fast) var(--ease-out) both;
+}
+.tooltip span { display: inline-flex; align-items: center; gap: var(--space-2); font-weight: var(--fw-medium); }
+.tooltip small { font-size: var(--fs-12); color: var(--text-2); }
+.tooltip kbd { background: var(--surface-3); }
+
 /* ---------- shell: phone first ---------- */
 .rail { display: contents; }
 .topbar {
@@ -405,6 +417,9 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 }
 .spacer { flex: 1; }
 .row { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
+/* a delete that asks first: the question takes the place of the dialog's buttons */
+.confirm-row { background: var(--danger-soft); }
+.confirm-text { flex: 1 1 200px; min-width: 0; font-size: var(--fs-14); color: var(--text-1); overflow-wrap: anywhere; }
 #backup-text, #restore-text { font-family: var(--font-mono); font-size: var(--fs-12); }
 @keyframes dialog-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }

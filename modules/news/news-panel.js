@@ -190,7 +190,7 @@ class NewsPanel extends HTMLElement {
     const feeds = (this.data.feeds || []).filter((f) => this.category === 'all' || f.category === this.category);
     root.querySelector('.sources').innerHTML = feeds.map((f) =>
       `<button data-src="${esc(f.name)}" aria-pressed="${f.name === this.source}" class="${f.ok ? '' : 'bad'}"
-        title="${esc(f.ok ? `${f.count} headlines` : `Failed: ${f.error}`)}">${f.ok ? '' : ICON.warn}${esc(f.name)}</button>`).join('');
+        title="${esc(f.ok ? `${f.count} headlines` : 'This feed did not load this time. The other sources still update.')}">${f.ok ? '' : ICON.warn}${esc(f.name)}</button>`).join('');
     root.querySelectorAll('.sources button').forEach((b) => (b.onclick = () => {
       this.source = this.source === b.dataset.src ? null : b.dataset.src;
       this.render();
@@ -221,7 +221,21 @@ class NewsPanel extends HTMLElement {
         <div><a href="${esc(safeUrl(i.link) || '#')}" target="_blank" rel="noopener noreferrer">${esc(i.title)}</a>
           <div class="meta"><b>${esc(i.source)}</b>${i.published ? ` · <time datetime="${esc(i.published)}">${esc(ago(i.published))}</time>` : ''}</div>
           ${i.summary ? `<p>${esc(i.summary)}</p>` : ''}</div></li>`).join('')
-      : `<li class="state"><span class="tile">${ICON.news}</span><div><b>No headlines match</b><span>${q ? 'Try a different search, or clear it to see everything.' : 'Pick another category or source.'}</span></div></li>`;
+      : `<li class="state"><span class="tile">${ICON.news}</span><div><b>No headlines match</b><span>${q ? 'Try a different search, or clear it to see everything.' : 'Pick another category or source.'}</span>
+          <button class="retry clear" type="button">Clear filters</button></div></li>`;
+    const clear = this.shadowRoot.querySelector('.clear');
+    if (clear) clear.onclick = () => this.clearFilters();
+  }
+
+  // Back to every headline: no search, no source, the All category. Focus lands on the search box.
+  clearFilters() {
+    const input = this.shadowRoot.querySelector('input');
+    this.query = '';
+    input.value = '';
+    this.source = null;
+    if (this.category !== 'all') this.setAttribute('category', 'all');
+    else this.render();
+    input.focus();
   }
 }
 

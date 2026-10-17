@@ -38,6 +38,7 @@ js/modules/*.js       adapters that register each module with the dashboard
 modules/<name>/       the real modules (uni, workouts, meals, news), each with a README
 js/app.js             daily view, editor, backup/restore
 js/tabs.js            tab navigation (#today #uni #workouts #meals #news, keys 1-5)
+js/tooltip.js         tooltips for icon-only buttons (hover and keyboard focus)
 
 Online version only:
 server/               the server: accounts, synced data, uni and news sync, the tutor

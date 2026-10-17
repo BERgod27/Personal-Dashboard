@@ -274,6 +274,12 @@
     if (foot) foot.textContent = 'Saved to your account and synced across your devices.';
     var backupIntro = document.querySelector('#settings-dialog p.muted');
     if (backupIntro) backupIntro.textContent = 'Your data is saved to your account. A backup copy is still a good idea before big changes.';
+    // Erasing syncs like any other change, so it empties the account on every device.
+    var erase = document.getElementById('erase-text');
+    if (erase) {
+      erase.dataset.text = erase.textContent = 'Deletes every event, task, note and workout from your account, on all your devices. Meals keep their own data.';
+      erase.dataset.ask = 'Erase every event, task, note and workout from your account, on all your devices? Copy a backup first if you might want them back.';
+    }
   }
 
   function signOut(everywhere) {
@@ -340,6 +346,10 @@
     document.body.appendChild(el);
     var $ = function (s) { return el.querySelector(s); };
     var msg = $('[data-f="msg"]');
+    // fetch() rejects with a TypeError ("Failed to fetch") when the server can't be reached.
+    function offlineOr(e) {
+      return e instanceof TypeError ? 'The server could not be reached. Check your connection and try again.' : e.message;
+    }
 
     function showSources() {
       var d = window.UNI_DATA;
@@ -376,24 +386,24 @@
     function makeSyncKey() {
       msg.textContent = 'Creating a key…';
       api('POST', '/api/uni/sync-key', {}).then(function (r) {
-        if (r.status !== 200) throw new Error(r.json.error || 'Could not create a key.');
+        if (r.status !== 200) throw new Error(r.json.error || 'No key was created. Try again in a moment.');
         $('[data-f="keybox"]').hidden = false;
         $('[data-f="keyval"]').value = r.json.key;
         $('[data-f="keyval"]').focus();
         $('[data-f="keyval"]').select();
         showLocalState(true, r.json.user);
         msg.textContent = 'Key created. Copy it now into local-sync.config.json; it will not be shown again.';
-      }).catch(function (e) { msg.textContent = e.message; });
+      }).catch(function (e) { msg.textContent = offlineOr(e); });
     }
 
     function turnOffSyncKey() {
       api('DELETE', '/api/uni/sync-key', {}).then(function (r) {
-        if (r.status !== 200) throw new Error((r.json && r.json.error) || 'Could not turn it off.');
+        if (r.status !== 200) throw new Error((r.json && r.json.error) || 'Local sync is still on. Try again in a moment.');
         $('[data-f="keybox"]').hidden = true;
         $('[data-f="keyval"]').value = '';
         showLocalState(false);
         msg.textContent = 'Local sync turned off. The old key no longer works.';
-      }).catch(function (e) { msg.textContent = e.message; });
+      }).catch(function (e) { msg.textContent = offlineOr(e); });
     }
 
     function load() {
@@ -426,17 +436,17 @@
       if (pw && body.rememberPassword) body.sigarraPassword = pw;
       msg.textContent = 'Saving…';
       api('PUT', '/api/uni/settings', body).then(function (r) {
-        if (r.status !== 200) throw new Error(r.json.error || 'Could not save.');
+        if (r.status !== 200) throw new Error(r.json.error || 'Your settings were not saved. Try again in a moment.');
         msg.textContent = 'Syncing…';
         return syncUni(pw || null);
       }).then(function (r) {
         $('#uc-pw').value = '';
-        if (r.status !== 200) throw new Error(r.json.error || 'Sync failed.');
+        if (r.status !== 200) throw new Error(r.json.error || 'Your settings are saved, but the sync did not finish. Press Save and sync to try again.');
         var d = r.json.data;
         msg.textContent = 'Synced: ' + d.classes.length + ' classes, ' + (d.exams || []).length + ' exams, ' + d.deadlines.length + ' deadlines.' +
           (r.json.sigarraSkipped ? ' Type your SIGARRA password to update SIGARRA.' : '');
         load();
-      }).catch(function (e) { msg.textContent = e.message; });
+      }).catch(function (e) { msg.textContent = offlineOr(e); });
     }
 
     el.addEventListener('click', function (e) {
