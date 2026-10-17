@@ -54,6 +54,7 @@
 .pdm-row.spread { justify-content: space-between; }
 .pdm .grow { flex: 1 1 auto; min-width: 0; }
 .pdm-muted { color: var(--text-3); font-size: var(--fs-13); }
+div.pdm-muted { max-width: 70ch; } /* help text keeps a readable line length on wide screens */
 .pdm-num { font-variant-numeric: tabular-nums; }
 .pdm-label { font-size: var(--fs-12); font-weight: var(--fw-medium); color: var(--text-3); }
 .pdm-hidden { display: none; }
@@ -106,7 +107,7 @@
 .pdm-bar-head { display: flex; justify-content: space-between; gap: var(--space-2); font-size: var(--fs-13); color: var(--text-2); }
 .pdm-bar-head > :last-child { color: var(--text-1); font-variant-numeric: tabular-nums; }
 .pdm-track { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
-.pdm-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width var(--dur-slow) var(--ease-out); }
+.pdm-fill { height: 100%; background: var(--accent); border-radius: 3px; }
 .pdm-bar.over .pdm-fill { background: var(--warning); }
 .pdm-grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
 .pdm-totals { gap: var(--space-4); }

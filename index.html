@@ -52,9 +52,9 @@
         <p class="page-meta" id="day-eyebrow">Today · Week 41</p>
       </div>
       <nav class="btn-group daynav" aria-label="Change day">
-        <button class="btn icon" id="prev-day" type="button" aria-label="Previous day" title="Previous day (←)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
-        <button class="btn" id="go-today" type="button" title="Today (T)">Today</button>
-        <button class="btn icon" id="next-day" type="button" aria-label="Next day" title="Next day (→)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+        <button class="btn icon" id="prev-day" type="button" aria-label="Previous day" aria-keyshortcuts="ArrowLeft"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+        <button class="btn" id="go-today" type="button" aria-keyshortcuts="T">Today</button>
+        <button class="btn icon" id="next-day" type="button" aria-label="Next day" aria-keyshortcuts="ArrowRight"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
       </nav>
     </header>
 
@@ -176,11 +176,17 @@
         <textarea id="f-notes" class="input" rows="2"></textarea>
       </div>
     </div>
-    <div class="dialog-actions">
+    <div class="dialog-actions" id="f-actions">
       <button class="btn ghost danger" id="f-delete" type="button">Delete</button>
       <span class="spacer"></span>
       <button class="btn" value="cancel" type="button" id="f-cancel">Cancel</button>
       <button class="btn primary" id="f-save" type="submit">Save</button>
+    </div>
+    <!-- Delete asks first, in place of the buttons above; Escape still closes the dialog. -->
+    <div class="dialog-actions confirm-row" id="f-confirm" hidden>
+      <p class="confirm-text" id="f-confirm-text"></p>
+      <button class="btn" id="f-confirm-cancel" type="button">Cancel</button>
+      <button class="btn danger solid" id="f-confirm-ok" type="button">Delete</button>
     </div>
   </form>
 </dialog>
@@ -217,10 +223,11 @@
     </section>
     <section class="dialog-section">
       <h3>Start over</h3>
-      <p class="muted">Deletes every event, task, note and module entry in this browser.</p>
+      <p class="muted" id="erase-text">Deletes every event, task, note and workout in this browser. Meals keep their own data.</p>
       <div class="row">
         <button class="btn danger" id="erase-btn" type="button">Erase everything</button>
-        <button class="btn danger solid" id="erase-confirm" type="button" hidden>Yes, erase all data</button>
+        <button class="btn" id="erase-cancel" type="button" hidden>Cancel</button>
+        <button class="btn danger solid" id="erase-confirm" type="button" hidden>Erase all data</button>
       </div>
     </section>
   </div>
@@ -248,6 +255,7 @@
 <script src="js/modules/news.js"></script>
 <script src="js/app.js"></script>
 <script src="js/tabs.js"></script>
+<script src="js/tooltip.js"></script>
 <!-- tutor.js: the Ask button and chat (online mode only) -->
 <script src="js/tutor.js"></script>
 <!--APP-END-->

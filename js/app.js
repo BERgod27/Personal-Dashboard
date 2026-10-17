@@ -362,9 +362,12 @@
   $('quickadd').addEventListener('submit', function (e) {
     e.preventDefault();
     var v = qa.value.trim();
-    if (!v) return;
-    var p = Dashboard.parseQuick(v, state.date);
-    if (!p.title) return;
+    var p = v ? Dashboard.parseQuick(v, state.date) : null;
+    if (!p || !p.title) {
+      $('quickadd-preview').textContent = 'Type what to add first, for example “gym 18h” or “buy oats”.';
+      qa.focus();
+      return;
+    }
     Store.update(function (d) {
       if (p.kind === 'event') {
         d.events.push({ id: Store.uid(), title: p.title, date: p.date, start: p.start, end: p.end, category: p.category, weekly: p.weekly, notes: '' });
@@ -398,7 +401,7 @@
   function openEditor(kind, id, defaults) {
     var d = Store.get();
     var item = id ? (kind === 'event' ? d.events : d.tasks).find(function (x) { return x.id === id; }) : null;
-    editing = { kind: kind, id: id };
+    editing = { kind: kind, id: id, weekly: !!(item && item.weekly) };
     defaults = defaults || {};
     $('item-dialog-title').textContent = item ? 'Edit ' + kind : 'New ' + kind;
     $('f-title').value = item ? item.title : '';
@@ -413,6 +416,8 @@
     $('f-delete').textContent = item && item.weekly ? 'Delete all weeks' : 'Delete';
     syncSkip(item);
     syncKind();
+    confirmFrom = null;
+    showConfirm(null);
     dlg.showModal();
     $('f-title').focus();
   }
@@ -426,6 +431,9 @@
     skipBtn.hidden = !(item && item.weekly && editing.kind === 'event');
   }
   skipBtn.addEventListener('click', function () {
+    showConfirm('Remove “' + $('f-title').value.trim() + '” on ' + fmtLong.format(D.parse(state.date)) + ' only?', 'Remove this day', skipDay, skipBtn);
+  });
+  function skipDay() {
     var date = state.date;
     Store.update(function (d) {
       var ev = d.events.find(function (x) { return x.id === editing.id; });
@@ -437,17 +445,49 @@
       }
     });
     dlg.close();
-  });
+  }
 
   $('f-cancel').addEventListener('click', function () { dlg.close(); });
 
+  /* Deletes swap the footer for a question that names the item, with Cancel focused. It stays
+     inside this dialog (no second dialog on top), and Escape still closes without deleting.
+     showConfirm(null) puts the normal buttons back and focus on the one that asked. */
+  var confirmAction = null;
+  var confirmFrom = null;
+  function showConfirm(text, label, action, from) {
+    var asking = !!text;
+    confirmAction = action || null;
+    $('f-actions').hidden = asking;
+    $('f-confirm').hidden = !asking;
+    if (!asking) {
+      if (confirmFrom) confirmFrom.focus();
+      confirmFrom = null;
+      return;
+    }
+    confirmFrom = from;
+    $('f-confirm-text').textContent = text;
+    $('f-confirm-ok').textContent = label;
+    $('f-confirm-cancel').focus();
+  }
+  $('f-confirm-cancel').addEventListener('click', function () { showConfirm(null); });
+  $('f-confirm-ok').addEventListener('click', function () {
+    var run = confirmAction;
+    confirmFrom = null;
+    if (run) run();
+  });
+
   $('f-delete').addEventListener('click', function () {
+    var name = '“' + $('f-title').value.trim() + '”';
+    if (editing.weekly) showConfirm('Delete ' + name + ' from every week?', 'Delete all weeks', deleteItem, this);
+    else showConfirm('Delete the ' + editing.kind + ' ' + name + '?', 'Delete ' + editing.kind, deleteItem, this);
+  });
+  function deleteItem() {
     var key = editing.kind === 'event' ? 'events' : 'tasks';
     Store.update(function (d) {
       d[key] = d[key].filter(function (x) { return x.id !== editing.id; });
     });
     dlg.close();
-  });
+  }
 
   $('item-form').addEventListener('submit', function (e) {
     e.preventDefault();
@@ -497,7 +537,7 @@
     $('backup-text').value = Store.exportJSON();
     $('backup-status').textContent = '';
     $('restore-status').textContent = '';
-    $('erase-confirm').hidden = true;
+    armErase(false);
     sdlg.showModal();
   });
   $('settings-close').addEventListener('click', function () { sdlg.close(); });
@@ -554,10 +594,24 @@
     }
   });
 
-  $('erase-btn').addEventListener('click', function () { $('erase-confirm').hidden = false; });
+  /* Erase asks first: the text turns into the question and Cancel takes focus.
+     online.js rewrites both texts for the account version (data-text, data-ask). */
+  var eraseNote = $('erase-text');
+  function armErase(on) {
+    $('erase-btn').hidden = on;
+    $('erase-cancel').hidden = !on;
+    $('erase-confirm').hidden = !on;
+    if (!eraseNote.dataset.text) eraseNote.dataset.text = eraseNote.textContent;
+    eraseNote.textContent = on
+      ? eraseNote.dataset.ask || 'Erase every event, task, note and workout? Copy a backup first if you might want them back.'
+      : eraseNote.dataset.text;
+    if (on) $('erase-cancel').focus();
+  }
+  $('erase-btn').addEventListener('click', function () { armErase(true); });
+  $('erase-cancel').addEventListener('click', function () { armErase(false); $('erase-btn').focus(); });
   $('erase-confirm').addEventListener('click', function () {
     Store.reset();
-    $('erase-confirm').hidden = true;
+    armErase(false);
     $('backup-text').value = Store.exportJSON();
     sdlg.close();
   });

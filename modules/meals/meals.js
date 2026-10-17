@@ -1412,6 +1412,12 @@
         view.msg ? h('div', { class: 'pdm-msg', role: 'status' }, view.msg) : null,
         h('div', { class: 'pdm-body' }, body)
       ]);
+      // The tab strip is rebuilt on every render and scrolls on a phone: bring the open tab into view.
+      var on = root.querySelector('.pdm-tab[aria-selected="true"]');
+      if (on) {
+        var bar = on.parentNode, gap = on.getBoundingClientRect().right - bar.getBoundingClientRect().right;
+        if (gap > 0) bar.scrollLeft = gap + 24;
+      }
     }
 
     render();

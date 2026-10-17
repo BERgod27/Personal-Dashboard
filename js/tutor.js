@@ -143,8 +143,26 @@
       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!busy) ask(el.input.value); }
     });
     el.input.addEventListener('input', grow);
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !el.panel.hidden) toggle(false); });
+    document.addEventListener('keydown', function (e) {
+      if (el.panel.hidden) return;
+      if (e.key === 'Escape') toggle(false);
+      else if (e.key === 'Tab' && fullScreen.matches) trapTab(e);
+    });
     draw();
+  }
+
+  /* Below 960px the chat covers the page, so Tab stays inside it like any other dialog.
+     On desktop it is a corner panel next to the page, and Tab moves freely. */
+  var fullScreen = window.matchMedia('(max-width: 959.98px)');
+  function trapTab(e) {
+    var items = Array.prototype.filter.call(
+      el.panel.querySelectorAll('button, textarea, a[href], [tabindex]:not([tabindex="-1"])'),
+      function (n) { return !n.disabled && n.getClientRects().length; });
+    if (!items.length) return;
+    var first = items[0], last = items[items.length - 1];
+    var inside = el.panel.contains(document.activeElement);
+    if (e.shiftKey && (document.activeElement === first || !inside)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && (document.activeElement === last || !inside)) { e.preventDefault(); first.focus(); }
   }
 
   function grow() {
@@ -242,7 +260,7 @@
       if (!r.ok || !r.body) {
         return r.json().catch(function () { return {}; }).then(function (j) {
           if (j.setup) configured = false;
-          failed = j.error || 'The tutor is unavailable right now (' + r.status + ').';
+          failed = j.error || 'The tutor did not answer this time. Your question is still in the box: send it again in a moment.';
         });
       }
       var reader = r.body.getReader();
@@ -274,7 +292,9 @@
       })();
     }).catch(function (e) {
       if (e && e.name === 'AbortError') failed = answer.content ? null : 'Stopped.';
-      else if (!failed) failed = navigator.onLine === false ? 'You are offline.' : 'The tutor could not be reached. Try again.';
+      else if (!failed) failed = navigator.onLine === false
+        ? 'This device is offline. Ask again once it is back online.'
+        : 'The tutor could not be reached. Ask again in a moment.';
     }).then(function () {
       setBusy(null);
       if (answer.content.trim()) {

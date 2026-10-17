@@ -177,6 +177,8 @@
   function today() { return ymd(new Date()); }
   function parseDate(s) { var p = String(s).split('-'); return new Date(+p[0], +p[1] - 1, +p[2] || 1); }
   function fmtDate(s, opts) { return parseDate(s).toLocaleDateString(undefined, opts || { weekday: 'short', day: 'numeric', month: 'short' }); }
+  // A workout's name in quotes for confirm questions, escaped for HTML.
+  function named(title) { return title ? '“' + esc(title) + '”' : 'this workout'; }
   function daysAgo(s) { return Math.round((parseDate(today()) - parseDate(s)) / 864e5); }
   function relDay(s) {
     var n = daysAgo(s);
@@ -702,7 +704,7 @@
       h += '<button class="wt-btn wt-add-ex" data-a="add-ex">' + ic('plus') + 'Add exercise</button>';
       h += '<div class="wt-card wt-notes"><label><span>Notes</span><textarea data-f="notes" rows="2" placeholder="How did it feel?">' + esc(d.notes) + '</textarea></label></div>';
       h += '<div class="wt-live-foot">' + (state.confirmDiscard
-        ? '<span>' + (editing ? 'Drop your changes?' : 'Discard this workout? Nothing will be saved.') + '</span><button class="wt-btn wt-danger-solid" data-a="discard-yes">' + (editing ? 'Drop changes' : 'Discard') + '</button><button class="wt-btn" data-a="discard-no">Keep going</button>'
+        ? '<span>' + (editing ? 'Drop your changes to ' + named(d.title) + '?' : 'Discard ' + named(d.title) + '? Nothing will be saved.') + '</span><button class="wt-btn wt-danger-solid" data-a="discard-yes">' + (editing ? 'Drop changes' : 'Discard workout') + '</button><button class="wt-btn" data-a="discard-no">Keep going</button>'
         : '<button class="wt-btn wt-ghost-danger" data-a="discard">' + ic(editing ? 'x' : 'trash') + (editing ? 'Cancel editing' : 'Discard workout') + '</button>') + '</div>';
       return h;
     }
@@ -871,7 +873,7 @@
       var r = state.rest; if (!r) return '';
       var left = Math.max(0, (r.endsAt - Date.now()) / 1000);
       return '<div class="wt-restbar" role="timer" aria-live="off">' +
-        '<div class="wt-rest-prog"><i style="width:' + (100 * left / r.total).toFixed(1) + '%"></i></div>' +
+        '<div class="wt-rest-prog"><i style="transform:scaleX(' + (left / r.total).toFixed(3) + ')"></i></div>' +
         '<div class="wt-rest-main"><span class="wt-rest-ic">' + ic('timer') + '</span><div class="wt-rest-txt"><small>Rest · ' + esc(r.name) + '</small><b data-live="rest">' + clock(left) + '</b></div>' +
         '<button class="wt-btn" data-a="rest-minus">−15</button><button class="wt-btn" data-a="rest-plus">+15</button><button class="wt-btn wt-primary" data-a="rest-skip">Skip</button></div></div>';
     }
@@ -902,11 +904,11 @@
     function renderSession(s, prs) {
       var pr = prs[s.id] ? Object.keys(prs[s.id]).length : 0;
       var h = '<article class="wt-card wt-sess"><header class="wt-sess-head"><div><h4>' + esc(s.title || 'Workout') + '</h4><span>' + esc(fmtDate(s.date, { weekday: 'long', day: 'numeric', month: 'long' })) + '</span></div>' +
-        '<div class="wt-sess-acts"><button class="wt-iconbtn" data-a="start-from" data-id="' + esc(s.id) + '" title="Do this workout again" aria-label="Do this workout again">' + ic('repeat') + '</button>' +
-        '<button class="wt-iconbtn" data-a="edit" data-id="' + esc(s.id) + '" title="Edit" aria-label="Edit">' + ic('edit') + '</button>' +
-        '<button class="wt-iconbtn wt-del" data-a="delete" data-id="' + esc(s.id) + '" title="Delete" aria-label="Delete">' + ic('trash') + '</button></div></header>';
+        '<div class="wt-sess-acts"><button class="wt-iconbtn" data-a="start-from" data-id="' + esc(s.id) + '" aria-label="Do this workout again">' + ic('repeat') + '</button>' +
+        '<button class="wt-iconbtn" data-a="edit" data-id="' + esc(s.id) + '" aria-label="Edit workout">' + ic('edit') + '</button>' +
+        '<button class="wt-iconbtn wt-del" data-a="delete" data-id="' + esc(s.id) + '" aria-label="Delete workout">' + ic('trash') + '</button></div></header>';
       if (state.confirmDelete === s.id) {
-        h += '<div class="wt-confirm"><span>Delete this workout?</span><button class="wt-btn wt-danger-solid" data-a="delete-yes" data-id="' + esc(s.id) + '">Delete</button><button class="wt-btn" data-a="delete-no">Keep</button></div>';
+        h += '<div class="wt-confirm"><span>Delete ' + named(s.title) + ' from ' + esc(fmtDate(s.date, { weekday: 'long', day: 'numeric', month: 'long' })) + '?</span><button class="wt-btn wt-danger-solid" data-a="delete-yes" data-id="' + esc(s.id) + '">Delete workout</button><button class="wt-btn" data-a="delete-no">Keep</button></div>';
       }
       h += '<div class="wt-sess-stats">' +
         (s.duration ? '<span>' + ic('clock') + fmtMinutes(s.duration) + '</span>' : '') +
@@ -1319,11 +1321,25 @@
       state.rest = { endsAt: Date.now() + secs * 1000, total: secs, name: ex.name };
     }
 
+    // render() rebuilds the buttons, so keyboard focus is put back by selector afterwards:
+    // on Keep when a delete or discard asks first, on the asking button after Keep, and on
+    // the button that opened the exercise picker once the picker closes.
+    function refocus(sel) {
+      var n = sel && (el.querySelector(sel) || layer.querySelector(sel));
+      if (n) n.focus();
+    }
+    function cssEsc(v) { return global.CSS && CSS.escape ? CSS.escape(String(v)) : String(v).replace(/["\\]/g, '\\$&'); }
+    function closePicker() {
+      var from = state.picker && state.picker.from;
+      state.picker = null; render(); refocus(from);
+    }
+
     function onClick(e) {
       var wrap = e.target.closest('.wt-sheet-wrap');
-      if (wrap && e.target === wrap) { state.picker = null; render(); return; }
+      if (wrap && e.target === wrap) { closePicker(); return; }
       var t = e.target.closest('button');
       if (!t || !(el.contains(t) || layer.contains(t))) return;
+      var focusAfter = null, pickerFrom = state.picker && state.picker.from;
       if (t.dataset.tab) { state.tab = t.dataset.tab; state.menuFor = null; render(); return; }
       var a = t.dataset.a, d = state.draft, ei = +t.dataset.ex, si = +t.dataset.set;
       var ex = d.exercises[ei], st = ex && ex.sets[si];
@@ -1337,8 +1353,8 @@
           if (!src) return;
           state.draft = draftFrom(src, false); state.tab = 'log'; state.howFor = null; saveDraft(); break;
         case 'go-log': state.tab = 'log'; break;
-        case 'add-ex': state.picker = newPicker('add'); state.menuFor = null; break;
-        case 'replace': state.picker = newPicker('replace', ei); break;
+        case 'add-ex': state.picker = newPicker('add'); state.picker.from = '[data-a="add-ex"]'; state.menuFor = null; break;
+        case 'replace': state.picker = newPicker('replace', ei); state.picker.from = '[data-a="replace"][data-ex="' + ei + '"]'; break;
         case 'close-picker': state.picker = null; break;
         case 'pick': addExercise(t.dataset.name); break;
         case 'pick-new': addExercise(state.picker.q); break;
@@ -1363,8 +1379,10 @@
           var again = pl.querySelector('[data-a="pick-info"][data-k="' + pk.replace(/["\\]/g, '\\$&') + '"]'); if (again) again.focus();
           if (state.picker.info) needHowTo(pk, function () {
             if (!state.picker || state.picker.info !== pk) return;
-            var l = layer.querySelector('.wt-pick-list'), lt = l.scrollTop;
+            var l = layer.querySelector('.wt-pick-list'), lt = l.scrollTop, hadFocus = l.contains(document.activeElement);
             l.innerHTML = renderPickList(); l.scrollTop = lt;
+            var btn = l.querySelector('[data-a="pick-info"][data-k="' + cssEsc(pk) + '"]');
+            if (btn && hadFocus) btn.focus();
           });
           return;
         case 'howto':
@@ -1404,8 +1422,8 @@
         case 'rest-minus': if (state.rest) state.rest.endsAt -= 15000; if (state.rest && state.rest.endsAt <= Date.now()) state.rest = null; break;
         case 'rest-plus': if (state.rest) { state.rest.endsAt += 15000; state.rest.total += 15; } break;
         case 'rest-skip': state.rest = null; break;
-        case 'discard': state.confirmDiscard = true; break;
-        case 'discard-no': state.confirmDiscard = false; break;
+        case 'discard': state.confirmDiscard = true; focusAfter = '[data-a="discard-no"]'; break;
+        case 'discard-no': state.confirmDiscard = false; focusAfter = '[data-a="discard"]'; break;
         case 'discard-yes':
           var wasEditing = !!state.editingId;
           state.confirmDiscard = false; state.editingId = null; state.draft = newDraft(); state.rest = null; state.howFor = null;
@@ -1440,8 +1458,10 @@
           state.draft = draftFrom(found, true);
           state.tab = 'log'; saveDraft(); break;
         // confirm() is blocked in sandboxed frames, so deletes are confirmed in the panel.
-        case 'delete': state.confirmDelete = t.dataset.id; break;
-        case 'delete-no': state.confirmDelete = null; break;
+        case 'delete': state.confirmDelete = t.dataset.id; focusAfter = '[data-a="delete-no"]'; break;
+        case 'delete-no':
+          focusAfter = '[data-a="delete"][data-id="' + cssEsc(state.confirmDelete) + '"]';
+          state.confirmDelete = null; break;
         case 'delete-yes':
           state.confirmDelete = null;
           data.sessions = data.sessions.filter(function (x) { return x.id !== t.dataset.id; });
@@ -1494,6 +1514,7 @@
       }
       var hadPicker = a === 'add-ex' || a === 'replace';
       render();
+      refocus(focusAfter || (pickerFrom && !state.picker ? pickerFrom : null));
       if (a === 'open-ex' || a === 'close-ex' || a === 'open-pr' || (a === 'save' && state.tab === 'history')) {
         var top = el.getBoundingClientRect().top;
         if (top < 0) global.scrollTo(0, global.scrollY + top - 80);
@@ -1536,7 +1557,7 @@
     }
 
     function onKey(e) {
-      if (e.key === 'Escape' && state.picker) { state.picker = null; render(); }
+      if (e.key === 'Escape' && state.picker) closePicker();
       else if (e.key === 'Enter' && e.target.dataset.a === 'pick-q' && state.picker) {
         var first = layer.querySelector('.wt-pick-list .wt-pick-row');
         if (first) first.click();
@@ -1580,7 +1601,7 @@
         }
         var r = layer.querySelector('[data-live="rest"]'), prog = layer.querySelector('.wt-rest-prog i');
         if (r) r.textContent = clock(left);
-        if (prog) prog.style.width = (100 * left / state.rest.total).toFixed(1) + '%';
+        if (prog) prog.style.transform = 'scaleX(' + (left / state.rest.total).toFixed(3) + ')';
       }
     }, 250);
 
