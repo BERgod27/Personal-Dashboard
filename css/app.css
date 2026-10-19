@@ -22,7 +22,7 @@ p { margin: 0; }
 button, input, select, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
 a { color: var(--accent-text); text-underline-offset: 2px; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-::selection { background: rgb(124 132 224 / 0.35); color: var(--text-1); }
+::selection { background: var(--focus-soft); color: var(--text-1); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .muted { color: var(--text-2); }
 .small { font-size: var(--fs-13); }
@@ -66,6 +66,12 @@ kbd {
 :where(input[readonly], textarea[readonly]) { color: var(--text-2); }
 :where(input:disabled, select:disabled, textarea:disabled) { opacity: 0.5; cursor: not-allowed; }
 input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) input[type="date"]::-webkit-calendar-picker-indicator,
+  :root:not([data-theme="dark"]) input[type="time"]::-webkit-calendar-picker-indicator { filter: none; }
+}
+:root[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator,
+:root[data-theme="light"] input[type="time"]::-webkit-calendar-picker-indicator { filter: none; }
 :where(input[type="checkbox"]) {
   appearance: none; -webkit-appearance: none; margin: 0; flex: none; cursor: pointer;
   width: 16px; height: 16px; border-radius: var(--radius-xs);
@@ -122,7 +128,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .btn.danger svg.ic { color: currentColor; }
 .btn.danger:hover { background: var(--danger-soft); border-color: rgb(224 115 107 / 0.3); }
 .btn.danger.solid { background: var(--danger-fill); border-color: var(--danger-fill); color: #fff; }
-.btn.danger.solid:hover { background: #bf5a52; }
+.btn.danger.solid:hover { background: var(--danger-fill-hover); border-color: var(--danger-fill-hover); }
 .btn-group {
   display: inline-flex; align-items: stretch; flex: none;
   background: var(--surface-1); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
@@ -156,7 +162,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .banner > svg.ic { color: var(--text-3); }
 .banner-text { flex: 1 1 240px; min-width: 0; }
 .banner .btn { margin-left: auto; }
-.banner.warn { border-color: rgb(207 162 87 / 0.3); }
+.banner.warn { border-color: var(--warning-border); }
 .banner.warn > svg.ic { color: var(--warning); }
 
 .empty-state { display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-1) 0; }
@@ -202,7 +208,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .brand { display: flex; align-items: center; gap: 10px; margin-right: auto; min-width: 0; }
 .brand-mark {
   width: 24px; height: 24px; flex: none; display: grid; place-items: center;
-  background: var(--surface-3); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-1);
+  background: var(--accent-soft); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--accent-text);
 }
 .brand-mark svg.ic { width: 14px; height: 14px; }
 .brand-name { font-size: var(--fs-14); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-tight); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -252,6 +258,29 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .page-title h1 { font-size: var(--fs-20); letter-spacing: var(--tracking-tighter); }
 .page-meta { font-size: var(--fs-13); color: var(--text-3); }
 .page-meta:empty { display: none; }
+
+/* ---------- Today: the daybook masthead ---------- */
+/* The day-of-month is the hero: a large, light-weight monospace numeral held by a 2px accent
+   bar (the same left-bar device the schedule uses), with the weekday and month set quietly
+   beside it. One confident element; everything around it stays calm. */
+.dayhead { align-items: center; }
+.masthead { display: flex; align-items: center; gap: var(--space-4); min-width: 0; }
+.masthead-num {
+  flex: none;
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--fs-40); font-weight: var(--fw-light); line-height: 0.92;
+  letter-spacing: -0.03em; color: var(--text-1);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+}
+.masthead-label { display: grid; gap: 3px; min-width: 0; }
+.masthead-label h1 { font-size: var(--fs-20); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-tighter); }
+.masthead-label .page-meta {
+  font-family: var(--font-mono); font-size: var(--fs-12); color: var(--text-3);
+  letter-spacing: 0; font-variant-numeric: tabular-nums;
+}
+.daynav { align-self: center; }
 
 /* ---------- Today: header, week strip, quick add ---------- */
 .weekstrip {
@@ -451,8 +480,8 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
   }
   .tab svg.ic { width: var(--icon); height: var(--icon); color: var(--text-3); }
   .tab:hover { background: var(--surface-2); color: var(--text-1); }
-  .tab[aria-current="page"] { background: var(--surface-2); color: var(--text-1); }
-  .tab[aria-current="page"] svg.ic { color: var(--text-1); }
+  .tab[aria-current="page"] { background: var(--surface-2); color: var(--text-1); box-shadow: inset 2px 0 0 var(--accent); }
+  .tab[aria-current="page"] svg.ic { color: var(--accent-text); }
   .tab-key { display: inline-grid; margin-left: auto; opacity: 0; transition: opacity var(--dur-fast) var(--ease-out); }
   .tab:hover .tab-key, .tab:focus-visible .tab-key { opacity: 1; }
   .settings-btn {
@@ -467,6 +496,8 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
   .view { gap: var(--space-5); }
   .today { gap: var(--space-5); }
   .side { gap: var(--space-5); }
+  .masthead-num { font-size: var(--fs-52); }
+  .masthead { gap: var(--space-5); }
 }
 
 @media (prefers-reduced-motion: reduce) {
