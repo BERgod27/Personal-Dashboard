@@ -370,7 +370,7 @@
   font-size: var(--fs-13); font-variant-numeric: tabular-nums; color: var(--text-3); border: 1px solid transparent; background: transparent; padding: 0;
 }
 .wt-cal-day.is-on { background: var(--accent-soft); color: var(--text-1); font-weight: var(--fw-medium); }
-.wt-root button.wt-cal-day.is-on:hover { background: rgb(91 99 196 / 0.28); }
+.wt-root button.wt-cal-day.is-on:hover { background: color-mix(in srgb, var(--accent) 28%, transparent); }
 .wt-cal-day.is-today { border-color: var(--border-hover); color: var(--text-1); font-weight: var(--fw-medium); }
 .wt-cal-day.is-sel { border-color: var(--focus); }
 .wt-month { font-size: var(--fs-12); font-weight: var(--fw-medium); color: var(--text-3); margin: var(--space-4) 0 var(--space-2); }
@@ -425,7 +425,7 @@
 .wt-chart text { fill: var(--text-3); font-size: var(--fs-12); font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
 .wt-chart .wt-grid { stroke: var(--border); stroke-width: 1; }
 .wt-chart .wt-line { stroke: var(--accent-text); fill: none; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
-.wt-chart .wt-area { fill: rgb(155 161 230 / 0.06); stroke: none; }
+.wt-chart .wt-area { fill: color-mix(in srgb, var(--accent-text) 10%, transparent); stroke: none; }
 .wt-chart .wt-dot { fill: var(--surface-1); stroke: var(--accent-text); stroke-width: 1.5; }
 .wt-chart .wt-dot.is-last { fill: var(--accent-text); stroke: var(--surface-1); stroke-width: 2; }
 .wt-bars .wt-bar { fill: var(--surface-4); }

@@ -17,6 +17,8 @@
   var fmtLong = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
   var fmtShort = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
   var fmtWd = new Intl.DateTimeFormat('en-GB', { weekday: 'short' });
+  var fmtWeekday = new Intl.DateTimeFormat('en-GB', { weekday: 'long' });
+  var fmtMonth = new Intl.DateTimeFormat('en-GB', { month: 'long' });
 
   function isoWeek(s) {
     var d = D.parse(s);
@@ -68,8 +70,14 @@
 
   function renderHeader() {
     var rel = relDay(state.date);
-    $('day-eyebrow').textContent = (rel ? rel + ' · ' : '') + 'Week ' + isoWeek(state.date);
-    $('day-title').textContent = fmtLong.format(D.parse(state.date));
+    var dateObj = D.parse(state.date);
+    // Daybook masthead: the day-of-month is the hero numeral; the weekday is the heading,
+    // and month + ISO week sit under it. The full date stays on the heading for screen readers.
+    $('day-num').textContent = String(dateObj.getDate());
+    var title = $('day-title');
+    title.textContent = fmtWeekday.format(dateObj);
+    title.setAttribute('aria-label', fmtLong.format(dateObj));
+    $('day-eyebrow').textContent = (rel ? rel + ' · ' : '') + fmtMonth.format(dateObj) + ' · Week ' + isoWeek(state.date);
 
     var strip = $('weekstrip');
     strip.innerHTML = '';

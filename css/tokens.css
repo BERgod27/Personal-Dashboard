@@ -3,10 +3,13 @@
    (modules/uni, modules/workouts, modules/meals, modules/news) read these names directly.
    Change a value here and it changes everywhere.
 
-   The theme is dark only. Depth comes from four surface levels a few lightness points apart,
-   separated by 1px borders of white at low opacity. There is one accent (a muted indigo) for
-   primary actions, focus rings and active states; area and course hues appear only as small
-   dots and 2px bars. Text pairs below were checked for WCAG AA (4.5:1) on every surface. */
+   "Daybook" theme. The app is a student's logbook of days, so the look is a calm, precise
+   instrument: warm ivory text on a graphite base, one petrol-teal accent, and monospace
+   tabular figures for every time, date and number. Depth comes from four surface levels a few
+   lightness points apart, separated by 1px borders at low opacity. The accent carries primary
+   actions, focus rings, active states and the now-line only; area and course hues appear just
+   as small dots and 2px bars. Dark is the default; a cool-paper light theme follows the
+   system setting. Text pairs were checked for WCAG AA (4.5:1) on every surface. */
 
 @font-face {
   font-family: "Geist";
@@ -26,43 +29,46 @@
 :root {
   color-scheme: dark;
 
-  /* ---------- surfaces: page, then three raised levels ---------- */
-  --bg: #0b0b0d;            /* page */
-  --surface-1: #111114;     /* panels, cards, sidebar */
-  --surface-2: #17171b;     /* rows on hover, popovers, inner wells */
-  --surface-3: #1d1d22;     /* selected rows, pressed controls */
-  --surface-4: #24242a;     /* hover on surface-3, skeleton blocks on raised surfaces */
-  --input-bg: #0d0d10;      /* inputs sit a step darker than the surface they are on */
-  --overlay: rgb(0 0 0 / 0.6);
+  /* ---------- surfaces: page, then four raised levels (graphite, faint-warm) ---------- */
+  --bg: #0c0d0f;            /* page */
+  --surface-1: #121316;     /* panels, cards, sidebar */
+  --surface-2: #181a1e;     /* rows on hover, popovers, inner wells */
+  --surface-3: #202329;     /* selected rows, pressed controls */
+  --surface-4: #282c33;     /* hover on surface-3, skeleton blocks on raised surfaces */
+  --input-bg: #0e0f12;      /* inputs sit a step darker than the surface they are on */
+  --overlay: rgb(0 0 0 / 0.62);
 
   /* ---------- borders ---------- */
-  --border-subtle: rgb(255 255 255 / 0.06);
+  --border-subtle: rgb(255 255 255 / 0.05);
   --border: rgb(255 255 255 / 0.08);
   --border-strong: rgb(255 255 255 / 0.12);
-  --border-hover: rgb(255 255 255 / 0.18);
+  --border-hover: rgb(255 255 255 / 0.20);
 
-  /* ---------- text (contrast on --surface-1: 16.1, 7.4, 5.5) ---------- */
-  --text-1: #ededef;
-  --text-2: #a1a1aa;
-  --text-3: #8a8a93;
+  /* ---------- text (warm ivory; contrast on --surface-1: 15.4, 6.8, 5.1) ---------- */
+  --text-1: #ecebe4;
+  --text-2: #9c9d97;
+  --text-3: #86877f;
 
-  /* ---------- accent: muted indigo ---------- */
-  --accent: #5b63c4;        /* fills; white text on it is 5.2:1 */
-  --accent-hover: #6169cb;
+  /* ---------- accent: petrol teal ---------- */
+  --accent: #0f7a70;        /* fills; white text on it is 5.2:1 */
+  --accent-hover: #138d82;
   --accent-fg: #ffffff;
-  --accent-text: #9ba1e6;   /* accent used as text or icon on dark surfaces (7.9:1) */
-  --accent-soft: rgb(91 99 196 / 0.16);
-  --focus: #7c84e0;         /* focus ring, 5.6:1 against surfaces */
-  --focus-soft: rgb(124 132 224 / 0.32);
+  --accent-text: #57c7bc;   /* accent used as text or icon on dark surfaces (9.1:1) */
+  --accent-soft: rgb(21 140 128 / 0.18);
+  --focus: #2db7aa;         /* focus ring, 7.5:1 against surfaces */
+  --focus-soft: rgb(45 183 170 / 0.32);
 
   /* ---------- status: muted, used for text, icons and thin borders ---------- */
   --success: #5fae86;
   --success-soft: rgb(95 174 134 / 0.14);
   --warning: #cfa257;
   --warning-soft: rgb(207 162 87 / 0.14);
+  --warning-border: rgb(207 162 87 / 0.30);
   --danger: #e0736b;
   --danger-soft: rgb(224 115 107 / 0.12);
+  --danger-border: rgb(224 115 107 / 0.30);
   --danger-fill: #b5524b;   /* solid destructive button; white text 4.9:1 */
+  --danger-fill-hover: #c15c54;
 
   /* ---------- areas (Today) and courses (Uni): dots and 2px bars only ---------- */
   --area-uni: #8089c4;
@@ -87,6 +93,9 @@
   --fs-16: 1rem;
   --fs-20: 1.25rem;
   --fs-28: 1.75rem;
+  --fs-40: 2.5rem;          /* daybook masthead numeral, phone */
+  --fs-52: 3.25rem;         /* daybook masthead numeral, desktop */
+  --fw-light: 300;          /* the masthead numeral only */
   --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;
@@ -129,6 +138,90 @@
   --sidebar-w: 224px;
   --topbar-h: 48px;
   --tabbar-h: 56px;
+}
+
+/* ---------- light theme: cool paper ----------
+   Same tokens, re-valued for a light setting. Areas, courses, type, spacing, radii and motion
+   are shared with the dark theme above; only surfaces, borders, text, accent, status and
+   elevation change. Applied when the system asks for light, or when [data-theme="light"] is set.
+   An explicit [data-theme="dark"] keeps the dark defaults and overrides the media query. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f3f4f1;
+    --surface-1: #ffffff;
+    --surface-2: #eceee9;
+    --surface-3: #e3e5df;
+    --surface-4: #d9dcd4;
+    --input-bg: #ffffff;
+    --overlay: rgb(18 22 20 / 0.32);
+
+    --border-subtle: rgb(20 30 25 / 0.06);
+    --border: rgb(20 30 25 / 0.10);
+    --border-strong: rgb(20 30 25 / 0.14);
+    --border-hover: rgb(20 30 25 / 0.26);
+
+    --text-1: #1a1c1a;
+    --text-2: #56584f;
+    --text-3: #6a6c62;
+
+    --accent: #0e7a70;
+    --accent-hover: #0c6a61;
+    --accent-fg: #ffffff;
+    --accent-text: #0c6f66;
+    --accent-soft: rgb(14 122 112 / 0.12);
+    --focus: #0e7a70;
+    --focus-soft: rgb(14 122 112 / 0.26);
+
+    --success: #1f7a4d;
+    --success-soft: rgb(31 122 77 / 0.12);
+    --warning: #8a6410;
+    --warning-soft: rgb(138 100 16 / 0.14);
+    --warning-border: rgb(138 100 16 / 0.32);
+    --danger: #b5403a;
+    --danger-soft: rgb(181 64 58 / 0.10);
+    --danger-border: rgb(181 64 58 / 0.30);
+    --danger-fill: #b5403a;
+    --danger-fill-hover: #a3352f;
+
+    --shadow-overlay: 0 0 0 1px rgb(20 30 25 / 0.08), 0 12px 32px rgb(20 30 25 / 0.18);
+  }
+}
+
+/* The same cool-paper values under an explicit [data-theme="light"], for a future toggle. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f4f1;
+  --surface-1: #ffffff;
+  --surface-2: #eceee9;
+  --surface-3: #e3e5df;
+  --surface-4: #d9dcd4;
+  --input-bg: #ffffff;
+  --overlay: rgb(18 22 20 / 0.32);
+  --border-subtle: rgb(20 30 25 / 0.06);
+  --border: rgb(20 30 25 / 0.10);
+  --border-strong: rgb(20 30 25 / 0.14);
+  --border-hover: rgb(20 30 25 / 0.26);
+  --text-1: #1a1c1a;
+  --text-2: #56584f;
+  --text-3: #6a6c62;
+  --accent: #0e7a70;
+  --accent-hover: #0c6a61;
+  --accent-fg: #ffffff;
+  --accent-text: #0c6f66;
+  --accent-soft: rgb(14 122 112 / 0.12);
+  --focus: #0e7a70;
+  --focus-soft: rgb(14 122 112 / 0.26);
+  --success: #1f7a4d;
+  --success-soft: rgb(31 122 77 / 0.12);
+  --warning: #8a6410;
+  --warning-soft: rgb(138 100 16 / 0.14);
+  --warning-border: rgb(138 100 16 / 0.32);
+  --danger: #b5403a;
+  --danger-soft: rgb(181 64 58 / 0.10);
+  --danger-border: rgb(181 64 58 / 0.30);
+  --danger-fill: #b5403a;
+  --danger-fill-hover: #a3352f;
+  --shadow-overlay: 0 0 0 1px rgb(20 30 25 / 0.08), 0 12px 32px rgb(20 30 25 / 0.18);
 }
 
 /* Touch screens get larger hit areas; the look stays the same. */
