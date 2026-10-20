@@ -16,7 +16,7 @@
 //   node tools/local-sync.mjs       # it asks for your SIGARRA password (hidden)
 //
 // Config (config file keys | environment variable):
-//   serverUrl   | PD_SERVER_URL    your dashboard address, e.g. https://bernardos-day.onrender.com
+//   serverUrl   | PD_SERVER_URL    your dashboard address, e.g. https://<your-app>.onrender.com
 //   user        | PD_USER          your dashboard username
 //   key         | PD_SYNC_KEY      the sync key from the dashboard
 //   sigarraUser | PD_SIGARRA_USER  your SIGARRA username, e.g. up202301234

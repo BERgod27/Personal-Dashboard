@@ -57,3 +57,8 @@ tasks (`tasksFor(date)`). Keep its data in `Store.moduleData('<name>')`.
 Each module shows on its own tab: add it to `VIEWS` and `ORDER` in `js/tabs.js`,
 to the tab bar in `index.html`, and to the view rules in `css/app.css`.
 See the comment at the top of `js/core.js`.
+
+## License
+MIT, see [LICENSE](LICENSE). Bundled third-party pieces keep their own licenses:
+the Geist fonts are under the SIL Open Font License (`fonts/OFL.txt`) and the exercise
+library in `modules/workouts/exercises.js` is MIT, with its notice at the top of that file.
