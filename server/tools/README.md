@@ -28,7 +28,7 @@ uni data to your account, not your password).
    Edit `tools/local-sync.config.json`:
    | Field | What |
    | --- | --- |
-   | `serverUrl` | your dashboard address, e.g. `https://bernardos-day.onrender.com` |
+   | `serverUrl` | your dashboard address, e.g. `https://<your-app>.onrender.com` |
    | `user` | your dashboard username |
    | `key` | the sync key you just created |
    | `sigarraUser` | your SIGARRA username, e.g. `up202301234` |

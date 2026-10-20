@@ -7,3 +7,9 @@ modules/uni/data/
 modules/uni/schedule.csv
 modules/news/data/news.json
 __pycache__/
+.env.*
+!.env.example
+node_modules/
+*.sqlite
+*.db
+.DS_Store

@@ -33,7 +33,7 @@ test('sign-in replies are told apart', () => {
 
 test('faculties come from the list, or from where SIGARRA sends a one-faculty student', () => {
   const base = new URL('https://sigarra.up.pt');
-  const list = parseHtml('<div id="conteudoinner"><ul><li><a href="/feup/pt/x">201906166 (FEUP)</a></li><li><a href="/fcup/pt/x">201906166 (FCUP)</a></li></ul></div>');
+  const list = parseHtml('<div id="conteudoinner"><ul><li><a href="/feup/pt/x">202300009 (FEUP)</a></li><li><a href="/fcup/pt/x">202300009 (FCUP)</a></li></ul></div>');
   assert.deepEqual(parseFaculties(list, new URL('https://sigarra.up.pt/up/pt/vld_entidades_geral.entidade_pagina'), base), ['feup', 'fcup']);
   const one = parseHtml('<a href="https://www.up.pt/">U.Porto</a><a href="web_page.inicial">Início</a>');
   assert.deepEqual(parseFaculties(one, new URL('https://sigarra.up.pt/fep/pt/web_page.inicial'), base), ['fep']);

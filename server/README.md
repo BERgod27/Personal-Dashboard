@@ -118,7 +118,7 @@ break takes about a minute). Neon holds the database (free plan, doesn't expire)
    - `DATABASE_URL`: paste the Neon string
    - `SIGNUP_CODE`: make one up
    `APP_SECRET` and `CRON_SECRET` are generated for you.
-4. **First sign-in.** Open the `https://bernardos-day.onrender.com` link Render shows,
+4. **First sign-in.** Open the `https://<your-app>.onrender.com` link Render shows,
    create your account with the sign-up code, then **Account → Uni connections** to paste
    the Moodle calendar link and your SIGARRA details.
 5. **On your phone:** open the same link and use *Add to Home Screen*.
