@@ -1,15 +1,15 @@
 # Bernardo's Day
 
-**A student's whole day on one screen: classes, deadlines, workouts, meals and news, with an AI tutor that knows all of it. Plain HTML, CSS and JavaScript, no framework, no build step.**
+**A student's whole day on one screen: classes, deadlines, workouts, meals and news. Plain HTML, CSS and JavaScript, no framework, no build step.**
 
 ![Today view, dark theme](docs/screenshots/today-dark.png)
 
-A personal project built around student life at FEUP (University of Porto). It started as a single `index.html` planner and grew into a modular dashboard with an optional Node server that syncs data across devices, pulls my timetable and deadlines from the university's systems, and lets me ask Claude about my week.
+A personal project built around student life at FEUP (University of Porto). It started as a single `index.html` planner and grew into a modular dashboard with an optional Node server that syncs data across devices and pulls my timetable and deadlines from the university's systems.
 
 It runs two ways:
 
 - **Local-first:** open `index.html` (or serve the folder) and everything lives in the browser's `localStorage`. No account, no server.
-- **Hosted:** a small Node server adds sign-in, a database, server-side Moodle / SIGARRA / news sync and the AI tutor. Deploys to Render's free plan with one Blueprint.
+- **Hosted:** a small Node server adds sign-in, a database, and server-side Moodle / SIGARRA / news sync. Deploys to Render's free plan with one Blueprint.
 
 ## Features
 
@@ -48,14 +48,7 @@ It runs two ways:
 ### News
 - World and Portuguese headlines from about 18 outlets, merged and de-duplicated from RSS 2.0, RSS 1.0 and Atom feeds by a small dependency-free parser. Feeds are configured in `modules/news/feeds.json`; broken feeds are flagged in the panel.
 
-### Ask: an AI tutor that knows your week
-![The tutor answering a question about the week](docs/screenshots/tutor.png)
-
-- A chat panel on every tab, backed by Claude through the Anthropic API and streamed to the browser.
-- For each question the server adds the user's own data (next two weeks of classes, deadlines and exams, open tasks, recent workouts and meals, headlines), so "what do I have this week and when can I train?" gets a real answer. It also helps with studying in general.
-- Per-user hourly and daily limits, prompt caching to keep follow-ups cheap, and no question text in the server logs. The chat history stays in the browser.
-
-<sub>Screenshots use demo data: the app's built-in example items, the sample uni file and generated workout and meal logs. The tutor's reply in the screenshot is scripted.</sub>
+<sub>Screenshots use demo data: the app's built-in example items, the sample uni file and generated workout and meal logs.</sub>
 
 ### On a phone
 <img src="docs/screenshots/phone.png" alt="Today and workout progress on a phone" width="520">
@@ -68,9 +61,8 @@ The layout works from 375 px up, with a bottom tab bar on phones, and the app ca
 |---|---|
 | Front end | Vanilla JavaScript (ES5-style IIFEs for the shell, ES modules and a Web Component for some panels), HTML, CSS custom properties. No framework, no bundler, no transpiler. |
 | Design | One token file (`css/tokens.css`) for colour, type, spacing, radii and motion; self-hosted Geist and Geist Mono fonts. |
-| Server | Node.js 22 (`node:http`, `node:crypto`, `node:test`, built-in `node:sqlite`), a handful of runtime dependencies: `pg`, `@anthropic-ai/sdk` and an HTML parser (`parse5`, `css-select`, `domutils`) for SIGARRA's pages. |
+| Server | Node.js 22 (`node:http`, `node:crypto`, `node:test`, built-in `node:sqlite`), a handful of runtime dependencies: `pg` and an HTML parser (`parse5`, `css-select`, `domutils`) for SIGARRA's pages. |
 | Data | `localStorage` in the browser; Postgres (e.g. Neon) or SQLite on the server. |
-| AI | Claude via the Anthropic SDK, streamed as NDJSON. |
 | Scripts | Python 3 (standard library only) for the local uni sync and the exercise-data build. |
 | Hosting | Render Blueprint (`render.yaml`) or any container host (`Dockerfile`). |
 
@@ -94,7 +86,6 @@ The layout works from 375 px up, with a bottom tab bar on phones, and the app ca
   │   synced documents ─ db.mjs ─► Postgres/SQLite│
   │   uni sync ─ uni.mjs, sigarra.mjs ─► Moodle, SIGARRA
   │   news ─ modules/news/server.mjs ─► RSS/Atom feeds
-  │   tutor ─ tutor.mjs ─► Anthropic API         │
   └──────────────────────────────────────────────┘
 ```
 
@@ -116,13 +107,12 @@ The layout works from 375 px up, with a bottom tab bar on phones, and the app ca
 - The Moodle link and an optionally remembered SIGARRA password are encrypted with AES-256-GCM, using a key derived (HKDF) from a secret that lives only in the host's environment, so a database copy alone reveals nothing. If SIGARRA rejects a saved password, it is deleted at once so background refreshes can never lock the account.
 - The SIGARRA client only talks to `*.up.pt` hosts and refuses redirects elsewhere, so the session cookie can't leave the university. It sends an honest User-Agent and doesn't try to defeat bot protection.
 - Sign-up needs a setup code, and only one account can be created unless the host allows more.
-- The Anthropic API key stays on the server and the tutor is rate limited per user, so a stuck tab can't run up a bill.
 
 **Installable, with fallbacks.** The web app manifest and icons make it installable on a phone. Each data source degrades on its own: a failed SIGARRA or Moodle sync keeps the last good data and shows the error, a broken news feed is flagged without hiding the others, and the panels explain what to run when the data isn't there.
 
 **Respecting licences.** The exercise dataset is MIT and its notice is kept. Some features were inspired by projects under non-commercial or AGPL licences; those were reimplemented from scratch using published formulas, and the module READMEs credit them.
 
-**Tested where it matters.** The server has `node:test` suites for security helpers, the HTTP API, uni merging, the tutor and the SIGARRA client (against a fake SIGARRA server built from the real app's requests). The Python sync has its own `unittest` suite.
+**Tested where it matters.** The server has `node:test` suites for security helpers, the HTTP API, uni merging and the SIGARRA client (against a fake SIGARRA server built from the real app's requests). The Python sync has its own `unittest` suite.
 
 ## Run it locally
 
@@ -146,7 +136,7 @@ APP_SECRET=$(openssl rand -base64 36) SIGNUP_CODE=pick-one npm start
 # open http://localhost:8080 and create the account with your SIGNUP_CODE
 ```
 
-Without `DATABASE_URL` it uses a local SQLite file. Set `ANTHROPIC_API_KEY` to turn on the tutor.
+Without `DATABASE_URL` it uses a local SQLite file.
 
 **Tests:**
 
@@ -166,16 +156,16 @@ Step-by-step instructions and every environment variable are in [server/README.m
 
 ```
 index.html, login.html   page shells
-css/                     tokens.css (design tokens), app.css, online.css, tutor.css
+css/                     tokens.css (design tokens), app.css, online.css
 fonts/                   Geist and Geist Mono (self-hosted, OFL)
 js/                      store.js, core.js, app.js, tabs.js, tooltip.js
 js/modules/              adapters that plug each module into the shell
-js/online.js, tutor.js   hosted mode: sync and the tutor chat
+js/online.js             hosted mode: sync
 modules/uni/             uni panel + Python sync script (sync_uni.py)
 modules/workouts/        workout tracker, exercise library, insights, CSV import/export
 modules/meals/           meal planner and nutrition tracker
 modules/news/            RSS/Atom parser, news helper server, <news-panel> component
-server/                  Node server: auth, sync, SIGARRA/Moodle, news, tutor, tests
+server/                  Node server: auth, sync, SIGARRA/Moodle, news, tests
 docs/screenshots/        images used in this README
 ```
 
