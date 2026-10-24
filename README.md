@@ -9,7 +9,7 @@ A personal project built around student life at FEUP (University of Porto). It s
 It runs two ways:
 
 - **Local-first:** open `index.html` (or serve the folder) and everything lives in the browser's `localStorage`. No account, no server.
-- **Hosted:** a small Node server adds sign-in, a database, and server-side Moodle / SIGARRA / news sync. Deploys to Render's free plan with one Blueprint.
+- **Hosted:** a small Node server adds Sign in with Google (for an allowlist of accounts), a database, and server-side Moodle / SIGARRA / news sync. Deploys to Render's free plan with one Blueprint.
 
 ## Features
 
@@ -82,7 +82,7 @@ The layout works from 375 px up, with a bottom tab bar on phones, and the app ca
                            │ JSON over HTTPS (same origin)
   ┌────────────────────────▼─────────────────────┐
   │ server/server.mjs (Node, no framework)       │
-  │   auth + sessions ─ security.mjs             │
+  │   auth + sessions ─ google.mjs ─► Google     │
   │   synced documents ─ db.mjs ─► Postgres/SQLite│
   │   uni sync ─ uni.mjs, sigarra.mjs ─► Moodle, SIGARRA
   │   news ─ modules/news/server.mjs ─► RSS/Atom feeds
@@ -100,13 +100,12 @@ The layout works from 375 px up, with a bottom tab bar on phones, and the app ca
 **Local-first.** Everything works with no server and no account; the server is an add-on. A backup can be copied as text and restored on another device, and modules provide CSV/JSON import and export.
 
 **Security, for an app that stores university credentials:**
-- Passwords are hashed with scrypt; sign-in is rate limited and takes the same time for unknown usernames.
+- Sign in with Google, and only for the addresses in `ALLOWED_EMAILS`. It's the OpenID Connect code flow with PKCE, a state bound to the browser and a nonce; the server swaps the code for the ID token itself and checks signature, audience, issuer, expiry and verified email with `google-auth-library`. Accounts are tied to Google's account ID, the allowlist is checked on every request, and no password is stored.
 - Sessions use random tokens in an HttpOnly, SameSite=Lax cookie (Secure on HTTPS), stored only as SHA-256 hashes. "Sign out on all devices" ends every session.
 - State-changing requests must come from the same origin.
-- A strict Content Security Policy (scripts only from the site itself, no CDNs, `frame-ancestors 'none'`), plus HSTS, `nosniff`, `Referrer-Policy` and `Permissions-Policy` headers.
+- A strict Content Security Policy (scripts only from the site itself, no CDNs and no Google script: sign-in is a redirect; `frame-ancestors 'none'`), plus HSTS, `nosniff`, `Referrer-Policy` and `Permissions-Policy` headers.
 - The Moodle link and an optionally remembered SIGARRA password are encrypted with AES-256-GCM, using a key derived (HKDF) from a secret that lives only in the host's environment, so a database copy alone reveals nothing. If SIGARRA rejects a saved password, it is deleted at once so background refreshes can never lock the account.
 - The SIGARRA client only talks to `*.up.pt` hosts and refuses redirects elsewhere, so the session cookie can't leave the university. It sends an honest User-Agent and doesn't try to defeat bot protection.
-- Sign-up needs a setup code, and only one account can be created unless the host allows more.
 
 **Installable, with fallbacks.** The web app manifest and icons make it installable on a phone. Each data source degrades on its own: a failed SIGARRA or Moodle sync keeps the last good data and shows the error, a broken news feed is flagged without hiding the others, and the panels explain what to run when the data isn't there.
 
@@ -132,11 +131,13 @@ Opening `index.html` directly also works; the Uni and News panels need the folde
 ```bash
 cd personal-dashboard/server
 npm install
-APP_SECRET=$(openssl rand -base64 36) SIGNUP_CODE=pick-one npm start
-# open http://localhost:8080 and create the account with your SIGNUP_CODE
+export APP_SECRET=$(openssl rand -base64 36)
+export GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=… ALLOWED_EMAILS=you@gmail.com
+npm start
+# open http://localhost:8080 and sign in with Google
 ```
 
-Without `DATABASE_URL` it uses a local SQLite file.
+Without `DATABASE_URL` it uses a local SQLite file. The Google client ID and secret come from a Google Cloud OAuth client with `http://localhost:8080/auth/google/callback` as a redirect URI; [server/README.md](server/README.md#set-it-up-in-google-cloud-once) has the steps.
 
 **Tests:**
 
@@ -147,7 +148,7 @@ cd modules/uni && python3 -m unittest discover -s tests   # uni sync script
 
 ## Deploy
 
-- **Render + Neon (free):** `render.yaml` is a Render Blueprint for one Node web service. Create a free Postgres on Neon, choose **New → Blueprint** on Render, then paste `DATABASE_URL` and pick a `SIGNUP_CODE`; `APP_SECRET` and `CRON_SECRET` are generated for you. A health check is at `/api/health`, and an optional cron ping to `/api/cron` keeps data fresh.
+- **Render + Neon (free):** `render.yaml` is a Render Blueprint for one Node web service. Create a free Postgres on Neon and a Google OAuth client, choose **New → Blueprint** on Render, then paste `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `ALLOWED_EMAILS`; `APP_SECRET` and `CRON_SECRET` are generated for you. A health check is at `/api/health`, and an optional cron ping to `/api/cron` keeps data fresh.
 - **Any container host:** the `Dockerfile` runs the same server on Node 22 Alpine with SQLite on a `/data` volume, or Postgres if `DATABASE_URL` is set.
 
 Step-by-step instructions and every environment variable are in [server/README.md](server/README.md).

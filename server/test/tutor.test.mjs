@@ -8,6 +8,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildContext, checkMessages, tutorConfig, DEFAULT_MODEL } from '../tutor.mjs';
+import { startFakeGoogle, fakeGoogleEnv, googleSignIn } from './fake-google.mjs';
 
 const NOW = Date.parse('2026-10-05T10:00:00+01:00'); // a Monday
 
@@ -105,7 +106,8 @@ const fakeApi = http.createServer((req, res) => {
 const dir = mkdtempSync(join(tmpdir(), 'pd-tutor-'));
 const procs = [];
 async function startServer(port, extra) {
-  const env = { ...process.env, PORT: String(port), APP_SECRET: 'y'.repeat(48), SIGNUP_CODE: 'code', SQLITE_PATH: join(dir, `db-${port}.sqlite`), ...extra };
+  const base = `http://127.0.0.1:${port}`;
+  const env = { ...process.env, PORT: String(port), APP_SECRET: 'y'.repeat(48), SQLITE_PATH: join(dir, `db-${port}.sqlite`), ...fakeGoogleEnv(google, base, 'bernardo@example.com'), ...extra };
   delete env.DATABASE_URL;
   if (!extra.ANTHROPIC_API_KEY) delete env.ANTHROPIC_API_KEY;
   const proc = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', new URL('../server.mjs', import.meta.url).pathname], { env, stdio: ['ignore', 'pipe', 'inherit'] });
@@ -114,22 +116,22 @@ async function startServer(port, extra) {
     proc.stdout.on('data', (d) => { if (String(d).includes('http://localhost')) resolve(); });
     proc.on('exit', (c) => reject(new Error('server exited ' + c)));
   });
-  const base = `http://127.0.0.1:${port}`;
-  const r = await fetch(base + '/api/signup', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: 'bernardo', password: 'long-password-1', code: 'code' }) });
-  const cookie = r.headers.get('set-cookie').split(';')[0];
+  const { session: cookie } = await googleSignIn(base, google, { sub: '42', email: 'bernardo@example.com' });
   const call = (method, path, body) => fetch(base + path, { method, headers: { cookie, ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
   return { base, call };
 }
 
 let withKey;
 let noKey;
+let google;
 before(async () => {
+  google = await startFakeGoogle({ clientId: 'test-client.apps.googleusercontent.com', clientSecret: 'test-secret' });
   await new Promise((r) => fakeApi.listen(0, '127.0.0.1', r));
   const port = 19000 + Math.floor(Math.random() * 800);
   withKey = await startServer(port, { ANTHROPIC_API_KEY: 'sk-test-key', ANTHROPIC_BASE_URL: `http://127.0.0.1:${fakeApi.address().port}`, TUTOR_PER_HOUR: '4' });
   noKey = await startServer(port + 1, {});
 });
-after(() => { procs.forEach((p) => p.kill()); fakeApi.close(); rmSync(dir, { recursive: true, force: true }); });
+after(() => { procs.forEach((p) => p.kill()); fakeApi.close(); google?.close(); rmSync(dir, { recursive: true, force: true }); });
 
 const lines = (text) => text.trim().split('\n').map((l) => JSON.parse(l));
 

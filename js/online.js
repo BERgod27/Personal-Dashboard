@@ -244,8 +244,9 @@
       '<button class="menu-item danger" type="button" data-act="out-all">' + ICON.devices + 'Sign out on all devices</button>' +
       '<p class="account-version" data-f="version" hidden></p>' +
       '</div></details>';
-    wrap.querySelector('.account-who b').textContent = auth.json.user.username;
-    wrap.querySelector('.account-name').textContent = auth.json.user.username;
+    var who = auth.json.user.email || auth.json.user.username;
+    wrap.querySelector('.account-who b').textContent = who;
+    wrap.querySelector('.account-name').textContent = who.split('@')[0];
     // The GitHub commit the server was built from: matches the newest commit once an update is live.
     var version = wrap.querySelector('[data-f="version"]');
     if (auth.json.version) { version.textContent = 'Version ' + auth.json.version; version.hidden = false; }
@@ -392,7 +393,7 @@
         $('[data-f="keyval"]').focus();
         $('[data-f="keyval"]').select();
         showLocalState(true, r.json.user);
-        msg.textContent = 'Key created. Copy it now into local-sync.config.json; it will not be shown again.';
+        msg.textContent = 'Key created. Copy it now into local-sync.config.json, with "user": "' + r.json.user + '"; it will not be shown again.';
       }).catch(function (e) { msg.textContent = offlineOr(e); });
     }
 

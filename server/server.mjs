@@ -11,7 +11,8 @@ import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDb, store as makeStore } from './db.mjs';
-import { hashPassword, verifyPassword, verifyDummy, newToken, sha256, safeEqual, secretBox, rateLimiter } from './security.mjs';
+import { newToken, sha256, safeEqual, secretBox, rateLimiter } from './security.mjs';
+import { googleSignIn, parseAllowlist, publicUrl, PENDING_MS } from './google.mjs';
 import { syncMoodleIcs, manualClasses, build, forClient } from './uni.mjs';
 import { syncSigarra, isCredentialError } from './sigarra.mjs';
 import { tutorConfig, checkMessages, buildContext, streamAnswer, explainError } from './tutor.mjs';
@@ -20,6 +21,8 @@ const WEB_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
 const SESSION_DAYS = 90;
 const COOKIE = 'pd_session';
+// Holds the state, nonce and PKCE verifier (sealed) while the browser is away at Google.
+const OAUTH_COOKIE = 'pd_oauth';
 const UNI_STALE_MIN = Number(process.env.UNI_SYNC_MINUTES || 60);
 const MAX_DOC_BYTES = 2 * 1024 * 1024;
 const MAX_DOCS = 30;
@@ -31,9 +34,31 @@ const MOODLE_HOSTS = (process.env.ALLOWED_MOODLE_HOSTS || '.up.pt').split(',').m
 // ---------------------------------------------------------------- startup
 
 const box = secretBox(process.env.APP_SECRET);
+// Google sign-in. Only the addresses in ALLOWED_EMAILS can get in; the first one is the owner,
+// who takes over the account made before Google sign-in (see googleUser).
+const ALLOWED = parseAllowlist(process.env.ALLOWED_EMAILS);
+const OWNER = [...ALLOWED][0] || null;
+const GOOGLE_ID = (process.env.GOOGLE_CLIENT_ID || '').trim();
+const GOOGLE_SECRET = (process.env.GOOGLE_CLIENT_SECRET || '').trim();
+// Tests point the library at a fake Google; never honoured outside NODE_ENV=test.
+const GOOGLE_TEST_BASE = process.env.NODE_ENV === 'test' ? process.env.GOOGLE_TEST_BASE_URL : '';
+const google = GOOGLE_ID && GOOGLE_SECRET ? googleSignIn({
+  clientId: GOOGLE_ID,
+  clientSecret: GOOGLE_SECRET,
+  redirectUri: publicUrl(process.env, PORT) + '/auth/google/callback',
+  endpoints: GOOGLE_TEST_BASE ? {
+    oauth2AuthBaseUrl: GOOGLE_TEST_BASE + '/o/oauth2/v2/auth',
+    oauth2TokenUrl: GOOGLE_TEST_BASE + '/token',
+    oauth2FederatedSignonPemCertsUrl: GOOGLE_TEST_BASE + '/oauth2/v1/certs',
+  } : undefined,
+}) : null;
+if (!google) console.warn('[auth] Google sign-in is off: set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET (server/README.md)');
+if (!ALLOWED.size) console.warn('[auth] ALLOWED_EMAILS is empty, so nobody can sign in');
+const isAllowed = (email) => !!email && ALLOWED.has(String(email).toLowerCase());
+
 const db = await openDb();
 const S = makeStore(db);
-const loginLimit = rateLimiter({ max: 10, windowMs: 15 * 60e3 });
+const loginLimit = rateLimiter({ max: 30, windowMs: 15 * 60e3 });
 const syncLimit = rateLimiter({ max: 20, windowMs: 60 * 60e3 });
 const pushLimit = rateLimiter({ max: 30, windowMs: 60 * 60e3 });
 const pushIpLimit = rateLimiter({ max: 60, windowMs: 60 * 60e3 });
@@ -86,7 +111,8 @@ function send(res, code, body, type = 'application/json; charset=utf-8', extra =
 }
 
 const fail = (res, code, error) => send(res, code, { error });
-const redirect = (res, to) => { res.writeHead(302, headers({ location: to, 'cache-control': 'no-store' })); res.end(); };
+// Only ever called with a path on this site or Google's sign-in URL, never with a URL from the request.
+const redirect = (res, to, extra = {}) => { res.writeHead(302, headers({ location: to, 'cache-control': 'no-store', ...extra })); res.end(); };
 // Thrown from a route: the request handler answers with this status and message.
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 
@@ -107,6 +133,11 @@ function cookies(req) {
 
 function sessionCookie(req, token, maxAge) {
   return `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${isHttps(req) ? '; Secure' : ''}`;
+}
+
+// Lax, not Strict: Google's redirect back to the callback is a cross-site navigation.
+function oauthCookie(req, value, maxAge) {
+  return `${OAUTH_COOKIE}=${value}; Path=/auth/google; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${isHttps(req) ? '; Secure' : ''}`;
 }
 
 async function readJson(req, limit = MAX_DOC_BYTES + 64 * 1024) {
@@ -131,7 +162,31 @@ function sameOrigin(req) {
 
 async function currentUser(req) {
   const token = cookies(req)[COOKIE];
-  return token ? S.sessionUser(sha256(token)) : null;
+  const user = token ? await S.sessionUser(sha256(token)) : null;
+  // Taking an address off ALLOWED_EMAILS signs that account out on every device.
+  if (user && !isAllowed(user.email)) { await S.dropUserSessions(user.id); return null; }
+  return user;
+}
+
+// The account for a Google sign-in (the email is already checked against ALLOWED_EMAILS):
+// 1. the account linked to this Google account;
+// 2. else an account from before Google sign-in whose username is this email, or, for the
+//    owner (first address in ALLOWED_EMAILS), the oldest one. It is linked, so its data stays;
+// 3. else a new account, named after the email.
+async function googleUser({ sub, email }) {
+  const linked = await S.userBySub(sub);
+  if (linked) {
+    if (linked.email !== email) await S.setEmail(linked.id, email);
+    return { ...linked, email };
+  }
+  const old = await S.unlinkedUsers();
+  const claim = old.find((u) => u.username === email) || (email === OWNER ? old[0] : null);
+  if (claim && (await S.linkGoogle(claim.id, sub, email))) {
+    console.log('[auth] linked an account from before Google sign-in to its Google account');
+    return { ...claim, email };
+  }
+  const username = (await S.userByName(email)) ? `${email}-${sub.slice(-6)}` : email;
+  return { id: await S.createUser(username, sub, email), username, email };
 }
 
 // ---------------------------------------------------------------- static files
@@ -320,35 +375,51 @@ async function route(req, res) {
 
   if (path === '/api/health') return send(res, 200, { ok: true, db: db.kind, version: VERSION });
 
-  // --- auth
+  // --- auth: Sign in with Google (google.mjs); only addresses in ALLOWED_EMAILS get in
   if (path === '/api/auth' && method === 'GET') {
     const user = await currentUser(req);
-    return send(res, 200, { user: user ? { username: user.username } : null, needsSetup: (await S.countUsers()) === 0, version: VERSION });
+    return send(res, 200, {
+      user: user ? { email: user.email, username: user.username } : null,
+      google: !!google && ALLOWED.size > 0,
+      version: VERSION,
+    });
   }
-  if (path === '/api/signup' && method === 'POST') {
-    // X-Forwarded-For can be forged, so sign-up also has one limit shared by everyone.
-    if (loginLimit.tooMany('ip:' + clientIp(req)) || loginLimit.tooMany('signup')) return fail(res, 429, 'Too many attempts. Wait a few minutes.');
-    const { username = '', password = '', code = '' } = await readJson(req, 4096);
-    const want = process.env.SIGNUP_CODE || '';
-    if (!want) return fail(res, 403, 'Sign-up is closed. Set SIGNUP_CODE on the server to open it.');
-    if (!safeEqual(code, want)) return fail(res, 403, 'That setup code is wrong.');
-    if ((await S.countUsers()) > 0 && process.env.ALLOW_MORE_USERS !== '1') return fail(res, 403, 'An account already exists. Sign in instead.');
-    const name = String(username).trim().toLowerCase();
-    if (!/^[a-z0-9._@-]{3,64}$/.test(name)) return fail(res, 400, 'Pick a username of 3 to 64 letters, numbers, dots or dashes.');
-    if (String(password).length < 10) return fail(res, 400, 'Use a password of at least 10 characters.');
-    if (await S.userByName(name)) return fail(res, 409, 'That username is taken.');
-    const id = await S.createUser(name, hashPassword(String(password)));
-    return startSession(req, res, id, name);
+  if (path === '/auth/google' && method === 'GET') {
+    if (loginLimit.tooMany('ip:' + clientIp(req))) return redirect(res, '/login?error=busy');
+    if (!google || !ALLOWED.size) return redirect(res, '/login?error=setup');
+    const { url: to, pending } = google.start();
+    return redirect(res, to, { 'set-cookie': oauthCookie(req, box.seal(JSON.stringify(pending)), PENDING_MS / 1000) });
   }
-  if (path === '/api/login' && method === 'POST') {
-    const { username = '', password = '' } = await readJson(req, 4096);
-    const name = String(username).trim().toLowerCase();
-    if (loginLimit.tooMany('ip:' + clientIp(req)) || loginLimit.tooMany('user:' + name)) return fail(res, 429, 'Too many attempts. Wait a few minutes.');
-    const u = await S.userByName(name);
-    const ok = u ? verifyPassword(String(password), u.pass_hash) : verifyDummy(String(password));
-    if (!ok) return fail(res, 401, 'Wrong username or password.');
-    loginLimit.clear('user:' + name);
-    return startSession(req, res, u.id, u.username);
+  if (path === '/auth/google/callback' && method === 'GET') {
+    // Every way out clears the pending sign-in, so the browser can't send it twice.
+    const back = (error) => redirect(res, '/login?error=' + error, { 'set-cookie': oauthCookie(req, '', 0) });
+    if (loginLimit.tooMany('ip:' + clientIp(req))) return back('busy');
+    if (!google || !ALLOWED.size) return back('setup');
+    if (url.searchParams.has('error')) return back('cancelled'); // e.g. access_denied: the user said no
+    let pending = null;
+    try { pending = JSON.parse(box.open(cookies(req)[OAUTH_COOKIE])); } catch { /* missing or tampered */ }
+    const state = url.searchParams.get('state') || '';
+    const code = url.searchParams.get('code') || '';
+    if (!pending?.state || !code || !(Date.now() - pending.at < PENDING_MS) || !safeEqual(state, pending.state)) return back('expired');
+    let who;
+    try {
+      who = await google.finish({ code, pending });
+    } catch (e) {
+      console.warn('[auth] Google sign-in failed:', e.kind ? e.message : 'unexpected error');
+      if (!e.kind) console.error(e);
+      return back(e.kind === 'unverified' ? 'unverified' : 'failed');
+    }
+    if (!isAllowed(who.email)) {
+      console.warn('[auth] refused a Google account that is not in ALLOWED_EMAILS');
+      return back('not_allowed');
+    }
+    const user = await googleUser(who);
+    // A fresh session token on every sign-in; the one this browser had before is ended.
+    const prior = cookies(req)[COOKIE];
+    if (prior) await S.dropSession(sha256(prior));
+    const token = newToken();
+    await S.addSession(sha256(token), user.id, Date.now() + SESSION_DAYS * 86400e3);
+    return redirect(res, '/', { 'set-cookie': [oauthCookie(req, '', 0), sessionCookie(req, token, SESSION_DAYS * 86400)] });
   }
   if (path === '/api/logout-all' && method === 'POST') {
     // Signs out every device, e.g. after using a shared computer.
@@ -370,7 +441,7 @@ async function route(req, res) {
     if (!secret || !safeEqual(bearer(req), secret)) return fail(res, 401, 'bad cron key');
     const out = { news: null, uni: {} };
     try { const n = await getNews(false); out.news = n?.items?.length ?? 0; } catch (e) { out.news = e.message; }
-    for (const id of await S.userIds()) {
+    for (const { id } of (await S.users()).filter((u) => isAllowed(u.email))) {
       if (!isStale(await S.getServer(id, UNI_DATA))) { out.uni[id] = 'fresh'; continue; }
       try { out.uni[id] = (await runUniSync(id)).ran; } catch (e) { out.uni[id] = e.message; }
     }
@@ -387,7 +458,9 @@ async function route(req, res) {
     const key = bearer(req);
     const body = await readJson(req, 512 * 1024);
     const name = String(body.user || '').trim().toLowerCase();
-    const u = key && name ? await S.userByName(name) : null;
+    const found = key && name ? await S.userByName(name) : null;
+    // An account taken off ALLOWED_EMAILS can't push either.
+    const u = found && isAllowed(found.email) ? found : null;
     const s = u ? await S.getServer(u.id, UNI_SETTINGS, {}) : null;
     // Always run the constant-time compare (against a dummy hash when absent), so a wrong user
     // and a wrong key take the same path. One message for both.
@@ -572,12 +645,6 @@ async function route(req, res) {
   }
 
   return fail(res, 404, 'not found');
-}
-
-async function startSession(req, res, userId, username) {
-  const token = newToken();
-  await S.addSession(sha256(token), userId, Date.now() + SESSION_DAYS * 86400e3);
-  return send(res, 200, { user: { username } }, undefined, { 'set-cookie': sessionCookie(req, token, SESSION_DAYS * 86400) });
 }
 
 const server = http.createServer((req, res) => {

@@ -1,27 +1,7 @@
-// Password hashing, session tokens and encryption of stored secrets.
-// Built on node:crypto only.
+// Session tokens, constant-time comparison, encryption of stored secrets and rate limits.
+// Built on node:crypto only. (Sign-in itself is Google's: see google.mjs.)
 
-import { scryptSync, randomBytes, timingSafeEqual, createHash, createCipheriv, createDecipheriv, hkdfSync } from 'node:crypto';
-
-const SCRYPT = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
-
-export function hashPassword(password) {
-  const salt = randomBytes(16);
-  const hash = scryptSync(password, salt, 32, SCRYPT);
-  return `scrypt$${salt.toString('base64')}$${hash.toString('base64')}`;
-}
-
-export function verifyPassword(password, stored) {
-  const [kind, salt, hash] = String(stored).split('$');
-  if (kind !== 'scrypt' || !salt || !hash) return false;
-  const want = Buffer.from(hash, 'base64');
-  const got = scryptSync(password, Buffer.from(salt, 'base64'), want.length, SCRYPT);
-  return timingSafeEqual(want, got);
-}
-
-// A hash that always takes the same time, so unknown usernames don't answer faster.
-const DUMMY = hashPassword(randomBytes(8).toString('hex'));
-export function verifyDummy(password) { verifyPassword(password, DUMMY); return false; }
+import { randomBytes, timingSafeEqual, createHash, createCipheriv, createDecipheriv, hkdfSync } from 'node:crypto';
 
 export const newToken = () => randomBytes(32).toString('base64url');
 export const sha256 = (s) => createHash('sha256').update(s).digest('hex');
@@ -55,17 +35,20 @@ export function secretBox(appSecret) {
   };
 }
 
-// Fixed-window limiter, per key (IP or username). Enough for a personal app.
-export function rateLimiter({ max, windowMs }) {
+// Fixed-window limiter, per key (IP or user). Enough for a personal app.
+export function rateLimiter({ max, windowMs, maxKeys = 10000 }) {
   const hits = new Map();
   return {
     tooMany(key) {
       const now = Date.now();
+      // Keys can come from a forged X-Forwarded-For, so old windows are swept out before the
+      // map can grow without end.
+      if (hits.size >= maxKeys) for (const [k, h] of hits) if (h.reset < now) hits.delete(k);
+      if (hits.size >= maxKeys) hits.clear();
       const h = hits.get(key);
       if (!h || h.reset < now) { hits.set(key, { n: 1, reset: now + windowMs }); return false; }
       h.n += 1;
       return h.n > max;
     },
-    clear(key) { hits.delete(key); },
   };
 }

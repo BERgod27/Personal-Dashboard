@@ -2,19 +2,21 @@
 
 One small Node server that:
 
-- serves the dashboard (the folder above this one) behind a sign-in page,
+- serves the dashboard (the folder above this one) behind **Sign in with Google**, open only to
+  the Google accounts you list,
 - keeps your data in a database so phone and laptop see the same thing,
 - fetches Moodle deadlines, the SIGARRA timetable and the news feeds on the server,
   so they work from any device.
 
-No build step. Node 22.13+. Dependencies: `pg` (used when `DATABASE_URL` is set) and an HTML
-parser for SIGARRA's pages (`parse5`, `css-select`, `domutils`).
+No build step. Node 22.13+. Dependencies: `pg` (used when `DATABASE_URL` is set), an HTML
+parser for SIGARRA's pages (`parse5`, `css-select`, `domutils`), `google-auth-library` (checks
+Google's ID tokens) and the Anthropic SDK (tutor).
 
 ## How it works
 
 | Piece | Where |
 |---|---|
-| Accounts, sessions | `server.mjs` + `security.mjs` (scrypt password hashes, HttpOnly session cookie, rate-limited sign-in) |
+| Accounts, sessions | `google.mjs` (Sign in with Google) + `server.mjs` (`ALLOWED_EMAILS`, HttpOnly session cookie, rate-limited sign-in) + `security.mjs`. See [Sign in with Google](#sign-in-with-google). |
 | Your data | `docs` table: each localStorage key the dashboard uses (`personal-dashboard.v1`, `pd.meals.v1`, `pd.workouts.v1`) is one versioned JSON document |
 | Browser sync | `../js/online.js` loads your data before the dashboard starts, saves each change within a second, and reloads when another device saved something newer |
 | Uni | `uni.mjs` (Moodle, manual timetable, merging; same `uni/1` data format as `modules/uni/sync_uni.py`) and `sigarra.mjs` (SIGARRA); settings are in the **Account → Uni connections** dialog |
@@ -72,18 +74,69 @@ When the dashboard is opened without this server (the published page, `file://`,
 | Name | Needed | What |
 |---|---|---|
 | `APP_SECRET` | yes | Random string, 32+ characters. Encrypts saved secrets. **Never change it** after setup, or you'll have to re-enter the Moodle link and SIGARRA password. |
-| `SIGNUP_CODE` | yes, for the first sign-in | Any code you choose. The sign-up form asks for it, so nobody else can create the account. Only one account can be created. |
+| `GOOGLE_CLIENT_ID` | yes | The OAuth client ID from Google Cloud (`….apps.googleusercontent.com`). See [Sign in with Google](#sign-in-with-google). |
+| `GOOGLE_CLIENT_SECRET` | yes | That client's secret. Only in the host's settings, never in the repo. |
+| `ALLOWED_EMAILS` | yes | The Google accounts that may sign in, separated by commas, e.g. `you@gmail.com`. The **first** one is the owner, who takes over the account from before Google sign-in. Empty = nobody gets in. Taking an address off signs that account out everywhere. |
+| `PUBLIC_URL` | optional | The site's address, e.g. `https://day.example.com`, if it isn't the one Render gives (`RENDER_EXTERNAL_URL`, used by default) or `http://localhost:8080`. Google sends you back to `<PUBLIC_URL>/auth/google/callback`. |
 | `DATABASE_URL` | on hosts without a disk | Postgres connection string, e.g. from Neon. The certificate is checked; set `PGSSL_NO_VERIFY=1` only for a provider with self-signed certificates. |
 | `CRON_SECRET` | optional | Lets an outside scheduler call `POST /api/cron` to refresh news and uni data and keep the server awake. |
 | `SQLITE_PATH` | optional | Where the SQLite file goes when there's no `DATABASE_URL`. |
 | `UNI_SYNC_MINUTES` | optional | How old uni data may get before opening the dashboard refreshes it (default 60). |
 | `ALLOWED_MOODLE_HOSTS` | optional | Hosts allowed for the Moodle link (default any `*.up.pt`). |
-| `ALLOW_MORE_USERS` | optional | `1` to allow more accounts with the sign-up code. |
 | `ANTHROPIC_API_KEY` | for the tutor | Anthropic API key (`sk-ant-...`) from console.anthropic.com. Without it the Ask button says the tutor isn't set up. |
 | `TUTOR_MODEL` | optional | Claude model for the tutor (default `claude-opus-5-5`; `claude-sonnet-5-5` costs about half). |
 | `TUTOR_EFFORT` | optional | `low`, `medium` (default), `high`, `xhigh` or `max`: how hard Claude thinks before answering. Lower is faster and cheaper. |
 | `TUTOR_PER_HOUR`, `TUTOR_PER_DAY` | optional | Questions allowed per user (default 40 an hour, 200 a day), so a stuck tab can't run up the bill. |
 | `SIGARRA_BASE_URL` | tests only | Points the SIGARRA sync at another server (the tests run a fake SIGARRA). |
+| `GOOGLE_TEST_BASE_URL` | tests only | Points Google sign-in at the tests' fake Google. Ignored unless `NODE_ENV=test`. |
+
+## Sign in with Google
+
+The sign-in page has one button. It is a plain link: the server sends the browser to Google, you
+pick your account, and Google sends you back to `/auth/google/callback` with a one-time code. The
+server swaps that code for an ID token directly with Google and checks it (signature, audience =
+your client ID, issuer, expiry, the nonce of this sign-in, verified email). If the email is in
+`ALLOWED_EMAILS`, it starts the dashboard's own session (the same 90-day HttpOnly cookie as
+before); anything else goes back to the sign-in page with a short message. Accounts are tied to
+the Google account's ID, not its email, so a different Google account that later gets the same
+address can't open yours. No Google script runs on the site, and no password is stored.
+
+### Set it up in Google Cloud (once)
+
+1. Open [console.cloud.google.com](https://console.cloud.google.com) and create a project
+   (e.g. "Bernardo's Day").
+2. Go to **Google Auth Platform** (APIs & Services → OAuth consent screen leads there) →
+   **Get started**: app name, your email as support email, audience **External**, your email as
+   contact → **Create**.
+3. **Audience**: while the app is in *Testing*, add every address from `ALLOWED_EMAILS` under
+   **Test users** (only test users can sign in at all, a second lock on top of the allowlist).
+   You can also **Publish** it: sign-in only asks for `openid` and `email`, which need no review
+   from Google.
+4. **Clients → Create client** → type **Web application**. Under **Authorized redirect URIs** add:
+   - `https://<your-app>.onrender.com/auth/google/callback` (your Render address, or `PUBLIC_URL`)
+   - `http://localhost:8080/auth/google/callback` (to run it on your computer)
+
+   *Authorized JavaScript origins* can stay empty: the sign-in is a redirect, not a script.
+5. **Create**, then copy the **Client ID** and **Client secret** straight into the host's settings
+   (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`). Google may only show the secret once; download
+   the JSON if it offers. Never commit either one.
+
+### Moving from the password sign-in
+
+1. Make the Google client above.
+2. In Render → your service → **Environment**, add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and
+   `ALLOWED_EMAILS` (your Google address first). Render only asks for new values when a Blueprint
+   is first created, so add these by hand, before the update goes live. `SIGNUP_CODE` and
+   `ALLOW_MORE_USERS` aren't used any more and can be deleted.
+3. When the update starts, the server deletes the stored password hashes and ends the sessions
+   they started, so every device shows the sign-in page once.
+4. Sign in with the first address in `ALLOWED_EMAILS`. The account you had (planner, workouts,
+   meals, uni settings and sync key) becomes yours; its old username stays as the `user` for
+   `tools/local-sync.mjs`, so local sync keeps working. (An old account whose username was an
+   email address goes to the Google account with that address instead.)
+
+Going back to an older version afterwards won't bring the password sign-in back: the hashes are
+deleted on purpose.
 
 ## Tutor
 
@@ -98,8 +151,10 @@ The **Ask** button (bottom right on every tab) opens a chat with Claude that kno
 ```bash
 cd personal-dashboard/server
 npm install
-APP_SECRET=$(openssl rand -base64 36) SIGNUP_CODE=pick-one npm start
-# open http://localhost:8080
+export APP_SECRET=$(openssl rand -base64 36)
+export GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=… ALLOWED_EMAILS=you@gmail.com
+npm start
+# open http://localhost:8080 (localhost, not 127.0.0.1: Google sends you back to localhost)
 ```
 
 Tests: `npm test` (add `TEST_DATABASE_URL=postgres://...` to run them against Postgres too).
@@ -114,13 +169,16 @@ break takes about a minute). Neon holds the database (free plan, doesn't expire)
 2. **Database.** Sign up at neon.tech → create a project (region: Frankfurt) → copy the
    connection string (starts with `postgresql://`).
 3. **Server.** Sign up at render.com with GitHub → **New → Blueprint** → pick the repository.
-   Render reads `render.yaml`, then asks for two values:
+   Render reads `render.yaml`, then asks for these values:
    - `DATABASE_URL`: paste the Neon string
-   - `SIGNUP_CODE`: make one up
+   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`: from [Google Cloud](#set-it-up-in-google-cloud-once)
+     (add the Render address's `/auth/google/callback` to the client once you know it)
+   - `ALLOWED_EMAILS`: your Google address
+   - `ANTHROPIC_API_KEY`: optional, for the tutor
    `APP_SECRET` and `CRON_SECRET` are generated for you.
 4. **First sign-in.** Open the `https://<your-app>.onrender.com` link Render shows,
-   create your account with the sign-up code, then **Account → Uni connections** to paste
-   the Moodle calendar link and your SIGARRA details.
+   **Sign in with Google**, then **Account → Uni connections** to paste the Moodle calendar link
+   and your SIGARRA details.
 5. **On your phone:** open the same link and use *Add to Home Screen*.
 6. **Optional, keeps it fresh and awake:** at cron-job.org create a job every 15 minutes:
    `POST https://<your-app>.onrender.com/api/cron` with header
@@ -134,7 +192,9 @@ so it does not move over on its own.)
 ## Other hosts
 
 `../Dockerfile` runs the same server with SQLite on a volume at `/data` (Fly.io, Railway, a
-VPS), or with Postgres if you set `DATABASE_URL`. Set `APP_SECRET` and `SIGNUP_CODE` there too.
+VPS), or with Postgres if you set `DATABASE_URL`. Set `APP_SECRET`, `GOOGLE_CLIENT_ID`,
+`GOOGLE_CLIENT_SECRET`, `ALLOWED_EMAILS` and `PUBLIC_URL` (the https address it's reached at) there
+too, and add `<PUBLIC_URL>/auth/google/callback` to the Google client.
 
 ## Known limits
 

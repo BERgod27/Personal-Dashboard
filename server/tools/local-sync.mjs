@@ -17,7 +17,7 @@
 //
 // Config (config file keys | environment variable):
 //   serverUrl   | PD_SERVER_URL    your dashboard address, e.g. https://<your-app>.onrender.com
-//   user        | PD_USER          your dashboard username
+//   user        | PD_USER          your dashboard account name (shown when you create the key)
 //   key         | PD_SYNC_KEY      the sync key from the dashboard
 //   sigarraUser | PD_SIGARRA_USER  your SIGARRA username, e.g. up202301234
 //   faculty     | PD_FACULTY       optional; found automatically if left out
@@ -108,7 +108,7 @@ async function main() {
     console.error(`\nThe dashboard refused the update (HTTP ${res.status}): ${out.error || ''}`);
     if (res.status === 401) {
       console.error(`\nCheck these three things in server/tools/local-sync.config.json:`);
-      console.error(`  1. "user" is the name you sign in to the DASHBOARD with (now "${cfg.user}"), not your SIGARRA number.`);
+      console.error(`  1. "user" is your DASHBOARD account name, shown when you created the key (now "${cfg.user}"), not your SIGARRA number.`);
       console.error(`  2. "key" is the newest key from Uni connections (a new key replaces the old one). Copy all of it, no spaces or quotes.`);
       console.error(`  3. "serverUrl" is the site where you made the key (now ${cfg.serverUrl}).`);
     }

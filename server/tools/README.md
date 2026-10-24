@@ -29,7 +29,7 @@ uni data to your account, not your password).
    | Field | What |
    | --- | --- |
    | `serverUrl` | your dashboard address, e.g. `https://<your-app>.onrender.com` |
-   | `user` | your dashboard username |
+   | `user` | your dashboard account name, shown when you create the key: your Google email, or for an account made before Google sign-in, its old username |
    | `key` | the sync key you just created |
    | `sigarraUser` | your SIGARRA username, e.g. `up202301234` |
    | `faculty` | leave `""` to find it automatically |

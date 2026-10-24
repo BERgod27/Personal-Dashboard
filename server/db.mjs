@@ -8,10 +8,13 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SCHEMA = (pg) => [
+  // Accounts sign in with Google: google_sub is Google's ID for the account (it never changes;
+  // the email can). username is the account's name for the local SIGARRA sync tool.
   `CREATE TABLE IF NOT EXISTS users (
      id ${pg ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT'},
      username TEXT NOT NULL UNIQUE,
-     pass_hash TEXT NOT NULL,
+     email TEXT,
+     google_sub TEXT,
      created_at BIGINT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS sessions (
      token_hash TEXT PRIMARY KEY,
@@ -75,40 +78,74 @@ async function openSqlite(path) {
   };
 }
 
+// Databases made before Google sign-in have users(username, pass_hash) and no Google columns.
+// This adds the columns, deletes the password hashes and ends the sessions those passwords
+// started. Each account keeps its data and is linked to a Google account at its first Google
+// sign-in (server.mjs, googleUser). Safe to run on every start.
+async function migrate(db) {
+  const pg = db.kind === 'postgres';
+  const cols = new Set((await db.q(pg
+    ? "SELECT column_name AS name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'users'"
+    : "SELECT name FROM pragma_table_info('users')")).map((r) => r.name));
+  if (!cols.has('email')) await db.q('ALTER TABLE users ADD COLUMN email TEXT');
+  if (!cols.has('google_sub')) await db.q('ALTER TABLE users ADD COLUMN google_sub TEXT');
+  await db.q('CREATE UNIQUE INDEX IF NOT EXISTS users_google_sub ON users (google_sub)');
+  if (cols.has('pass_hash')) {
+    await db.q('DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE google_sub IS NULL)');
+    await db.q('ALTER TABLE users DROP COLUMN pass_hash');
+    console.log('[db] password sign-in removed: accounts are linked to Google at their first Google sign-in');
+  }
+}
+
 export async function openDb({ url = process.env.DATABASE_URL, sqlitePath = process.env.SQLITE_PATH || fileURLToPath(new URL('./data/dashboard.db', import.meta.url)) } = {}) {
   const db = url ? await openPostgres(url) : await openSqlite(sqlitePath);
   for (const stmt of SCHEMA(db.kind === 'postgres')) await db.q(stmt);
+  await migrate(db);
   return db;
 }
 
 // Small helpers used by the routes.
 export function store(db) {
   return {
-    async countUsers() {
-      const [r] = await db.q('SELECT COUNT(*) AS n FROM users');
-      return Number(r.n);
-    },
-    async createUser(username, passHash) {
-      const [r] = await db.q('INSERT INTO users (username, pass_hash, created_at) VALUES ($1, $2, $3) RETURNING id', [username, passHash, Date.now()]);
+    async createUser(username, googleSub, email) {
+      const [r] = await db.q(
+        'INSERT INTO users (username, google_sub, email, created_at) VALUES ($1, $2, $3, $4) RETURNING id',
+        [username, googleSub, email, Date.now()]);
       return r.id;
     },
     async userByName(username) {
-      const [r] = await db.q('SELECT id, username, pass_hash FROM users WHERE username = $1', [username]);
+      const [r] = await db.q('SELECT id, username, email FROM users WHERE username = $1', [username]);
       return r || null;
     },
-    async userIds() {
-      return (await db.q('SELECT id FROM users')).map((r) => r.id);
+    async userBySub(googleSub) {
+      const [r] = await db.q('SELECT id, username, email FROM users WHERE google_sub = $1', [googleSub]);
+      return r || null;
+    },
+    // Accounts from before Google sign-in, oldest first.
+    async unlinkedUsers() {
+      return db.q('SELECT id, username, email FROM users WHERE google_sub IS NULL ORDER BY id');
+    },
+    // Links an account to a Google account, only if nothing linked it in the meantime.
+    async linkGoogle(id, googleSub, email) {
+      const rows = await db.q('UPDATE users SET google_sub = $1, email = $2 WHERE id = $3 AND google_sub IS NULL RETURNING id', [googleSub, email, id]);
+      return rows.length > 0;
+    },
+    async setEmail(id, email) {
+      await db.q('UPDATE users SET email = $1 WHERE id = $2', [email, id]);
+    },
+    async users() {
+      return db.q('SELECT id, username, email FROM users');
     },
     async addSession(tokenHash, userId, expiresAt) {
       await db.q('INSERT INTO sessions (token_hash, user_id, expires_at) VALUES ($1, $2, $3)', [tokenHash, userId, expiresAt]);
     },
     async sessionUser(tokenHash) {
       const [r] = await db.q(
-        'SELECT u.id, u.username, s.expires_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = $1',
+        'SELECT u.id, u.username, u.email, s.expires_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = $1',
         [tokenHash]);
       if (!r) return null;
       if (r.expires_at < Date.now()) { await this.dropSession(tokenHash); return null; }
-      return { id: r.id, username: r.username };
+      return { id: r.id, username: r.username, email: r.email };
     },
     async dropSession(tokenHash) {
       await db.q('DELETE FROM sessions WHERE token_hash = $1', [tokenHash]);

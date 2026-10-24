@@ -17,7 +17,11 @@ services:
         generateValue: true
       - key: CRON_SECRET         # key for the optional keep-fresh ping (/api/cron)
         generateValue: true
-      - key: SIGNUP_CODE         # you type this once when creating your account
+      - key: GOOGLE_CLIENT_ID    # Sign in with Google: OAuth client from Google Cloud (server/README.md)
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: ALLOWED_EMAILS      # Google accounts that may sign in, comma-separated; the first is the owner
         sync: false
       - key: DATABASE_URL        # Neon connection string (postgresql://...)
         sync: false
