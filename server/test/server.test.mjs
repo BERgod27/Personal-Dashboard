@@ -439,3 +439,23 @@ test('without Google settings nobody can sign in', async () => {
   assert.equal((await fetch(base + '/auth/google', { redirect: 'manual' })).headers.get('location'), '/login?error=setup');
   proc.kill();
 });
+
+test('with several old accounts, the owner is not handed a guess', { skip: !!process.env.TEST_DATABASE_URL && 'SQLite only' }, async () => {
+  const path = join(dir, 'several.sqlite');
+  const { DatabaseSync } = await import('node:sqlite');
+  const db = new DatabaseSync(path);
+  db.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, pass_hash TEXT NOT NULL, created_at BIGINT NOT NULL);
+    CREATE TABLE docs (user_id INTEGER NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, version INTEGER NOT NULL, updated_at BIGINT NOT NULL, PRIMARY KEY (user_id, key));
+    INSERT INTO users (username, pass_hash, created_at) VALUES ('alice', 'x', 1), ('${FRIEND}', 'x', 2);
+    INSERT INTO docs VALUES (1, 'pd.meals.v1', '"alice''s"', 1, 1), (2, 'pd.meals.v1', '"friend''s"', 1, 1);`);
+  db.close();
+  const port = PORT + 2002;
+  const base = `http://127.0.0.1:${port}`;
+  const proc = await startServer(port, { SQLITE_PATH: path });
+  const docs = async (session) => (await (await fetch(base + '/api/state', { headers: { cookie: session } })).json()).docs;
+  const owner = await googleSignIn(base, google, ME);
+  assert.deepEqual(await docs(owner.session), {}, 'the owner gets a new account, not alice\'s');
+  const friend = await googleSignIn(base, google, FRIEND_ID);
+  assert.equal((await docs(friend.session))['pd.meals.v1'].value, '"friend\'s"', 'an old username that is the email links');
+  proc.kill();
+});

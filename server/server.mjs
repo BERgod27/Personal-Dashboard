@@ -171,8 +171,9 @@ async function currentUser(req) {
 // The account for a Google sign-in (the email is already checked against ALLOWED_EMAILS):
 // 1. the account linked to this Google account;
 // 2. else an account from before Google sign-in whose username is this email, or, for the
-//    owner (first address in ALLOWED_EMAILS), the oldest one. It is linked, so its data stays;
-// 3. else a new account, named after the email.
+//    owner (first address in ALLOWED_EMAILS), the only one left. It is linked, so its data
+//    stays. With several left, none is guessed: each needs a username matching its email;
+// 3. else a new account, named after the email (and the Google ID, if that name is taken).
 async function googleUser({ sub, email }) {
   const linked = await S.userBySub(sub);
   if (linked) {
@@ -180,12 +181,12 @@ async function googleUser({ sub, email }) {
     return { ...linked, email };
   }
   const old = await S.unlinkedUsers();
-  const claim = old.find((u) => u.username === email) || (email === OWNER ? old[0] : null);
+  const claim = old.find((u) => u.username === email) || (email === OWNER && old.length === 1 ? old[0] : null);
   if (claim && (await S.linkGoogle(claim.id, sub, email))) {
     console.log('[auth] linked an account from before Google sign-in to its Google account');
     return { ...claim, email };
   }
-  const username = (await S.userByName(email)) ? `${email}-${sub.slice(-6)}` : email;
+  const username = (await S.userByName(email)) ? `${email}-${sub}` : email;
   return { id: await S.createUser(username, sub, email), username, email };
 }
 

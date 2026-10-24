@@ -133,7 +133,8 @@ address can't open yours. No Google script runs on the site, and no password is 
 4. Sign in with the first address in `ALLOWED_EMAILS`. The account you had (planner, workouts,
    meals, uni settings and sync key) becomes yours; its old username stays as the `user` for
    `tools/local-sync.mjs`, so local sync keeps working. (An old account whose username was an
-   email address goes to the Google account with that address instead.)
+   email address goes to the Google account with that address instead. If there were several
+   old accounts, none is guessed for the owner: only that username match links them.)
 
 Going back to an older version afterwards won't bring the password sign-in back: the hashes are
 deleted on purpose.
