@@ -55,6 +55,20 @@ test('the context holds the user\'s uni, planner, workout and meal data, minus e
   assert.doesNotMatch(ctx, /Example thing/, 'sample entries are left out');
 });
 
+test('the news part lists the top stories first, with how many outlets cover each', () => {
+  const news = {
+    items: [
+      { id: 'a', title: 'Small story', source: 'DN', topic: 'portugal' },
+      { id: 'b', title: 'Big story', source: 'BBC News', topic: 'world' },
+      { id: 'c', title: 'Big story, again', source: 'Reuters', topic: 'world' },
+    ],
+    stories: [{ id: 'sb', lead: 'b', related: ['c'], sources: 2 }, { id: 'sa', lead: 'a', related: [], sources: 1 }],
+  };
+  const ctx = buildContext({ news, nowMs: NOW });
+  assert.match(ctx, /- \[world\] Big story \(BBC News, covered by 2 outlets\)\n- \[portugal\] Small story \(DN\)/);
+  assert.doesNotMatch(ctx, /Big story, again/);
+});
+
 test('an empty account still gives a usable context', () => {
   const ctx = buildContext({ nowMs: NOW });
   assert.match(ctx, /Uni[^\n]*\nNot synced yet/);

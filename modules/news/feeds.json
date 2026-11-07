@@ -2,29 +2,64 @@
   "refreshMinutes": 15,
   "maxItemsPerFeed": 15,
   "maxAgeHours": 48,
-  "categories": [
+  "topStories": 10,
+  "topics": [
+    { "id": "portugal", "label": "Portugal" },
     { "id": "world", "label": "World" },
-    { "id": "portugal", "label": "Portugal" }
+    { "id": "business", "label": "Business" },
+    { "id": "tech", "label": "Tech" },
+    { "id": "science", "label": "Science" },
+    { "id": "health", "label": "Health" },
+    { "id": "sports", "label": "Sports" },
+    { "id": "culture", "label": "Culture" }
   ],
   "feeds": [
-    { "name": "BBC News", "category": "world", "url": "https://feeds.bbci.co.uk/news/world/rss.xml" },
-    { "name": "Reuters", "category": "world", "url": "https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com/world&hl=en-US&gl=US&ceid=US:en", "note": "Reuters has no public RSS; this is a Google News search scoped to reuters.com" },
-    { "name": "Associated Press", "category": "world", "url": "https://news.google.com/rss/search?q=when:24h+allinurl:apnews.com&hl=en-US&gl=US&ceid=US:en", "note": "AP has no public RSS; Google News search scoped to apnews.com" },
-    { "name": "The New York Times", "category": "world", "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml" },
-    { "name": "The Guardian", "category": "world", "url": "https://www.theguardian.com/world/rss" },
-    { "name": "Financial Times", "category": "world", "url": "https://www.ft.com/world?format=rss" },
-    { "name": "The Economist", "category": "world", "url": "https://www.economist.com/international/rss.xml" },
-    { "name": "Al Jazeera", "category": "world", "url": "https://www.aljazeera.com/xml/rss/all.xml" },
-    { "name": "Le Monde (EN)", "category": "world", "url": "https://www.lemonde.fr/en/rss/une.xml" },
-    { "name": "DW", "category": "world", "url": "https://rss.dw.com/rdf/rss-en-world" },
-    { "name": "NPR", "category": "world", "url": "https://feeds.npr.org/1004/rss.xml" },
+    { "name": "Público", "topic": "portugal", "url": "https://feeds.feedburner.com/PublicoRSS" },
+    { "name": "RTP Notícias", "topic": "portugal", "url": "https://www.rtp.pt/noticias/rss" },
+    { "name": "Observador", "topic": "portugal", "url": "https://observador.pt/feed/" },
+    { "name": "Expresso", "topic": "portugal", "url": "https://expresso.pt/rss/ultimas" },
+    { "name": "Jornal de Notícias", "topic": "portugal", "url": "https://www.jn.pt/rss" },
+    { "name": "Diário de Notícias", "topic": "portugal", "url": "https://www.dn.pt/rss" },
 
-    { "name": "Público", "category": "portugal", "url": "https://feeds.feedburner.com/PublicoRSS" },
-    { "name": "RTP Notícias", "category": "portugal", "url": "https://www.rtp.pt/noticias/rss" },
-    { "name": "Observador", "category": "portugal", "url": "https://observador.pt/feed/" },
-    { "name": "Expresso", "category": "portugal", "url": "https://expresso.pt/rss/ultimas" },
-    { "name": "ECO", "category": "portugal", "url": "https://eco.sapo.pt/feed/" },
-    { "name": "Jornal de Notícias", "category": "portugal", "url": "https://www.jn.pt/rss" },
-    { "name": "Diário de Notícias", "category": "portugal", "url": "https://www.dn.pt/rss" }
+    { "name": "BBC News", "topic": "world", "url": "https://feeds.bbci.co.uk/news/world/rss.xml" },
+    { "name": "Reuters", "topic": "world", "url": "https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com/world&hl=en-US&gl=US&ceid=US:en", "note": "Reuters has no public RSS; this is a Google News search scoped to reuters.com" },
+    { "name": "Associated Press", "topic": "world", "url": "https://news.google.com/rss/search?q=when:24h+allinurl:apnews.com&hl=en-US&gl=US&ceid=US:en", "note": "AP has no public RSS; Google News search scoped to apnews.com" },
+    { "name": "The New York Times", "topic": "world", "url": "https://rss.nytimes.com/services/xml/rss/nyt/World.xml" },
+    { "name": "The Guardian", "topic": "world", "url": "https://www.theguardian.com/world/rss" },
+    { "name": "The Economist", "topic": "world", "url": "https://www.economist.com/international/rss.xml" },
+    { "name": "Al Jazeera", "topic": "world", "url": "https://www.aljazeera.com/xml/rss/all.xml" },
+    { "name": "Le Monde (EN)", "topic": "world", "url": "https://www.lemonde.fr/en/rss/une.xml" },
+    { "name": "DW", "topic": "world", "url": "https://rss.dw.com/rdf/rss-en-world" },
+    { "name": "NPR", "topic": "world", "url": "https://feeds.npr.org/1004/rss.xml" },
+
+    { "name": "Financial Times", "topic": "business", "url": "https://www.ft.com/global-economy?format=rss" },
+    { "name": "BBC Business", "topic": "business", "url": "https://feeds.bbci.co.uk/news/business/rss.xml" },
+    { "name": "Guardian Business", "topic": "business", "url": "https://www.theguardian.com/uk/business/rss" },
+    { "name": "ECO", "topic": "business", "url": "https://eco.sapo.pt/feed/" },
+    { "name": "Jornal de Negócios", "topic": "business", "url": "https://www.jornaldenegocios.pt/rss" },
+
+    { "name": "The Verge", "topic": "tech", "url": "https://www.theverge.com/rss/index.xml" },
+    { "name": "Ars Technica", "topic": "tech", "url": "https://feeds.arstechnica.com/arstechnica/index" },
+    { "name": "BBC Technology", "topic": "tech", "url": "https://feeds.bbci.co.uk/news/technology/rss.xml" },
+
+    { "name": "BBC Science", "topic": "science", "url": "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml" },
+    { "name": "Guardian Science", "topic": "science", "url": "https://www.theguardian.com/science/rss" },
+
+    { "name": "BBC Health", "topic": "health", "url": "https://feeds.bbci.co.uk/news/health/rss.xml" },
+    { "name": "Guardian Health", "topic": "health", "url": "https://www.theguardian.com/society/health/rss" },
+
+    { "name": "Record", "topic": "sports", "url": "https://www.record.pt/rss" },
+    { "name": "BBC Sport", "topic": "sports", "url": "https://feeds.bbci.co.uk/sport/rss.xml" },
+    { "name": "Guardian Sport", "topic": "sports", "url": "https://www.theguardian.com/uk/sport/rss" },
+
+    { "name": "Público Cultura", "topic": "culture", "url": "https://feeds.feedburner.com/PublicoCultura" },
+    { "name": "Guardian Culture", "topic": "culture", "url": "https://www.theguardian.com/uk/culture/rss" },
+
+    { "name": "Google News · Economia", "topic": "business", "maxItems": 10, "url": "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=pt-PT&gl=PT&ceid=PT:pt-150", "note": "Portuguese edition; each headline is credited to its own outlet" },
+    { "name": "Google News · Tecnologia", "topic": "tech", "maxItems": 10, "url": "https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=pt-PT&gl=PT&ceid=PT:pt-150" },
+    { "name": "Google News · Ciência", "topic": "science", "maxItems": 10, "url": "https://news.google.com/rss/headlines/section/topic/SCIENCE?hl=pt-PT&gl=PT&ceid=PT:pt-150" },
+    { "name": "Google News · Saúde", "topic": "health", "maxItems": 10, "url": "https://news.google.com/rss/headlines/section/topic/HEALTH?hl=pt-PT&gl=PT&ceid=PT:pt-150" },
+    { "name": "Google News · Desporto", "topic": "sports", "maxItems": 10, "url": "https://news.google.com/rss/headlines/section/topic/SPORTS?hl=pt-PT&gl=PT&ceid=PT:pt-150" },
+    { "name": "Google News · Entretenimento", "topic": "culture", "maxItems": 10, "url": "https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=pt-PT&gl=PT&ceid=PT:pt-150" }
   ]
 }

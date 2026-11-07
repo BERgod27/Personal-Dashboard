@@ -19,11 +19,11 @@
       import(url).then(function (mod) {
         // Online (server/server.mjs) the same server answers /api/news; locally it is the news helper.
         var api = window.PDOnline ? location.origin : 'http://localhost:8787';
-        mod.mount(el, { api: api, compact: true, limit: 20 });
+        mod.mount(el, { api: api });
       }).catch(function () {
         Dashboard.placeholder(el, {
           status: 'Needs the local helper',
-          summary: 'World and Portugal headlines. Open the dashboard through a local server and start the news helper:',
+          summary: 'Top stories and topics from Portugal and the world. Open the dashboard through a local server and start the news helper:',
           planned: ['cd personal-dashboard/modules/news', 'node server.mjs']
         });
       });

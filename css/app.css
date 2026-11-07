@@ -506,5 +506,6 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 
 /* ---------- module screen layout ---------- */
 /* The panels style themselves from css/tokens.css (modules/*); only placement here. */
-.view-module #module-news { max-width: 880px; }
-.view-module news-panel { --news-title-display: none; }
+/* The news page uses the full content width; its topic bar sticks under the phone's app bar. */
+.view-module news-panel { --news-title-display: none; --news-sticky-top: calc(var(--topbar-h) + env(safe-area-inset-top)); }
+@media (min-width: 960px) { .view-module news-panel { --news-sticky-top: 0px; } }
