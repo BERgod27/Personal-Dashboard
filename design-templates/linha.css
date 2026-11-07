@@ -1,0 +1,62 @@
+/* Template B: "Linha". Wayfinding signage: a condensed grotesk at confident sizes, hard
+   2px rules, square corners, and signal yellow used the way a transit map uses a line
+   colour. The day numeral sits in a yellow line badge, the one loud element. */
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap");
+
+:root {
+  color-scheme: dark;
+  --bg: #1a1f26; --surface-1: #212731; --surface-2: #29303b; --surface-3: #323a47; --surface-4: #3c4554;
+  --input-bg: #1c2129;
+  --border-subtle: rgb(255 255 255 / 0.06); --border: rgb(255 255 255 / 0.10);
+  --border-strong: rgb(255 255 255 / 0.16); --border-hover: rgb(255 255 255 / 0.26);
+  --text-1: #f4f4f0; --text-2: #b6bbc3; --text-3: #9ca2ac;
+  --accent: #f5c02e; --accent-hover: #ffcd45; --accent-fg: #15181d;
+  --accent-text: #f5c02e; --accent-soft: rgb(245 192 46 / 0.14);
+  --focus: #f5c02e; --focus-soft: rgb(245 192 46 / 0.30);
+  --rule: #f4f4f0;
+  --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-cond: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-mono: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --radius-xs: 0; --radius-sm: 2px; --radius: 2px;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #ecede9; --surface-1: #ffffff; --surface-2: #e3e4df; --surface-3: #d7d8d2; --surface-4: #cacbc4;
+    --input-bg: #ffffff;
+    --border-subtle: rgb(17 20 24 / 0.07); --border: rgb(17 20 24 / 0.12);
+    --border-strong: rgb(17 20 24 / 0.18); --border-hover: rgb(17 20 24 / 0.30);
+    --text-1: #111418; --text-2: #44484f; --text-3: #575b63;
+    --accent: #f2b705; --accent-hover: #e0a900; --accent-fg: #111418;
+    --accent-text: #6f5300; --accent-soft: rgb(242 183 5 / 0.18);
+    --focus: #111418; --focus-soft: rgb(17 20 24 / 0.22);
+    --rule: #111418;
+  }
+}
+
+body { font-size: 0.9375rem; font-variant-numeric: tabular-nums; }
+h1, h2, h3, .brand-name, .panel-head h2 { font-family: var(--font-cond); font-weight: 700; letter-spacing: 0.005em; }
+.page-title h1, .masthead-label h1 { font-size: 2rem; line-height: 1; }
+.panel-head h2 { font-size: 1.25rem; }
+.panel { border: 0; border-top: 3px solid var(--rule); }
+.panel-head { border-bottom: 1px solid var(--border-strong); }
+.masthead-num {
+  display: grid; place-items: center; min-width: 1.35em; height: 1.35em; padding: 0 .12em !important;
+  border: 0 !important; background: var(--accent); color: var(--accent-fg) !important;
+  font-family: var(--font-cond); font-weight: 700 !important; font-size: 3.5rem !important; line-height: 1;
+}
+.masthead-label .page-meta { font-family: var(--font-cond); font-size: 1rem; font-weight: 500; letter-spacing: .02em; }
+.btn { font-weight: 600; }
+.brand-mark { background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 0; }
+.tab[aria-current="page"] svg.ic { color: var(--text-1); }
+.tabs { border-top: 3px solid var(--rule); }
+.tab[aria-current="page"] { box-shadow: inset 0 3px 0 var(--accent); }
+@media (min-width: 960px) {
+  .rail { background: var(--surface-1); border-right: 3px solid var(--rule); }
+  .tabs { border-top: 0; }
+  .brand-name { font-size: 1.375rem; }
+  .tab { font-family: var(--font-cond); font-size: 1.125rem; font-weight: 600; height: 40px; border-radius: 0; }
+  .tab[aria-current="page"] { background: var(--accent); color: var(--accent-fg); box-shadow: none; }
+  .tab[aria-current="page"] svg.ic { color: var(--accent-fg); }
+  .tab-key { opacity: 1 !important; font-family: var(--font-cond); }
+}

@@ -1,0 +1,64 @@
+/* Template A: "Azulejo". Porto's blue-and-white tiles. Porcelain surfaces, cobalt ink,
+   a book serif for headings and the day numeral, a tile band in the sidebar as the one
+   decorative moment. Light is the natural home; the dark variant is a night-navy glaze. */
+@import url("https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400..600&family=Public+Sans:wght@400..700&display=swap");
+
+:root {
+  color-scheme: dark;
+  --bg: #0b1426; --surface-1: #101c33; --surface-2: #16243f; --surface-3: #1d2d4c; --surface-4: #253759;
+  --input-bg: #0d182c;
+  --border-subtle: rgb(170 195 240 / 0.06); --border: rgb(170 195 240 / 0.11);
+  --border-strong: rgb(170 195 240 / 0.16); --border-hover: rgb(170 195 240 / 0.26);
+  --text-1: #eef2fa; --text-2: #a9b5cc; --text-3: #8f9cb6;
+  --accent: #2f62c8; --accent-hover: #3a6fd6; --accent-fg: #ffffff;
+  --accent-text: #93b4f2; --accent-soft: rgb(80 130 230 / 0.18);
+  --focus: #7ea3ee; --focus-soft: rgb(126 163 238 / 0.32);
+  --tile: #2f62c8; --tile-ground: #101c33;
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Literata", Georgia, serif;
+  --font-mono: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: 8px; --radius: 12px;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #f4f6fa; --surface-1: #ffffff; --surface-2: #e9eef7; --surface-3: #dce4f2; --surface-4: #cdd8ea;
+    --input-bg: #ffffff;
+    --border-subtle: rgb(20 40 90 / 0.06); --border: rgb(20 40 90 / 0.11);
+    --border-strong: rgb(20 40 90 / 0.16); --border-hover: rgb(20 40 90 / 0.28);
+    --text-1: #14213d; --text-2: #46526d; --text-3: #5b6782;
+    --accent: #1f4fa8; --accent-hover: #1a4495; --accent-fg: #ffffff;
+    --accent-text: #1a4596; --accent-soft: rgb(31 79 168 / 0.10);
+    --focus: #1f4fa8; --focus-soft: rgb(31 79 168 / 0.24);
+    --tile: #1f4fa8; --tile-ground: #ffffff;
+  }
+}
+
+body { font-variant-numeric: tabular-nums; }
+h1, h2, .masthead-label h1, .page-title h1, .brand-name { font-family: var(--font-serif); font-weight: 600; letter-spacing: -0.01em; }
+.page-title h1, .masthead-label h1 { font-size: 1.5rem; }
+.panel-head h2 { font-size: 1.0625rem; }
+.masthead-num {
+  font-family: var(--font-serif); font-style: italic; font-weight: 400;
+  border-left: 0; padding-left: 0; color: var(--accent-text); font-size: 4.5rem !important; line-height: .85;
+}
+.masthead-label .page-meta { font-family: var(--font-sans); letter-spacing: 0; }
+
+/* the tile band: a repeating azulejo motif drawn in SVG masks, coloured by tokens */
+.brand { position: relative; }
+@media (min-width: 960px) {
+  .rail { padding-top: 0; background: var(--surface-1); }
+  .rail::before {
+    content: ""; display: block; height: 72px; margin: 0 calc(-1 * var(--space-2)) var(--space-3);
+    background: var(--tile);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'%3E%3Cg fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M18 2c4 6 4 10 0 16c-4-6-4-10 0-16zM18 34c4-6 4-10 0-16c-4 6-4 10 0 16zM2 18c6-4 10-4 16 0c-6 4-10 4-16 0zM34 18c-6-4-10-4-16 0c6 4 10 4 16 0z'/%3E%3Ccircle cx='18' cy='18' r='3'/%3E%3Cpath d='M0 0l6 6M36 0l-6 6M0 36l6-6M36 36l-6-6'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 36px 36px repeat;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'%3E%3Cg fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M18 2c4 6 4 10 0 16c-4-6-4-10 0-16zM18 34c4-6 4-10 0-16c-4 6-4 10 0 16zM2 18c6-4 10-4 16 0c-6 4-10 4-16 0zM34 18c-6-4-10-4-16 0c6 4 10 4 16 0z'/%3E%3Ccircle cx='18' cy='18' r='3'/%3E%3Cpath d='M0 0l6 6M36 0l-6 6M0 36l6-6M36 36l-6-6'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 36px 36px repeat;
+  }
+  .brand-name { font-size: 1.125rem; }
+  .tab[aria-current="page"] { background: var(--accent-soft); box-shadow: none; color: var(--accent-text); }
+  .tab { border-radius: 999px; padding-inline: var(--space-3); }
+}
+.panel { border-radius: var(--radius); }
+.panel-head { border-bottom-style: dashed; }
+.topbar { border-bottom: 3px solid var(--tile); }
+.tab[aria-current="page"] svg.ic { color: var(--accent-text); }

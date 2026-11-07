@@ -1,0 +1,63 @@
+/* Template C: "Clube". A sports-club feel for someone who trains as much as they study.
+   Forest green and tangerine, a chunky expressive grotesk for headings, soft rounded
+   shapes and pill navigation. The day numeral is set big in tangerine, like a race number. */
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap");
+
+:root {
+  color-scheme: dark;
+  --bg: #0e1a13; --surface-1: #14231a; --surface-2: #1a2d21; --surface-3: #213829; --surface-4: #2a4433;
+  --input-bg: #101d15;
+  --border-subtle: rgb(200 240 210 / 0.06); --border: rgb(200 240 210 / 0.10);
+  --border-strong: rgb(200 240 210 / 0.15); --border-hover: rgb(200 240 210 / 0.25);
+  --text-1: #eef5ec; --text-2: #a9bcab; --text-3: #91a594;
+  --accent: #3bae70; --accent-hover: #46bf7e; --accent-fg: #0b1a11;
+  --accent-text: #74d6a0; --accent-soft: rgb(59 174 112 / 0.18);
+  --focus: #74d6a0; --focus-soft: rgb(116 214 160 / 0.30);
+  --pop: #ff8a3d;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", ui-sans-serif, sans-serif;
+  --font-mono: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --radius-xs: 6px; --radius-sm: 10px; --radius: 18px;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #eef3eb; --surface-1: #ffffff; --surface-2: #e4ebdf; --surface-3: #d7e1d1; --surface-4: #c9d6c2;
+    --input-bg: #ffffff;
+    --border-subtle: rgb(19 37 27 / 0.06); --border: rgb(19 37 27 / 0.10);
+    --border-strong: rgb(19 37 27 / 0.15); --border-hover: rgb(19 37 27 / 0.26);
+    --text-1: #13251b; --text-2: #45574b; --text-3: #56685c;
+    --accent: #1e6b43; --accent-hover: #185a38; --accent-fg: #ffffff;
+    --accent-text: #1a5e3a; --accent-soft: rgb(30 107 67 / 0.11);
+    --focus: #1e6b43; --focus-soft: rgb(30 107 67 / 0.24);
+    --pop: #e8641a;
+  }
+}
+
+body { font-size: 0.9375rem; font-variant-numeric: tabular-nums; }
+h1, h2, h3, .brand-name { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; }
+.page-title h1, .masthead-label h1 { font-size: 1.75rem; font-weight: 800; }
+.panel-head h2 { font-size: 1.125rem; }
+.panel { border-color: transparent; box-shadow: 0 1px 0 var(--border), 0 0 0 1px var(--border-subtle); }
+.panel-head { border-bottom: 0; min-height: 52px; }
+.masthead-num {
+  border-left: 0 !important; padding-left: 0 !important;
+  font-family: var(--font-display); font-weight: 800 !important; font-size: 5rem !important;
+  letter-spacing: -0.05em; line-height: .8; color: var(--pop) !important;
+}
+.masthead-label .page-meta { font-family: var(--font-sans); font-size: .875rem; }
+.btn { border-radius: 999px; font-weight: 600; }
+.brand-mark { border-radius: 999px; background: var(--pop); color: #fff; border: 0; }
+.tab[aria-current="page"] svg.ic { color: var(--accent-text); }
+@media (max-width: 959px) {
+  .tabs { margin: 0 10px 10px; left: 0; right: 0; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-1); height: 60px; bottom: env(safe-area-inset-bottom); }
+  .tab[aria-current="page"] { background: var(--accent-soft); border-radius: 999px; margin: 6px 2px; }
+}
+@media (min-width: 960px) {
+  .rail { background: var(--bg); border-right: 0; padding: var(--space-4) var(--space-3); }
+  .brand-name { font-size: 1.25rem; }
+  .tab { height: 40px; border-radius: 999px; padding-inline: var(--space-4); font-weight: 600; }
+  .tab[aria-current="page"] { background: var(--accent); color: var(--accent-fg); box-shadow: none; }
+  .tab[aria-current="page"] svg.ic { color: var(--accent-fg); }
+  .app { background: var(--surface-2); border-radius: 28px 0 0 28px; margin-top: 12px; min-height: calc(100vh - 12px); }
+}
