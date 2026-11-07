@@ -4,7 +4,7 @@
 
 /* summary tiles: this week against last week */
 .wt-sumtiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.wt-root.is-wide .wt-sumtiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@container wt (min-width: 860px) { .wt-sumtiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .wt-sumtiles .wt-tile { min-width: 0; }
 .wt-sumtiles .wt-tile b { display: block; }
 .wt-sumtiles .wt-tile small { display: flex; align-items: center; gap: 2px; font-size: var(--fs-12); color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -134,7 +134,7 @@
   --dur-slow: 200ms;        /* dialogs and sheets entering */
 
   /* ---------- layout ---------- */
-  --content-max: 1120px;
+  --content-max: 2400px;   /* pages fill wide screens and centre past this */
   --sidebar-w: 224px;
   --topbar-h: 48px;
   --tabbar-h: 56px;

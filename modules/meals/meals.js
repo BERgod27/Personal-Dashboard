@@ -1410,7 +1410,7 @@
           return h('button', { role: 'tab', 'aria-selected': view.tab === t[0] ? 'true' : 'false', class: 'pdm-tab', onclick: function () { view.tab = t[0]; render(); } }, t[1]);
         })),
         view.msg ? h('div', { class: 'pdm-msg', role: 'status' }, view.msg) : null,
-        h('div', { class: 'pdm-body' }, body)
+        h('div', { class: 'pdm-body', 'data-tab': view.tab }, body)
       ]);
       // The tab strip is rebuilt on every render and scrolls on a phone: bring the open tab into view.
       var on = root.querySelector('.pdm-tab[aria-selected="true"]');
