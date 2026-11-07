@@ -194,10 +194,14 @@ function mealsSection(m, today) {
   return section('Meals (Refeições tab, Portuguese UI)', out);
 }
 
+// The top stories first (each with how many outlets cover it), then the latest headlines.
 function newsSection(news) {
-  const items = (news?.items || []).slice(0, 20);
+  const all = news?.items || [];
+  const byId = new Map(all.map((i) => [i.id, i]));
+  const stories = (news?.stories || []).slice(0, 20).map((s) => ({ ...byId.get(s.lead), sources: s.sources })).filter((i) => i.title);
+  const items = stories.length ? stories : all.slice(0, 20);
   if (!items.length) return '';
-  return section('News headlines (News tab)', items.map((i) => `- [${i.category || ''}] ${clip(i.title, 160)} (${i.source || ''}${i.published ? ', ' + fmtWhen(i.published) : ''})`));
+  return section('News headlines (News tab)', items.map((i) => `- [${i.topic || i.category || ''}] ${clip(i.title, 160)} (${i.source || ''}${i.published ? ', ' + fmtWhen(i.published) : ''}${i.sources > 1 ? `, covered by ${i.sources} outlets` : ''})`));
 }
 
 // Everything the tutor knows about the user, as plain text. `docs` are the synced localStorage

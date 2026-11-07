@@ -46,7 +46,9 @@ It runs two ways:
 - A goal calculator (Mifflin-St Jeor) that switches to your **measured** energy burn once there are two weeks of logs and weigh-ins: average intake minus the energy implied by the weight trend.
 
 ### News
-- World and Portuguese headlines from about 18 outlets, merged and de-duplicated from RSS 2.0, RSS 1.0 and Atom feeds by a small dependency-free parser. Feeds are configured in `modules/news/feeds.json`; broken feeds are flagged in the panel.
+- A Google News-style page: headlines from about 40 feeds are grouped into stories, so the same event from several outlets becomes one story with a lead article, related coverage and a "Full coverage" list. Grouping is a small TF-IDF similarity pass over the titles that works for English and Portuguese.
+- Top stories are ranked by how many outlets cover them and how fresh they are; every story is filed under a topic (Portugal, World, Business, Tech, Science, Health, Sports, Culture), each with its own tab.
+- Feeds are parsed by a small dependency-free RSS 2.0 / RSS 1.0 / Atom parser and configured in `modules/news/feeds.json`; broken feeds are flagged in the panel.
 
 <sub>Screenshots use demo data: the app's built-in example items, the sample uni file and generated workout and meal logs.</sub>
 

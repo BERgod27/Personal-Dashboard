@@ -57,7 +57,7 @@ function image(block) {
   const media = block.match(/<media:(?:content|thumbnail)\b[^>]*>/i);
   if (media && attr(media[0], 'url')) return attr(media[0], 'url');
   const enc = block.match(/<enclosure\b[^>]*>/i);
-  if (enc && /^image\//i.test(attr(enc, 'type'))) return attr(enc, 'url');
+  if (enc && /^image\//i.test(attr(enc[0], 'type'))) return attr(enc[0], 'url');
   const img = block.match(/<img\b[^>]*>/i) || unwrap(block).match(/<img\b[^>]*>/i);
   return img ? attr(img[0], 'src') : '';
 }
@@ -78,8 +78,11 @@ export function parseFeed(xml) {
     const link = isAtom ? atomLink(b) : tag(b, 'link') || attr((b.match(/<item\b[^>]*>/i) || [''])[0], 'rdf:about') || tag(b, 'guid');
     const rawSummary = tag(b, 'description', 'summary', 'content:encoded', 'content');
     const summary = stripHtml(rawSummary);
+    // Aggregators (Google News) name the real outlet in <source>; Atom's <source> is something else.
+    const outlet = isAtom ? '' : stripHtml(tag(b, 'source'));
     return {
       title,
+      outlet,
       link: link.trim(),
       published: toIso(tag(b, 'pubDate', 'published', 'updated', 'dc:date')),
       summary: summary.length > 280 ? summary.slice(0, 277).replace(/\s+\S*$/, '') + '…' : summary,

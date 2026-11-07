@@ -13,7 +13,7 @@
     uni: { title: 'Uni', sub: 'Timetable, exams and deadlines from SIGARRA and Moodle.' },
     workouts: { title: 'Workouts', sub: 'Log sessions and track each exercise over time.' },
     meals: { title: 'Refeições', sub: 'Planeia a semana e regista o que comes.' },
-    news: { title: 'News', sub: 'Headlines from Portugal and the world.' }
+    news: { title: 'News', sub: 'Top stories from Portugal and the world, by topic.' }
   };
   var ORDER = ['today', 'uni', 'workouts', 'meals', 'news'];
   var BASE_TITLE = document.title;
