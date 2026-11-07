@@ -27,6 +27,11 @@ const UA = 'Mozilla/5.0 (PersonalDashboard NewsPanel; +https://localhost)';
 let cache = null;
 let inflight = null;
 
+// Bumped whenever the shape of the data changes (2: topics and stories). A copy saved by an older
+// version is fetched again instead of served, or the page would keep showing the old tabs.
+export const FORMAT = 2;
+export const isCurrent = (data) => data?.format === FORMAT;
+
 async function loadConfig() {
   return JSON.parse(await readFile(FEEDS_FILE, 'utf8'));
 }
@@ -107,6 +112,7 @@ export async function refresh() {
     const topics = topicsOf(cfg);
 
     cache = {
+      format: FORMAT,
       updatedAt: new Date().toISOString(),
       refreshMinutes: cfg.refreshMinutes ?? 15,
       topics,
@@ -165,8 +171,12 @@ export function view(data, params) {
 }
 
 async function serve() {
-  // Serve last snapshot immediately if one exists, then refresh.
-  try { cache = JSON.parse(await readFile(SNAPSHOT, 'utf8')); } catch {}
+  // Serve the last snapshot immediately if one exists, then refresh. A snapshot an older version
+  // wrote is not served: the first request waits for the refresh instead.
+  try {
+    const saved = JSON.parse(await readFile(SNAPSHOT, 'utf8'));
+    if (isCurrent(saved)) cache = saved;
+  } catch {}
   refresh().catch((e) => console.error('[news] refresh failed:', e.message));
 
   const server = http.createServer(async (req, res) => {

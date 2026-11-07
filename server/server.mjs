@@ -189,11 +189,13 @@ async function refreshNews() {
   return news.running;
 }
 
-// After a restart, start from the copy saved in the database.
+// After a restart, start from the copy saved in the database, unless an older version of the
+// news code saved it (then the first request fetches the feeds again).
 async function loadSavedNews() {
   if (news.data) return;
   const saved = await S.getServer(0, NEWS_KEY);
-  if (saved) { news.data = saved.data; news.at = saved.at; }
+  const { isCurrent } = await newsModule();
+  if (saved && isCurrent(saved.data)) { news.data = saved.data; news.at = saved.at; }
 }
 
 async function getNews(force) {
