@@ -1,8 +1,12 @@
 // Feed fetching, merging and the /api/news view, against the local sample feeds: node --test modules/news/test/
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { fetchFeed, merge, view } from '../server.mjs';
+import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { fetchFeed, merge, view, FORMAT, isCurrent } from '../server.mjs';
 import { start } from './fixtures.mjs';
 
 const server = await start(0);
@@ -72,4 +76,38 @@ test('the view filters by topic and keeps every headline its stories point to', 
   // A snapshot from before stories existed passes through untouched.
   const old = { items: [{ title: 'a', category: 'world' }, { title: 'b', category: 'portugal' }] };
   assert.deepEqual(view(old, new URLSearchParams('category=world')).items, [old.items[0]]);
+});
+
+test('the helper refetches instead of serving a snapshot an older version saved', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'news-'));
+  const snapshot = join(dir, 'news.json');
+  const feedsFile = join(dir, 'feeds.json');
+  // What the version before topics wrote: World and Portugal only, no stories.
+  await writeFile(snapshot, JSON.stringify({ updatedAt: new Date().toISOString(), categories: [{ id: 'world', label: 'World' }], feeds: [], items: [{ title: 'Old', link: 'https://example.com/old', category: 'world', source: 'Old' }] }));
+  await writeFile(feedsFile, JSON.stringify({ ...cfg, feeds }));
+  const port = 19000 + Math.floor(Math.random() * 1000);
+  const env = { ...process.env, NEWS_PORT: String(port), NEWS_FEEDS: feedsFile, NEWS_SNAPSHOT: snapshot };
+  const proc = spawn(process.execPath, [fileURLToPath(new URL('../server.mjs', import.meta.url))], { env, stdio: ['ignore', 'pipe', 'inherit'] });
+  try {
+    await new Promise((resolve, reject) => {
+      proc.stdout.on('data', (d) => { if (String(d).includes('serving on')) resolve(); });
+      proc.on('exit', (c) => reject(new Error('helper exited ' + c)));
+    });
+    const data = await (await fetch(`http://localhost:${port}/api/news`)).json();
+    assert.equal(data.format, FORMAT);
+    assert.ok(isCurrent(data));
+    assert.deepEqual(data.topics.map((t) => t.id), ['portugal', 'world', 'sports']);
+    assert.ok(data.stories.length > 0);
+    assert.ok(!data.items.some((i) => i.title === 'Old'), 'the old snapshot was not served');
+    assert.ok(isCurrent(JSON.parse(await readFile(snapshot, 'utf8'))), 'the snapshot on disk is rewritten');
+  } finally {
+    proc.kill();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('only data in the current format counts as current', () => {
+  assert.equal(isCurrent({ format: FORMAT, items: [] }), true);
+  assert.equal(isCurrent({ items: [] }), false);
+  assert.equal(isCurrent(null), false);
 });
