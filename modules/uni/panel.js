@@ -178,6 +178,17 @@ const STYLE = `
 .uni-panel .u-big{font-size:var(--fs-20);font-weight:var(--fw-semibold);letter-spacing:var(--tracking-tighter);font-variant-numeric:tabular-nums;line-height:1.3}
 .uni-panel .u-big.owed{color:var(--danger)}
 .uni-panel .u-money-note{font-size:var(--fs-13);color:var(--text-2)}
+
+/* the sections; on a wide screen exams, deadlines and fees share a row under the timetable */
+.uni-panel .u-layout{display:grid;gap:var(--space-6);min-width:0}
+@container (min-width:1500px){
+  .uni-panel .u-layout{grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-flow:row dense;align-items:start}
+  .uni-panel .u-layout>*{grid-column:1/-1}
+  .uni-panel .u-layout>.u-cols{grid-column:span 2}
+  .uni-panel .u-layout>.u-fees{grid-column:span 1}
+  .uni-panel .u-layout:not(:has(>.u-fees))>.u-cols{grid-column:1/-1}
+  .uni-panel .u-units{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+}
 .uni-panel .u-unpaid{display:grid;margin-top:var(--space-3);border-top:1px solid var(--border)}
 .uni-panel .u-unpaid div{display:flex;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--border);font-size:var(--fs-13)}
 .uni-panel .u-unpaid div:last-child{border-bottom:0;padding-bottom:0}
@@ -433,7 +444,7 @@ function moneyCards(f, now) {
       <div class="u-big">${esc(f.print_balance)}</div><div class="u-money-note">Credit left for the faculty printers</div></div>`);
   }
   if (!cards.length) return "";
-  return `<section class="u-sec"><div class="u-sec-head"><h3>Fees and printing</h3></div><div class="u-money">${cards.join("")}</div></section>`;
+  return `<section class="u-sec u-fees"><div class="u-sec-head"><h3>Fees and printing</h3></div><div class="u-money">${cards.join("")}</div></section>`;
 }
 
 // Shown while the data loads: the profile card and one list, as grey bars.
@@ -465,7 +476,7 @@ export function renderUni(data, { now = new Date(), deadlineDays = 14, examLimit
   const errors = sources.filter(([, s]) => !s.ok);
   const warnings = sources.filter(([, s]) => s.ok && s.warnings && s.warnings.length);
 
-  return `
+  return `<div class="u-layout">
     ${profileCard(data, now, ctx)}
     ${errors.map(([n, s]) => `<div class="err" role="status">${ICON.alert}<span><b>${esc(SOURCE_NAMES[n] || n)} did not sync.</b> ${esc(s.error)}${s.synced_at ? " Showing the last good data." : ""}</span></div>`).join("")}
     ${warnings.map(([n, s]) => `<div class="warn" role="status">${ICON.warn}<span><b>Part of ${esc(SOURCE_NAMES[n] || n)} was not refreshed.</b> ${esc(s.warnings.join("; "))}. Showing the last good data.</span></div>`).join("")}
@@ -479,7 +490,7 @@ export function renderUni(data, { now = new Date(), deadlineDays = 14, examLimit
     ${units.length ? `<section class="u-sec"><div class="u-sec-head"><h3>Course units</h3>
       <span class="u-muted">${units.length} this year${units.some((u) => u.ects) ? ` · ${units.reduce((s, u) => s + (+u.ects || 0), 0)} ECTS` : ""}</span></div>
       <div class="u-units">${units.map((u) => unitCard(u, ctx)).join("")}</div></section>` : ""}
-    ${moneyCards(data.finance, now)}`;
+    ${moneyCards(data.finance, now)}</div>`;
 }
 
 export async function mountUniPanel(el, opts = {}) {

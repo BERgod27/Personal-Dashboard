@@ -311,6 +311,8 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 /* ---------- panels ---------- */
 .today { display: grid; gap: var(--space-4); align-items: start; }
 .side { display: grid; gap: var(--space-4); min-width: 0; }
+/* Nutrição and the notes sit in the side column with Tasks; a wide screen gives them a column of their own. */
+.side-col { display: contents; }
 .panel { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
 .panel-head {
   display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
@@ -496,8 +498,17 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
   .view { gap: var(--space-5); }
   .today { gap: var(--space-5); }
   .side { gap: var(--space-5); }
+  /* A tall screen shows more of the day instead of leaving the bottom empty. */
+  .timeline-wrap { max-height: max(min(62vh, 600px), min(100vh - 380px, 900px)); }
   .masthead-num { font-size: var(--fs-52); }
   .masthead { gap: var(--space-5); }
+}
+
+/* ---------- wide desktop: Today in three columns ---------- */
+@media (min-width: 1800px) {
+  .today { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr); }
+  .side { display: contents; }
+  .side-col { display: grid; gap: var(--space-5); align-content: start; min-width: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -506,6 +517,6 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 
 /* ---------- module screen layout ---------- */
 /* The panels style themselves from css/tokens.css (modules/*); only placement here. */
-/* The news page uses the full content width; its topic bar sticks under the phone's app bar. */
+/* The news page's topic bar sticks under the phone's app bar. */
 .view-module news-panel { --news-title-display: none; --news-sticky-top: calc(var(--topbar-h) + env(safe-area-inset-top)); }
 @media (min-width: 960px) { .view-module news-panel { --news-sticky-top: 0px; } }

@@ -198,6 +198,43 @@ div.pdm-muted { max-width: 70ch; } /* help text keeps a readable line length on 
 .pdm-suggest { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-3); }
 .pdm-suggest .pdm-num { font-size: var(--fs-16); font-weight: var(--fw-semibold); }
 
+/* ---------- wider panels ----------
+   The panel is a size container, so these follow its own width, not the window's. Phones and
+   tablets keep the layout above; from 1400px each tab puts its cards side by side. */
+.pdm { container: pdm / inline-size; }
+@container pdm (min-width: 900px) {
+  /* a form's fields share one line instead of one each, with room for the placeholders */
+  .pdm-row.wrap > select.pdm-input { width: auto; flex: none; }
+  .pdm-row.wrap > .pdm-input.grow { width: auto; flex: 1 1 240px; }
+}
+@container pdm (min-width: 820px) {
+  .pdm-slots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container pdm (min-width: 1400px) {
+  .pdm-body[data-tab] { display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); }
+  /* Hoje: the day's totals beside water and weight */
+  .pdm-body[data-tab="today"] { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+  .pdm-body[data-tab="today"] > :not(.pdm-totals, .pdm-wb) { grid-column: 1 / -1; }
+  /* Plano semanal: the whole week in one row, the shopping list in columns */
+  .pdm-week { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .pdm-shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); column-gap: var(--space-6); }
+  .pdm-list.pdm-shop > li, .pdm-list.pdm-shop > li:last-child { padding: 6px 0; border-bottom: 1px solid var(--border); }
+  /* Alimentos: the forms on the left, the food list on the right */
+  .pdm-body[data-tab="foods"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); grid-template-rows: auto auto 1fr; align-items: start; }
+  .pdm-body[data-tab="foods"] > :nth-child(-n+3) { grid-column: 1; }
+  .pdm-body[data-tab="foods"] > :nth-child(4) { grid-column: 2; grid-row: 1 / span 3; }
+  /* Corpo: measurements and the weight chart beside the history */
+  .pdm-body[data-tab="body"] { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); grid-template-rows: auto auto 1fr; align-items: start; }
+  .pdm-body[data-tab="body"] > :first-child { grid-column: 1 / -1; }
+  .pdm-body[data-tab="body"] > :nth-child(2), .pdm-body[data-tab="body"] > :nth-child(3) { grid-column: 1; }
+  .pdm-body[data-tab="body"] > :nth-child(4) { grid-column: 2; grid-row: 2 / span 2; }
+  /* Objetivos: two cards a row */
+  .pdm-body[data-tab="goals"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container pdm (min-width: 1600px) {
+  .pdm-slots { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
 @media (max-width: 520px) {
   .pdm-grid3 { grid-template-columns: 1fr; gap: var(--space-3); }
   .pdm-wb { grid-template-columns: 1fr; gap: var(--space-4); }

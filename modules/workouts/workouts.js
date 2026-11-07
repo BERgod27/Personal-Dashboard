@@ -400,10 +400,22 @@
   }
 
   // ---------- charts ----------
-  // Charts are drawn at the panel's real width so labels stay readable on a phone.
-  var chartW = 640, halfW = 320, wide = false;
+  // Charts are drawn at the width they get on screen, so labels stay readable on a phone and
+  // keep their size on a wide monitor. sizesFor() follows the columns in workouts.css.
+  var chartW = 640, halfW = 320, wide = false, heatWeeks = 17;
+  function sizesFor(w) {
+    var cols = w >= 1800 ? 4 : w >= 860 ? 2 : 1; // Progress cards per row
+    return {
+      wide: w >= 860,
+      // an exercise's chart: the whole row, or 3/5 of it beside the history from 1100px
+      chartW: w ? Math.max(300, (w >= 1100 ? Math.round((w - 12) * 3 / 5) : w) - 34) : 640,
+      halfW: Math.round((w - 12 * (cols - 1)) / cols - 34),
+      // the training calendar shows a year, and more weeks when there is room for them
+      heatWeeks: w >= 860 ? Math.max(52, Math.min(104, Math.floor((w - 64) / 25))) : 17
+    };
+  }
   function lineChart(points, label, fmt) {
-    var W = chartW, H = 220, L = 44, R = 14, T = 14, B = 28;
+    var W = chartW, H = chartW >= 900 ? 260 : 220, L = 44, R = 14, T = 14, B = 28;
     var vals = points.map(function (p) { return p.v; });
     var max = Math.max.apply(null, vals), min = Math.min.apply(null, vals);
     if (max === min) { max += 1; min = Math.max(0, min - 1); }
@@ -1065,15 +1077,15 @@
         '<div class="wt-card wt-exhero">' + thumb(m, 'lg') + '<div><h3>' + esc(e.name) + '</h3><span>' + esc(MUSCLES[m].label) + (equipmentOf(e.name) && !cardio ? ' · ' + esc(equipmentOf(e.name)) : '') +
         ' · first logged ' + esc(fmtDate(pts[0].date, { day: 'numeric', month: 'short', year: 'numeric' })) + '</span></div></div>' +
         '<div class="wt-tiles">' + tiles.map(function (t) { return '<div class="wt-tile"><span>' + esc(t[0]) + '</span><b>' + esc(t[1]) + '</b></div>'; }).join('') + '</div>' +
-        '<div class="wt-card"><div class="wt-card-head"><div><h3>' + esc(metrics.filter(function (x) { return x[0] === metric; })[0][1]) + '</h3><span>' +
+        '<div class="wt-ex-cols"><div class="wt-ex-main"><div class="wt-card"><div class="wt-card-head"><div><h3>' + esc(metrics.filter(function (x) { return x[0] === metric; })[0][1]) + '</h3><span>' +
         (metric === 'e1rm' ? 'Estimated one-rep max from your best set (Epley)' : 'Per session') + '</span></div>' + seg('metric', metrics, metric) + '</div>' +
         (series.length ? lineChart(series, e.name, fmt) : '<p class="wt-hint">No numbers for this yet.</p>') +
         (pts.length < 2 ? '<p class="wt-hint">Log this exercise again to see a trend.</p>' : '') + '</div>' +
-        (weighted ? renderRepRanges(pts) : '') +
+        (weighted ? renderRepRanges(pts) : '') + '</div>' +
         '<div class="wt-card"><div class="wt-card-head"><div><h3>History</h3></div></div><ul class="wt-exhist">' +
         pts.slice().reverse().map(function (p) {
           return '<li><span>' + esc(fmtDate(p.date, { day: 'numeric', month: 'short', year: 'numeric' })) + '</span><b>' + esc(summarizeSets(p.sets, data.unit)) + '</b></li>';
-        }).join('') + '</ul></div>';
+        }).join('') + '</ul></div></div>';
       return h;
     }
 
@@ -1100,7 +1112,7 @@
     }
 
     function renderHeatmap() {
-      var weeks = wide ? 52 : 17, hm = Insights().heatmap(data.sessions, today(), weeks);
+      var weeks = heatWeeks, hm = Insights().heatmap(data.sessions, today(), weeks);
       var lastMonth = '';
       var cols = hm.cols.map(function (col) {
         var m = fmtDate(col[0].date, { month: 'short' }), label = m !== lastMonth ? m : '';
@@ -1225,11 +1237,11 @@
     }
 
     // ----- frame -----
+    var drawnAt = null; // the sizes the current HTML was drawn for
     function render() {
-      chartW = el.clientWidth ? Math.max(300, Math.min(760, el.clientWidth - 34)) : 640;
-      wide = el.clientWidth >= 860;
-      halfW = Math.round((el.clientWidth - 12) / 2 - 34);
-      el.classList.toggle('is-wide', wide);
+      var z = sizesFor(el.clientWidth);
+      chartW = z.chartW; halfW = z.halfW; wide = z.wide; heatWeeks = z.heatWeeks;
+      drawnAt = JSON.stringify(z);
       var live = active();
       var tabs = [['log', live ? (state.editingId ? 'Editing' : 'Workout') : 'Workout'], ['history', 'History'], ['progress', 'Progress'], ['data', 'Settings']];
       var body = state.tab === 'log' ? (live ? renderLive() : renderStart()) : state.tab === 'history' ? renderHistory() : state.tab === 'progress' ? renderProgress() : renderData();
@@ -1613,6 +1625,18 @@
     });
     render();
 
+    // Redraw when the panel's width changes what render() draws: a resized window, or the
+    // first time a panel drawn while its tab was hidden is shown. Not while typing in it.
+    var resized = global.ResizeObserver && new ResizeObserver(function () {
+      if (!el.clientWidth || JSON.stringify(sizesFor(el.clientWidth)) === drawnAt) return; // hidden, or nothing to redraw
+      requestAnimationFrame(function () {
+        var f = document.activeElement;
+        if (state.picker || (f && f !== el && (el.contains(f) || layer.contains(f)) && /^(INPUT|TEXTAREA|SELECT)$/.test(f.tagName))) return;
+        if (el.isConnected && JSON.stringify(sizesFor(el.clientWidth)) !== drawnAt) render();
+      });
+    });
+    if (resized) resized.observe(el);
+
     return {
       // Re-read storage and redraw (e.g. after the shell restored a backup).
       refresh: function (newOpts) {
@@ -1625,6 +1649,7 @@
       },
       unmount: function () {
         clearInterval(timer);
+        if (resized) resized.disconnect();
         layer.remove();
         document.documentElement.classList.remove('wt-locked');
         el.removeEventListener('click', onClick);

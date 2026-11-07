@@ -25,8 +25,8 @@
 const SNAPSHOT_URL = new URL('./data/news.json', import.meta.url).href;
 const TOPIC_KEY = 'pd.news.topic';
 const TOP = 'top';
-const TOP_SHOWN = 6;
-const LATEST = 8;
+const TOP_SHOWN = 7;   // the featured story plus six: full rows when wide screens use two columns
+const LATEST = 10;
 const PER_SECTION = 4;
 
 // Lucide icons (lucide.dev)
@@ -259,6 +259,23 @@ h2 { display:var(--news-title-display, block); flex:none; padding-right:var(--sp
   .page { grid-template-columns:minmax(0, 1fr) 300px; }
   .page > .latest { position:sticky; top:calc(var(--news-sticky-top, 0px) + 60px); }
 }
+/* Wide screens: stories side by side, the featured one across the top with its related
+   headlines in a row, and each topic section's four stories in one row. */
+@container (min-width: 1400px) {
+  .page { grid-template-columns:minmax(0, 1fr) 340px; gap:var(--space-5); }
+  .col { gap:var(--space-5); }
+  .search { width:320px; }
+  .stories { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); column-gap:var(--space-8); align-items:start; }
+  .story.feature { grid-column:1 / -1; }
+  .story.feature .thumb img { width:400px; height:266px; }
+  .story.feature .hl { font-size:var(--fs-28); letter-spacing:var(--tracking-tighter); }
+  .story.feature .sum { font-size:var(--fs-14); -webkit-line-clamp:3; max-width:72ch; }
+  .story.feature .rel, .story.feature .all { grid-template-columns:repeat(3, minmax(0, 1fr)); column-gap:var(--space-6); }
+  .rows.sections { grid-template-columns:repeat(4, minmax(0, 1fr)); }
+  .rows.sections .row:nth-child(-n+4) { border-top:0; }
+  .results .rows { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); column-gap:var(--space-8); }
+  .results .row:nth-child(2) { border-top:0; }
+}
 
 /* ---------- compact tile ---------- */
 :host([compact]) { height:100%; container-type:normal; }
@@ -297,7 +314,7 @@ class NewsPanel extends HTMLElement {
   }
 
   get api() { return (this.getAttribute('api') || 'http://localhost:8787').replace(/\/$/, ''); }
-  get limit() { return Number(this.getAttribute('limit')) || (this.compact ? 12 : 20); }
+  get limit() { return Number(this.getAttribute('limit')) || (this.compact ? 12 : 21); }
   get compact() { return this.hasAttribute('compact'); }
   get topic() {
     const t = this.getAttribute('topic') || this.getAttribute('category');
@@ -585,7 +602,7 @@ class NewsPanel extends HTMLElement {
     const head = q
       ? `${list.length} ${list.length === 1 ? 'headline matches' : 'headlines match'} ${what}${this.source ? ` from ${esc(this.source)}` : ''}`
       : `${list.length} ${list.length === 1 ? 'headline' : 'headlines'} from ${what}`;
-    return `<section class="card" aria-labelledby="news-results">
+    return `<section class="card results" aria-labelledby="news-results">
       <header class="sec-h"><h3 id="news-results">${head}</h3><button class="more clear" type="button">Clear</button></header>
       ${list.length
         ? `<ol class="rows">${list.slice(0, 100).map((i) => this.itemRow(i, { summary: true, topic: true })).join('')}</ol>`

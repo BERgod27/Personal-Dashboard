@@ -7,7 +7,7 @@
   --wt-heat: var(--accent-text);
   color: var(--text-1);
   font: var(--fw-regular) var(--fs-14)/var(--lh-body) var(--font-sans);
-  max-width: 1100px;
+  max-width: var(--content-max, 1100px); /* the standalone page fills wide screens like the dashboard */
   margin: 0 auto;
   padding: var(--space-4);
   box-sizing: border-box;
@@ -503,10 +503,40 @@
   .wt-root *, .wt-restbar, .wt-toast, .wt-sheet, .wt-sheet-wrap { animation: none !important; transition: none !important; }
 }
 
-/* Inside the dashboard shell: no own padding/width, the view gives it room. */
-.wt-root.is-wide .wt-hist-layout { grid-template-columns: 300px minmax(0, 1fr); align-items: start; }
-.wt-root.is-wide .wt-hist-side { position: sticky; top: var(--space-4); }
-.wt-root.is-wide .wt-prog-grid { grid-template-columns: 1fr 1fr; }
 .wt-root.wt-layer { display: contents; }
 html.wt-locked { overflow: hidden; }
+/* Inside the dashboard shell: no own padding/width, the view gives it room. */
 .wt-root.wt-embedded { max-width: none; padding: 0; font-family: inherit; }
+
+/* ---------- wide panels ----------
+   The panel is a size container, so these follow its own width, not the window's: a phone, a
+   tablet or a wide monitor. sizesFor() in workouts.js draws the charts for these columns. */
+.wt-root:not(.wt-layer) { container: wt / inline-size; }
+@container wt (min-width: 860px) {
+  .wt-hist-layout { grid-template-columns: 300px minmax(0, 1fr); align-items: start; }
+  .wt-hist-side { position: sticky; top: var(--space-4); }
+  /* workouts fill the row, newest first, under full-width month headings */
+  .wt-hist-main { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); column-gap: var(--space-3); align-items: start; }
+  .wt-hist-main > :not(.wt-sess) { grid-column: 1 / -1; }
+  .wt-prog-grid { grid-template-columns: 1fr 1fr; }
+}
+@container wt (min-width: 1100px) {
+  /* a workout in progress: exercises side by side, at most three across */
+  .wt-tab-log:has(.wt-live) {
+    max-width: none; display: grid; column-gap: var(--space-3); align-items: start;
+    grid-template-columns: repeat(auto-fill, minmax(max(520px, (100% - 2 * var(--space-3)) / 3), 1fr));
+  }
+  .wt-tab-log:has(.wt-live) > :not(.wt-exc) { grid-column: 1 / -1; }
+  /* one exercise: its chart and rep ranges beside its history */
+  .wt-ex-cols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--space-3); align-items: start; }
+  .wt-ex-main { display: grid; gap: var(--space-3); min-width: 0; }
+  .wt-ex-cols .wt-card { margin-bottom: 0; }
+  /* the exercise list, at most four columns */
+  .wt-exlist { display: grid; column-gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(max(320px, (100% - 3 * var(--space-4)) / 4), 1fr)); }
+  .wt-exlist > .wt-card-head { grid-column: 1 / -1; }
+  .wt-settings { max-width: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+  .wt-settings > .wt-card { margin: 0; }
+}
+@container wt (min-width: 1800px) {
+  .wt-prog-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
