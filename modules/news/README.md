@@ -16,8 +16,12 @@ Open http://localhost:8787 for the standalone page. JSON lives at http://localho
 The helper re-fetches every `refreshMinutes` (15 by default) and the panel polls on the same cadence;
 the ↻ button forces a refresh.
 
+The helper listens on this computer only. To reach it from another device on your network, start it with
+`NEWS_HOST=0.0.0.0 node server.mjs`.
+
 Why a helper: browsers block cross-origin requests to news sites' RSS feeds, so `server.mjs` fetches them
-server-side and serves the merged result with CORS enabled.
+server-side and serves the merged result with CORS enabled. A feed may only redirect to its own address or
+to a public https one, and at most 5 MB of a feed is read.
 
 No server running all the time? `node server.mjs --once` writes `data/news.json`; schedule it with cron
 (`*/15 * * * * cd /path/to/modules/news && node server.mjs --once`) and the panel falls back to that file
@@ -129,8 +133,8 @@ FT and The Economist feeds show headlines and teasers; full articles stay behind
 node --test modules/news/test/*.test.mjs   # from the repo root
 ```
 
-The tests cover story grouping on a set of realistic headlines (`test/stories.sample.mjs`), and fetching,
-merging and the API view against local sample feeds. To try the page offline, run `node test/fixtures.mjs`,
+The tests cover story grouping on a set of realistic headlines (`test/stories.sample.mjs`), fetching,
+merging and the API view against local sample feeds, and the feed parser on broken and hostile feeds. To try the page offline, run `node test/fixtures.mjs`,
 then `NEWS_FEEDS=test/feeds.test.json node server.mjs`.
 
 ## Files

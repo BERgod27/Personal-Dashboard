@@ -61,6 +61,10 @@ test('sign-up needs the setup code and only works once', async () => {
   assert.match(ok.headers.get('set-cookie'), /HttpOnly; SameSite=Lax/);
   const saved = cookie; cookie = '';
   assert.equal((await call('POST', '/api/signup', { username: 'other', password: 'long-password-2', code: 'letmein' })).status, 403);
+  // Once the account exists, the answer is the same whatever the code, so the route can't be used to guess it.
+  const guess = await call('POST', '/api/signup', { username: 'other', password: 'long-password-2', code: 'nope' });
+  assert.equal(guess.status, 403);
+  assert.match(guess.json.error, /already exists/);
   assert.equal((await call('POST', '/api/login', { username: 'bernardo', password: 'wrong-password' })).status, 401);
   assert.equal((await call('POST', '/api/login', { username: 'bernardo', password: 'long-password-1' })).status, 200);
   assert.notEqual(cookie, saved);
@@ -243,6 +247,18 @@ test('server files and private data are never served', async () => {
   assert.equal((await call('GET', '/modules/uni/panel.js')).status, 200);
   const page = await call('GET', '/index.html');
   assert.match(page.headers.get('content-security-policy'), /default-src 'self'/);
+});
+
+test('other sites cannot load anything from here, and a document can have any name', async () => {
+  for (const p of ['/index.html', '/js/online.js', '/api/state', '/modules/uni/data/uni.js', '/api/health']) {
+    const r = await call('GET', p);
+    assert.equal(r.headers.get('cross-origin-resource-policy'), 'same-origin', p);
+    assert.equal(r.headers.get('cross-origin-opener-policy'), 'same-origin', p);
+  }
+  assert.equal((await call('PUT', '/api/state/__proto__', { value: '1', baseVersion: 0 })).status, 200);
+  const all = await call('GET', '/api/state');
+  assert.ok(Object.hasOwn(all.json.docs, '__proto__'), 'it is listed like any other document');
+  assert.equal(all.json.docs['personal-dashboard.v1'].version, 2);
 });
 
 test('cron needs its key; sign-out ends the session', async () => {

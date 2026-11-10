@@ -56,16 +56,31 @@ export function secretBox(appSecret) {
 }
 
 // Fixed-window limiter, per key (IP or username). Enough for a personal app.
-export function rateLimiter({ max, windowMs }) {
-  const hits = new Map();
+//
+// The keys come from the request (a typed username, or an X-Forwarded-For header that anyone can
+// forge), so the table must not grow with them: windows that ended are dropped as new ones start,
+// at most `maxKeys` are kept, and a long key is stored as its hash. A full table turns new keys
+// away until a window ends. It never forgets a running window to make room, because a flood of
+// made-up keys would then buy a password guesser a fresh set of attempts.
+export function rateLimiter({ max, windowMs, maxKeys = 20000 }) {
+  const hits = new Map(); // in the order the windows started, so the first entry ends first
+  const norm = (key) => { key = String(key); return key.length > 128 ? 'sha256:' + sha256(key) : key; };
   return {
     tooMany(key) {
       const now = Date.now();
-      const h = hits.get(key);
-      if (!h || h.reset < now) { hits.set(key, { n: 1, reset: now + windowMs }); return false; }
+      key = norm(key);
+      for (const [k, h] of hits) { if (h.reset >= now) break; hits.delete(k); }
+      let h = hits.get(key);
+      if (h && h.reset < now) { hits.delete(key); h = null; }
+      if (!h) {
+        if (hits.size >= maxKeys) return true;
+        hits.set(key, { n: 1, reset: now + windowMs });
+        return false;
+      }
       h.n += 1;
       return h.n > max;
     },
-    clear(key) { hits.delete(key); },
+    clear(key) { hits.delete(norm(key)); },
+    get size() { return hits.size; },
   };
 }

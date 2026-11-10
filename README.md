@@ -105,7 +105,9 @@ The layout works from 375 px up, with a bottom tab bar on phones, and the app ca
 - Passwords are hashed with scrypt; sign-in is rate limited and takes the same time for unknown usernames.
 - Sessions use random tokens in an HttpOnly, SameSite=Lax cookie (Secure on HTTPS), stored only as SHA-256 hashes. "Sign out on all devices" ends every session.
 - State-changing requests must come from the same origin.
-- A strict Content Security Policy (scripts only from the site itself, no CDNs, `frame-ancestors 'none'`), plus HSTS, `nosniff`, `Referrer-Policy` and `Permissions-Policy` headers.
+- A strict Content Security Policy (scripts only from the site itself, no CDNs, `frame-ancestors 'none'`), plus HSTS, `nosniff`, `Referrer-Policy` and `Permissions-Policy` headers. `Cross-Origin-Resource-Policy` and `Cross-Origin-Opener-Policy` keep other sites from loading anything from here.
+- Only the front end's own files are served. Server code, settings and per-user data are refused under any spelling of their names (upper case, a trailing dot, a backslash), which matters when the server runs on macOS or Windows.
+- News feeds are fetched with limits: a feed may only redirect to its own address or to a public https one, and at most 5 MB of it is read.
 - The Moodle link and an optionally remembered SIGARRA password are encrypted with AES-256-GCM, using a key derived (HKDF) from a secret that lives only in the host's environment, so a database copy alone reveals nothing. If SIGARRA rejects a saved password, it is deleted at once so background refreshes can never lock the account.
 - The SIGARRA client only talks to `*.up.pt` hosts and refuses redirects elsewhere, so the session cookie can't leave the university. It sends an honest User-Agent and doesn't try to defeat bot protection.
 - Sign-up needs a setup code, and only one account can be created unless the host allows more.

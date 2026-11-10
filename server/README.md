@@ -19,7 +19,8 @@ parser for SIGARRA's pages (`parse5`, `css-select`, `domutils`).
 | Browser sync | `../js/online.js` loads your data before the dashboard starts, saves each change within a second, and reloads when another device saved something newer |
 | Uni | `uni.mjs` (Moodle, manual timetable, merging; same `uni/1` data format as `modules/uni/sync_uni.py`) and `sigarra.mjs` (SIGARRA); settings are in the **Account → Uni connections** dialog |
 | Tutor | `tutor.mjs`: the **Ask** button (`../js/tutor.js`) sends your question; the server adds your own dashboard data and asks Claude through the Anthropic API, streaming the answer back. See [Tutor](#tutor). |
-| News | reuses `modules/news/server.mjs` and `feeds.json`; cached for 15 minutes |
+| News | reuses `modules/news/server.mjs` and `feeds.json`; cached for 15 minutes, and a forced refresh fetches at most once every 30 seconds |
+| Static files | `static.mjs` decides which files are served: the front end only, never server code, settings or per-user data |
 | Database | Postgres when `DATABASE_URL` is set, otherwise a SQLite file (`data/dashboard.db`) |
 
 The Moodle calendar link and the SIGARRA password (only if you tick "Remember") are

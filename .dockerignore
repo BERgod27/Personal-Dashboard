@@ -5,3 +5,19 @@ modules/uni/data/*
 modules/news/data/news.json
 **/__pycache__
 .git
+
+# Secrets and personal files that .gitignore keeps out of the repo. `COPY . .` would otherwise
+# bake them into the image, and anyone who can pull the image could read them.
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+server/tools/local-sync.config.json
+modules/uni/schedule.csv
+**/*.db
+**/*.db-*
+**/*.sqlite
+**/*.sqlite-*
+**/node_modules
+**/.DS_Store

@@ -8,13 +8,14 @@
 
 import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { extname, join, normalize, sep } from 'node:path';
+import { extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDb, store as makeStore } from './db.mjs';
 import { hashPassword, verifyPassword, verifyDummy, newToken, sha256, safeEqual, secretBox, rateLimiter } from './security.mjs';
 import { syncMoodleIcs, manualClasses, build, forClient } from './uni.mjs';
 import { syncSigarra, isCredentialError } from './sigarra.mjs';
 import { tutorConfig, checkMessages, buildContext, streamAnswer, explainError } from './tutor.mjs';
+import { TYPES, staticPath } from './static.mjs';
 
 const WEB_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
@@ -47,13 +48,6 @@ await S.pruneSessions();
 
 // ---------------------------------------------------------------- http helpers
 
-const TYPES = {
-  '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png',
-  '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json',
-  '.woff2': 'font/woff2', '.webp': 'image/webp', '.jpg': 'image/jpeg',
-};
-
 const CSP = [
   "default-src 'self'",
   // Only this site's own scripts: public CDNs would let anyone's npm package run here.
@@ -75,6 +69,10 @@ function headers(extra = {}) {
     'referrer-policy': 'same-origin',
     'x-frame-options': 'DENY',
     'permissions-policy': 'camera=(), microphone=(), geolocation=()',
+    // Other sites can't load anything from here (the uni data is also served as a script), and a
+    // page that links here gets no handle on the window.
+    'cross-origin-resource-policy': 'same-origin',
+    'cross-origin-opener-policy': 'same-origin',
     ...(process.env.FORCE_SECURE_COOKIE === '1' || process.env.RENDER ? { 'strict-transport-security': 'max-age=31536000' } : {}),
     ...extra,
   };
@@ -136,24 +134,9 @@ async function currentUser(req) {
 
 // ---------------------------------------------------------------- static files
 
-function staticPath(pathname) {
-  let p;
-  try { p = decodeURIComponent(pathname); } catch { return null; }
-  if (p === '/') p = '/index.html';
-  const segs = p.split('/').filter(Boolean);
-  if (!segs.length || segs.some((s) => s.startsWith('.') || s === 'node_modules')) return null;
-  // Server-side and private bits of the modules are never served.
-  if (segs[0] === 'server') return null;
-  if (segs.some((s) => ['tests', 'test', '__pycache__'].includes(s))) return null;
-  if (/^(config\.json|server\.mjs|feeds\.json|.*\.py|.*\.csv)$/i.test(segs[segs.length - 1])) return null;
-  if (segs.includes('data') && !/\.png$/i.test(p)) return null; // per-user data has its own routes
-  if (!TYPES[extname(p).toLowerCase()]) return null;
-  const full = normalize(join(WEB_ROOT, ...segs));
-  return full.startsWith(WEB_ROOT.endsWith(sep) ? WEB_ROOT : WEB_ROOT + sep) ? full : null;
-}
-
+// static.mjs decides which files may be served.
 async function serveStatic(req, res, pathname) {
-  const full = staticPath(pathname);
+  const full = staticPath(WEB_ROOT, pathname);
   if (!full) return false;
   try {
     const st = await stat(full);
@@ -198,9 +181,14 @@ async function loadSavedNews() {
   if (saved && isCurrent(saved.data)) { news.data = saved.data; news.at = saved.at; }
 }
 
+// A forced refresh fetches some forty feeds and is a plain GET that any page can link to, so a
+// copy fetched in the last half minute is answered as it is.
+const NEWS_MIN_REFRESH_MS = 30e3;
+
 async function getNews(force) {
   await loadSavedNews();
   const maxAge = (news.data?.refreshMinutes ?? 15) * 60e3;
+  if (force && news.data && Date.now() - news.at < NEWS_MIN_REFRESH_MS) return news.data;
   if (force || !news.data) return refreshNews();
   if (Date.now() - news.at > maxAge) refreshNews().catch((e) => console.error('[news]', e.message));
   return news.data;
@@ -333,8 +321,10 @@ async function route(req, res) {
     const { username = '', password = '', code = '' } = await readJson(req, 4096);
     const want = process.env.SIGNUP_CODE || '';
     if (!want) return fail(res, 403, 'Sign-up is closed. Set SIGNUP_CODE on the server to open it.');
-    if (!safeEqual(code, want)) return fail(res, 403, 'That setup code is wrong.');
+    // Checked before the code: once sign-up is over, this route must not tell a guesser whether
+    // a setup code is the right one.
     if ((await S.countUsers()) > 0 && process.env.ALLOW_MORE_USERS !== '1') return fail(res, 403, 'An account already exists. Sign in instead.');
+    if (!safeEqual(code, want)) return fail(res, 403, 'That setup code is wrong.');
     const name = String(username).trim().toLowerCase();
     if (!/^[a-z0-9._@-]{3,64}$/.test(name)) return fail(res, 400, 'Pick a username of 3 to 64 letters, numbers, dots or dashes.');
     if (String(password).length < 10) return fail(res, 400, 'Use a password of at least 10 characters.');
@@ -430,7 +420,7 @@ async function route(req, res) {
 
   // --- synced documents (localStorage keys mirrored by js/online.js)
   if (path === '/api/state' && method === 'GET') {
-    const docs = {};
+    const docs = Object.create(null); // no prototype: a document may be named __proto__
     for (const d of await S.docs(user.id)) docs[d.key] = { value: d.value, version: d.version, updatedAt: d.updated_at };
     return send(res, 200, { docs });
   }
@@ -473,7 +463,7 @@ async function route(req, res) {
     if (tutorHourLimit.tooMany('tutor:' + user.id) || tutorDayLimit.tooMany('tutor:' + user.id)) {
       return fail(res, 429, 'That\'s a lot of questions for now. The tutor limit resets within the hour.');
     }
-    const docs = {};
+    const docs = Object.create(null);
     for (const d of await S.docs(user.id)) docs[d.key] = d.value;
     const context = buildContext({ docs, uni: forClient(await S.getServer(user.id, UNI_DATA)), news: await cachedNews() });
     const abort = new AbortController();

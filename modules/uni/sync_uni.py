@@ -456,23 +456,55 @@ def cmd_sync(args):
     return 0 if all(ok for ok, _ in results.values()) else 2
 
 
-def cmd_serve(port: int):
-    import functools
+# Never shown by the preview: the Moodle link in config.json holds a personal token.
+PREVIEW_PRIVATE = {"config.json", "schedule.csv"}
+PREVIEW_HOSTS = {"localhost", "127.0.0.1", "[::1]"}
+
+
+def preview_handler(directory: Path = HERE):
+    """The request handler for `serve`: this folder, minus what must stay private."""
     import http.server
     # The page links the dashboard's design tokens and fonts; serve just those from the repo root.
     shared = {"/css/tokens.css", "/fonts/Geist-Variable.woff2", "/fonts/GeistMono-Variable.woff2"}
     repo = HERE.parent.parent
 
     class Handler(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, directory=str(directory), **kwargs)
+
         def translate_path(self, path):
             clean = path.split("?", 1)[0].split("#", 1)[0]
             if clean in shared:
                 return str(repo / clean.lstrip("/"))
             return super().translate_path(path)
 
-    handler = functools.partial(Handler, directory=str(HERE))
+        def send_head(self):
+            # Only when asked for by its own name: a web page can make the browser call
+            # 127.0.0.1 under another name (DNS rebinding) and would then read the timetable.
+            host = (self.headers.get("Host") or "").strip().lower()
+            if re.sub(r":\d+$", "", host) not in PREVIEW_HOSTS:
+                self.send_error(403, "Open the preview as http://localhost")
+                return None
+            full = Path(self.translate_path(self.path))
+            try:
+                parts = [p.lower() for p in full.relative_to(directory).parts]
+            except ValueError:  # the shared tokens and fonts, which live outside this folder
+                parts = [full.name.lower()]
+            name = parts[-1] if parts else ""
+            # startswith, and no "~": Windows also opens "config.json." and "CONFIG~1.JSO".
+            if (name.startswith(tuple(PREVIEW_PRIVATE)) or name.startswith(".") or "~" in name
+                    or name.rstrip(". ").endswith((".py", ".pyc")) or "tests" in parts or "__pycache__" in parts):
+                self.send_error(404, "File not found")
+                return None
+            return super().send_head()
+
+    return Handler
+
+
+def cmd_serve(port: int):
+    import http.server
     print(f"Uni panel preview at http://localhost:{port}/index.html  (Ctrl+C to stop)")
-    http.server.ThreadingHTTPServer(("127.0.0.1", port), handler).serve_forever()
+    http.server.ThreadingHTTPServer(("127.0.0.1", port), preview_handler()).serve_forever()
 
 
 def main(argv=None):

@@ -35,6 +35,7 @@ python3 sync_uni.py serve      # preview at http://localhost:8765/index.html
 ```
 
 Preview with fake data: `http://localhost:8765/index.html?sample`.
+The preview answers only as `localhost` and never serves `config.json` or `schedule.csv`.
 
 Keep it fresh without typing a password: schedule `python3 sync_uni.py --no-sigarra`
 (e.g. cron every hour) for Moodle, and run the full sync with Sigarra once a week,
