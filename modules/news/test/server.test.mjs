@@ -6,7 +6,9 @@ import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { fetchFeed, merge, view, FORMAT, isCurrent } from '../server.mjs';
+import http from 'node:http';
+import { fetchFeed, fetchText, redirectAllowed, merge, view, FORMAT, isCurrent } from '../server.mjs';
+import { decodeEntities, parseFeed } from '../lib/parse.mjs';
 import { start } from './fixtures.mjs';
 
 const server = await start(0);
@@ -93,7 +95,7 @@ test('the helper refetches instead of serving a snapshot an older version saved'
       proc.stdout.on('data', (d) => { if (String(d).includes('serving on')) resolve(); });
       proc.on('exit', (c) => reject(new Error('helper exited ' + c)));
     });
-    const data = await (await fetch(`http://localhost:${port}/api/news`)).json();
+    const data = await (await fetch(`http://127.0.0.1:${port}/api/news`)).json();
     assert.equal(data.format, FORMAT);
     assert.ok(isCurrent(data));
     assert.deepEqual(data.topics.map((t) => t.id), ['portugal', 'world', 'sports']);
@@ -110,4 +112,64 @@ test('only data in the current format counts as current', () => {
   assert.equal(isCurrent({ format: FORMAT, items: [] }), true);
   assert.equal(isCurrent({ items: [] }), false);
   assert.equal(isCurrent(null), false);
+});
+
+test('a feed may only redirect to its own address or to a public https one', () => {
+  const from = new URL('https://feeds.example.com/rss');
+  const ok = (to) => redirectAllowed(from, new URL(to, from));
+  assert.equal(ok('/rss.xml'), true);
+  assert.equal(ok('https://www.example.org/feed'), true);
+  for (const to of ['http://www.example.org/feed', 'http://10.0.0.5:8080/admin', 'https://127.0.0.1/', 'https://2130706433/',
+    'https://[::1]/', 'https://169.254.169.254/latest/meta-data/', 'https://localhost/', 'https://printer/',
+    'https://db.internal/', 'https://nas.local./', 'ftp://example.org/feed']) assert.equal(ok(to), false, to);
+  const plain = new URL('http://localhost:9911/rss');
+  assert.equal(redirectAllowed(plain, new URL('http://localhost:9911/feed')), true, 'a move on the same site is fine');
+  assert.equal(redirectAllowed(plain, new URL('http://localhost:9912/feed')), false);
+});
+
+test('redirects are checked hop by hop, and an oversized feed is refused', async () => {
+  const asked = [];
+  const srv = http.createServer((req, res) => {
+    asked.push(req.url);
+    if (req.url === '/moved') { res.writeHead(301, { location: '/rss' }); return res.end(); }
+    if (req.url === '/inside') { res.writeHead(302, { location: `http://127.0.0.1:${inner.address().port}/admin` }); return res.end(); }
+    if (req.url === '/loop') { res.writeHead(302, { location: '/loop' }); return res.end(); }
+    if (req.url === '/declared') { res.writeHead(200, { 'content-length': String(50 * 1024 * 1024) }); return res.write('<rss>'); }
+    if (req.url === '/endless') {
+      res.writeHead(200, { 'content-type': 'application/xml' });
+      const chunk = 'x'.repeat(64 * 1024);
+      const more = () => { if (!res.destroyed) res.write(chunk, () => setImmediate(more)); };
+      return more();
+    }
+    res.writeHead(200, { 'content-type': 'application/xml' });
+    res.end('\ufeff<rss><channel><item><title>Olá</title><link>https://example.com/x</link></item></channel></rss>');
+  });
+  // Stands for something on the server's own network that a feed must not be able to reach.
+  const inner = http.createServer((req, res) => { asked.push('inner' + req.url); res.end('secret'); });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  await new Promise((r) => inner.listen(0, '127.0.0.1', r));
+  const at = `http://127.0.0.1:${srv.address().port}`;
+  try {
+    assert.match(await fetchText(at + '/moved'), /^<rss>.*Olá/, 'followed, and read as UTF-8 without the byte-order mark');
+    await assert.rejects(fetchText(at + '/inside'), /redirect to http:\/\/127\.0\.0\.1:\d+ refused/);
+    assert.ok(!asked.includes('inner/admin'), 'the address it pointed at was never contacted');
+    await assert.rejects(fetchText(at + '/loop'), /too many redirects/);
+    await assert.rejects(fetchText(at + '/declared'), /feed too large/);
+    await assert.rejects(fetchText(at + '/endless', { limit: 1024 * 1024 }), /feed too large/);
+
+    const refused = await fetchFeed({ name: 'Moved inside', topic: 'world', url: at + '/inside' }, cfg);
+    assert.equal(refused.status.ok, false);
+    assert.match(refused.status.error, /refused/, 'the sources list says why');
+    const moved = await fetchFeed({ name: 'Moved', topic: 'world', url: at + '/moved' }, cfg);
+    assert.deepEqual(moved.items.map((i) => i.title), ['Olá']);
+  } finally {
+    srv.closeAllConnections(); srv.close();
+    inner.closeAllConnections(); inner.close();
+  }
+});
+
+test('a character reference past the end of Unicode does not lose the feed', () => {
+  assert.equal(decodeEntities('a &#99999999; b &#x110000; c &#128512; &amp;'), 'a &#99999999; b &#x110000; c \u{1F600} &');
+  const { items } = parseFeed('<rss><channel><item><title>Bad &#4294967296; ref</title><link>https://example.com/1</link></item></channel></rss>');
+  assert.deepEqual(items.map((i) => i.title), ['Bad &#4294967296; ref']);
 });

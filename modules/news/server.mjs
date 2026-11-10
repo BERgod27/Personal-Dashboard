@@ -5,11 +5,13 @@
 //   node server.mjs           serve on http://localhost:8787 and refresh on a timer
 //   node server.mjs --once    refresh once, write data/news.json, exit (cron-friendly)
 //
-// Env: NEWS_PORT (default 8787), NEWS_FEEDS (path to feeds file, default ./feeds.json),
+// Env: NEWS_PORT (default 8787), NEWS_HOST (address to listen on, default 127.0.0.1: this
+//      computer only), NEWS_FEEDS (path to feeds file, default ./feeds.json),
 //      NEWS_SNAPSHOT (where --once writes, default ./data/news.json)
 // Requires Node 18+ (built-in fetch). No npm install needed.
 
 import http from 'node:http';
+import { isIP } from 'node:net';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { realpathSync } from 'node:fs';
 import { extname, join, dirname, normalize, resolve } from 'node:path';
@@ -22,6 +24,7 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 const FEEDS_FILE = process.env.NEWS_FEEDS || join(ROOT, 'feeds.json');
 const SNAPSHOT = process.env.NEWS_SNAPSHOT || join(ROOT, 'data', 'news.json');
 const PORT = Number(process.env.NEWS_PORT || 8787);
+const HOST = process.env.NEWS_HOST || '127.0.0.1';
 const UA = 'Mozilla/5.0 (PersonalDashboard NewsPanel; +https://localhost)';
 
 let cache = null;
@@ -41,17 +44,67 @@ const topicsOf = (cfg) => cfg.topics || cfg.categories || [];
 const topicOf = (feed) => feed.topic || feed.category || 'world';
 const idOf = (link) => createHash('sha1').update(link).digest('base64url').slice(0, 12);
 
+// The largest feed that is read, after decompression. Real feeds are well under 1 MB; without a
+// limit, one endless or zip-bombed response would use up the server's memory.
+export const MAX_FEED_BYTES = 5 * 1024 * 1024;
+const MAX_REDIRECTS = 5;
+
+// Where a feed may redirect to: its own address, or a public https one. Otherwise a feed (or
+// whoever took over its domain) could send the server to something on its own network.
+export function redirectAllowed(from, to) {
+  if (to.origin === from.origin) return true;
+  if (to.protocol !== 'https:') return false;
+  const host = to.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  if (isIP(host)) return false; // 127.0.0.1, 169.254.169.254, [::1] and the like
+  return host.includes('.') && !/(^|\.)(localhost|local|localdomain|internal|intranet|lan|home|corp)$/.test(host);
+}
+
+// The body as text (UTF-8, like Response.text()), refusing anything over `limit` bytes.
+async function readCapped(res, limit) {
+  if (Number(res.headers.get('content-length')) > limit) {
+    await res.body?.cancel().catch(() => {});
+    throw new Error('feed too large');
+  }
+  if (!res.body) return '';
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of res.body) { // throwing out of the loop closes the connection
+    size += chunk.length;
+    if (size > limit) throw new Error('feed too large');
+    chunks.push(chunk);
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks));
+}
+
+// Fetch a feed's text, following redirects by hand so that each hop is checked.
+export async function fetchText(url, { limit = MAX_FEED_BYTES } = {}) {
+  const signal = AbortSignal.timeout(15000);
+  let current = new URL(url);
+  for (let hop = 0; ; hop++) {
+    const res = await fetch(current, {
+      headers: { 'user-agent': UA, accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*' },
+      redirect: 'manual',
+      signal,
+    });
+    const location = res.status >= 300 && res.status < 400 ? res.headers.get('location') : null;
+    if (!location) {
+      if (!res.ok) { await res.body?.cancel().catch(() => {}); throw new Error(`HTTP ${res.status}`); }
+      return readCapped(res, limit);
+    }
+    await res.body?.cancel().catch(() => {});
+    if (hop >= MAX_REDIRECTS) throw new Error('too many redirects');
+    let next;
+    try { next = new URL(location, current); } catch { throw new Error('bad redirect'); }
+    if (!redirectAllowed(current, next)) throw new Error(`redirect to ${next.protocol}//${next.host} refused`);
+    current = next;
+  }
+}
+
 export async function fetchFeed(feed, cfg) {
   const started = Date.now();
   const topic = topicOf(feed);
   try {
-    const res = await fetch(feed.url, {
-      headers: { 'user-agent': UA, accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*' },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const { items } = parseFeed(await res.text());
+    const { items } = parseFeed(await fetchText(feed.url));
     if (!items.length) throw new Error('no items found (not an RSS/Atom feed?)');
     const isGoogleNews = feed.url.includes('news.google.com');
     const max = feed.maxItems ?? cfg.maxItemsPerFeed ?? 15;
@@ -187,7 +240,11 @@ async function serve() {
         const data = cache ?? (await refresh());
         return send(res, 200, view(data, url.searchParams));
       }
-      if (url.pathname === '/api/news/refresh') return send(res, 200, view(await refresh(), url.searchParams));
+      if (url.pathname === '/api/news/refresh') {
+        // Any web page can call this, so a copy fetched in the last half minute is answered as it is.
+        const fresh = cache && Date.now() - Date.parse(cache.updatedAt) < 30e3;
+        return send(res, 200, view(fresh ? cache : await refresh(), url.searchParams));
+      }
       const path = url.pathname === '/' ? '/index.html' : normalize(url.pathname);
       if (STATIC.has(path)) return send(res, 200, await readFile(join(ROOT, path)), TYPES[extname(path)]);
       if (SHARED.has(path)) return send(res, 200, await readFile(join(ROOT, SHARED.get(path))), TYPES[extname(path)]);
@@ -196,7 +253,8 @@ async function serve() {
       send(res, 500, { error: e.message });
     }
   });
-  server.listen(PORT, () => console.log(`[news] serving on http://localhost:${PORT}  (panel: /, data: /api/news)`));
+  // This computer only, unless NEWS_HOST says otherwise (0.0.0.0 opens it to the whole network).
+  server.listen(PORT, HOST, () => console.log(`[news] serving on http://${HOST === '127.0.0.1' ? 'localhost' : HOST}:${PORT}  (panel: /, data: /api/news)`));
 
   const schedule = async () => {
     let minutes = 15;
