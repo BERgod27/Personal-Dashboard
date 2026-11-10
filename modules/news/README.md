@@ -133,8 +133,8 @@ FT and The Economist feeds show headlines and teasers; full articles stay behind
 node --test modules/news/test/*.test.mjs   # from the repo root
 ```
 
-The tests cover story grouping on a set of realistic headlines (`test/stories.sample.mjs`), and fetching,
-merging and the API view against local sample feeds. To try the page offline, run `node test/fixtures.mjs`,
+The tests cover story grouping on a set of realistic headlines (`test/stories.sample.mjs`), fetching,
+merging and the API view against local sample feeds, and the feed parser on broken and hostile feeds. To try the page offline, run `node test/fixtures.mjs`,
 then `NEWS_FEEDS=test/feeds.test.json node server.mjs`.
 
 ## Files
