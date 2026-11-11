@@ -2,11 +2,13 @@
  * Online mode: when the dashboard is served by server/server.mjs, this keeps the
  * browser's data in sync with the account on the server.
  *
- * Load it before js/store.js. It asks the server who is signed in and fetches the
- * saved data *before* the other scripts run (a short synchronous request), writes it
- * into localStorage, and from then on pushes every change to the tracked keys back to
- * the server. Opened any other way (published page, file://, python http.server) it
- * finds no server and does nothing, so the dashboard keeps working locally.
+ * Load it before js/store.js. The first time on a device it asks the server who is signed
+ * in and fetches the saved data *before* the other scripts run (a short synchronous request),
+ * writes it into localStorage, and from then on pushes every change to the tracked keys back
+ * to the server. On a device that has signed in before it does not wait: the dashboard starts
+ * from the data already here (with sw.js that also works with no connection) and catches up
+ * with the server afterwards. Opened any other way (published page, file://, python
+ * http.server) it finds no server and does nothing, so the dashboard keeps working locally.
  *
  * Exposes window.PDOnline = { user, openUni(), syncUni(), signOut(), status(), flush() }.
  */
@@ -28,10 +30,6 @@
   }
 
   if (!/^https?:$/.test(location.protocol)) return;
-  var auth;
-  try { auth = syncRequest('GET', '/api/auth'); } catch (e) { return; }
-  if (auth.status !== 200 || !auth.json || !('user' in auth.json)) return; // no server here: local mode
-  if (!auth.json.user) { location.replace('/login'); return; }
 
   var ls = window.localStorage;
   var origSet = Storage.prototype.setItem;
@@ -39,40 +37,127 @@
   var dirty = {};
   var timer = null;
   var inflight = false;
-  var state = 'saved'; // saved | saving | offline | error
+  var state = 'saved'; // saved | saving | offline | error | conflict
   var listeners = [];
+  var confirmed = false; // this page load has heard from the server that meta.user is signed in
+  var reconciling = false;
+  var version = '';
 
   function readMeta() {
     try {
-      var m = JSON.parse(ls.getItem(META)) || {};
-      return { versions: m.versions || {}, pending: m.pending || {} };
-    } catch (e) { return { versions: {}, pending: {} }; }
+      var m = JSON.parse(window.localStorage.getItem(META)) || {};
+      return { user: m.user || '', versions: m.versions || {}, pending: m.pending || {}, conflict: m.conflict || {} };
+    } catch (e) { return { user: '', versions: {}, pending: {}, conflict: {} }; }
   }
   function writeMeta() { try { origSet.call(ls, META, JSON.stringify(meta)); } catch (e) { /* ignore */ } }
+  function conflicted() { return Object.keys(meta.conflict); }
+  function idle() { return conflicted().length ? 'conflict' : 'saved'; }
 
-  /* ---- 1. Pull the account's data before the dashboard reads localStorage. */
-  var first = syncRequest('GET', '/api/state');
-  if (first.status === 401) { location.replace('/login'); return; }
-  var docs = (first.json && first.json.docs) || {};
-  KEYS.forEach(function (k) {
-    var d = docs[k];
-    var local = ls.getItem(k);
-    if (meta.pending[k] && local != null) {
-      dirty[k] = true; // edits made offline last time: try to send them
-    } else if (d) {
-      origSet.call(ls, k, d.value);
-      meta.versions[k] = d.version;
-      delete meta.pending[k];
-    } else if (local != null) {
-      // Nothing on the server yet: this browser's data becomes the account's data.
-      meta.versions[k] = 0;
-      meta.pending[k] = true;
-      dirty[k] = true;
-    } else {
-      meta.versions[k] = 0;
+  // The server did not answer and there is no data of this account here to start from. Nothing
+  // below may run: it would show example data and later push it as if it were the account's.
+  function unreachable() {
+    window.stop();
+    document.body.innerHTML = '<main class="unreachable"><h1>The server could not be reached</h1>' +
+      '<p class="muted">Check your connection. A sleeping server can take a minute to wake up.</p>' +
+      '<button class="btn primary" type="button">Try again</button></main>';
+    document.body.querySelector('button').addEventListener('click', function () { location.reload(); });
+  }
+
+  /* ---- 1. Get the account's data in place before the dashboard reads localStorage. */
+  if (meta.user) {
+    // Signed in on this device before: start from what is here, catch up in reconcile().
+    KEYS.forEach(function (k) {
+      if (meta.pending[k] && !meta.conflict[k] && ls.getItem(k) != null) dirty[k] = true; // edits not sent last time
+    });
+    state = 'offline';
+  } else {
+    var auth;
+    try { auth = syncRequest('GET', '/api/auth'); } catch (e) { auth = { status: 0, json: null }; }
+    if (auth.status !== 200 || !auth.json || !('user' in auth.json)) {
+      // Our worker only ever runs on the hosted site, so this is the server not answering.
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) { unreachable(); return; }
+      return; // no server here: local mode
     }
-  });
-  writeMeta();
+    if (!auth.json.user) { location.replace('/login'); return; }
+    var first;
+    try { first = syncRequest('GET', '/api/state'); } catch (e) { first = { status: 0, json: null }; }
+    if (first.status === 401) { location.replace('/login'); return; }
+    // Anything but a real answer must not be read as "the account is empty".
+    if (first.status !== 200 || !first.json || !first.json.docs) { unreachable(); return; }
+    var docs = first.json.docs;
+    KEYS.forEach(function (k) {
+      var d = docs[k];
+      var local = ls.getItem(k);
+      if (meta.pending[k] && local != null) {
+        dirty[k] = true; // edits made offline before this device remembered its user: send them
+      } else if (d) {
+        origSet.call(ls, k, d.value);
+        meta.versions[k] = d.version;
+        delete meta.pending[k];
+      } else if (local != null) {
+        // Nothing on the server yet: this browser's data becomes the account's data.
+        meta.versions[k] = 0;
+        meta.pending[k] = true;
+        dirty[k] = true;
+      } else {
+        meta.versions[k] = 0;
+      }
+    });
+    meta.user = auth.json.user.username;
+    version = auth.json.version || '';
+    confirmed = true;
+    writeMeta();
+    installed();
+  }
+
+  // Signed in for sure: keep the app's files on the device (sw.js) and ask the browser not to
+  // clear this site's storage when space runs low, since it can hold edits not yet sent.
+  function installed() {
+    if (navigator.serviceWorker) navigator.serviceWorker.register('/sw.js').catch(function () {});
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
+  }
+
+  // Everything of the signed-in user kept in this browser.
+  function forget() {
+    KEYS.concat([META, 'pd.tutor.chat', 'pd.workouts.draft.v1']).forEach(function (k) { try { ls.removeItem(k); } catch (e) {} });
+    if (!window.caches) return Promise.resolve();
+    // Without the cached page, the next launch asks the server and reaches the sign-in page.
+    return Promise.all([caches.delete('pd-data'), caches.open('pd-shell').then(function (c) { return c.delete('/'); })]).catch(function () {});
+  }
+
+  /* After a start from local data: check who is signed in, send what was not sent, then load
+     anything newer. Until this succeeds nothing is sent (the data here might belong to someone
+     who has since signed out). flush() and pull() call it again until it does. */
+  function reconcile() {
+    if (reconciling || confirmed) return;
+    reconciling = true;
+    fetch('/api/auth', { credentials: 'same-origin', headers: { Accept: 'application/json' } }).then(function (r) {
+      if (r.status !== 200) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (j) {
+      if (!j || !('user' in j)) throw new Error('not the dashboard server');
+      // Signed out: edits not sent yet stay here and go up after the next sign-in.
+      if (!j.user) { location.replace('/login'); return; }
+      if (j.user.username !== meta.user) { forget().then(function () { location.reload(); }); return; }
+      confirmed = true;
+      reconciling = false;
+      version = j.version || '';
+      paintVersion();
+      installed();
+      setState(Object.keys(dirty).length ? 'saving' : idle());
+      return flush().then(function () { return pull(true); }).then(function () {
+        // The uni data on screen came from the device's copy; replace it with the server's.
+        return api('GET', '/api/uni').then(function (r) { if (r.status === 200) publishUni(r.json); });
+      }).then(refreshUni);
+    }).catch(function () {
+      reconciling = false;
+      if (confirmed) return;
+      setState('offline');
+      clearTimeout(timer);
+      timer = setTimeout(flush, 10000);
+    });
+  }
+  if (meta.user) reconcile(); // started here, before the other scripts load, to keep the wait short
 
   /* ---- 2. Watch for changes to the tracked keys. */
   Storage.prototype.setItem = function (k, v) {
@@ -81,9 +166,11 @@
   };
 
   function markDirty(k) {
-    dirty[k] = true;
     meta.pending[k] = true;
     writeMeta();
+    // A document waiting for the conflict question is not sent until it is answered.
+    if (meta.conflict[k]) return;
+    dirty[k] = true;
     setState('saving');
     clearTimeout(timer);
     timer = setTimeout(flush, 700);
@@ -111,9 +198,10 @@
      then the newer copy from the other device wins and the page reloads with it. */
   function flush(keepalive) {
     clearTimeout(timer);
+    if (!confirmed) { reconcile(); return Promise.resolve(); }
     if (inflight) { timer = setTimeout(flush, 400); return Promise.resolve(); }
     var keys = Object.keys(dirty);
-    if (!keys.length) { if (state === 'saving') setState('saved'); return Promise.resolve(); }
+    if (!keys.length) { if (state === 'saving') setState(idle()); return Promise.resolve(); }
     inflight = true;
     var conflict = false;
     return keys.reduce(function (p, k) {
@@ -128,9 +216,9 @@
               meta.versions[k] = r.json.version;
               if (!dirty[k]) delete meta.pending[k];
             } else if (r.status === 409 && r.json.current) {
-              origSet.call(ls, k, r.json.current.value);
-              meta.versions[k] = r.json.current.version;
-              delete meta.pending[k];
+              // Changed on another device too. Both copies stay as they are until the person
+              // chooses (showConflict); the one here keeps collecting edits meanwhile.
+              meta.conflict[k] = { version: r.json.current.version, at: Number(r.json.current.updatedAt) || 0 };
               conflict = true;
             } else {
               dirty[k] = true;
@@ -141,13 +229,9 @@
     }, Promise.resolve()).then(function () {
       inflight = false;
       writeMeta();
-      if (conflict) {
-        notice('This was changed on another device, so the newest version was loaded. Your last change here was not kept.');
-        setTimeout(function () { location.reload(); }, 2500);
-        return;
-      }
+      if (conflict) showConflict();
       if (Object.keys(dirty).length) { timer = setTimeout(flush, 400); return; }
-      setState('saved');
+      setState(idle());
     }, function () {
       inflight = false;
       writeMeta();
@@ -158,14 +242,27 @@
 
   /* ---- 4. Pick up changes made on another device when this tab comes back. */
   var lastPull = Date.now();
-  function pull() {
-    if (Object.keys(dirty).length || inflight || Date.now() - lastPull < 5000) return;
+
+  // Loading newer data reloads the page, which would throw away what the person is in the
+  // middle of: text being typed, an open dialog or sheet, a running rest timer.
+  function busy() {
+    var a = document.activeElement;
+    return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) ||
+      !!document.querySelector('dialog[open], .wt-sheet-wrap, .wt-rest-main, .tutor-panel:not([hidden])');
+  }
+
+  function pull(now) {
+    if (!confirmed) { reconcile(); return Promise.resolve(); }
+    if (Object.keys(dirty).length || inflight || (!now && Date.now() - lastPull < 5000)) return Promise.resolve();
     lastPull = Date.now();
-    api('GET', '/api/state').then(function (r) {
-      if (r.status !== 200 || Object.keys(dirty).length) return;
+    return api('GET', '/api/state').then(function (r) {
+      // Checked again here: nothing may be written unless the page reloads right after, or the
+      // dashboard would save its older in-memory copy over the newer one.
+      if (r.status !== 200 || !r.json.docs || Object.keys(dirty).length || busy()) return;
       var changed = false;
       KEYS.forEach(function (k) {
         var d = r.json.docs[k];
+        if (meta.pending[k]) return; // edits here not sent yet (or a conflict): never overwritten
         if (d && d.version > (meta.versions[k] || 0)) {
           origSet.call(ls, k, d.value);
           meta.versions[k] = d.version;
@@ -177,13 +274,88 @@
     }).catch(function () { /* offline: try again later */ });
   }
 
+  /* ---- 4b. Two devices changed the same document: ask which one to keep. */
+  function showConflict() {
+    var el = document.getElementById('online-conflict');
+    var keys = conflicted();
+    if (!keys.length) { if (el) el.remove(); return; }
+    if (!document.body) return;
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'online-conflict';
+      el.className = 'online-conflict';
+      el.setAttribute('role', 'alertdialog');
+      el.setAttribute('aria-labelledby', 'online-conflict-text');
+      el.innerHTML = '<p id="online-conflict-text"></p><div class="row">' +
+        '<button class="btn small" type="button" data-act="mine">Keep this device’s version</button>' +
+        '<button class="btn small" type="button" data-act="theirs">Use the other device’s version</button></div>' +
+        '<p class="form-msg" aria-live="polite"></p>';
+      el.addEventListener('click', function (e) {
+        var act = e.target.getAttribute && e.target.getAttribute('data-act');
+        if (act) resolveConflict(el, act === 'mine');
+      });
+      document.body.appendChild(el);
+    }
+    var at = Math.max.apply(null, keys.map(function (k) { return meta.conflict[k].at || 0; }));
+    el.firstChild.textContent = 'Your data was also changed on another device' +
+      (at ? ' (' + new Date(at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) + ')' : '') +
+      ', so the changes made here are not saved to your account yet. Only one version can be kept.';
+  }
+
+  function resolveConflict(el, mine) {
+    var buttons = el.querySelectorAll('button');
+    var msg = el.querySelector('.form-msg');
+    var lock = function (on) { for (var i = 0; i < buttons.length; i++) buttons[i].disabled = on; };
+    lock(true);
+    msg.textContent = '';
+    var work = mine ? conflicted().reduce(function (p, k) {
+      return p.then(function () {
+        var value = ls.getItem(k);
+        if (value == null) { delete meta.conflict[k]; delete meta.pending[k]; return; }
+        return api('PUT', '/api/state/' + encodeURIComponent(k), { value: value, baseVersion: meta.conflict[k].version }).then(function (r) {
+          if (r.status === 200) {
+            meta.versions[k] = r.json.version;
+            delete meta.conflict[k];
+            if (ls.getItem(k) === value) delete meta.pending[k];
+            else dirty[k] = true; // edited while this was being sent
+          } else if (r.status === 409 && r.json.current) {
+            meta.conflict[k] = { version: r.json.current.version, at: Number(r.json.current.updatedAt) || 0 };
+            throw new Error('It was changed on the other device again just now. Choose once more.');
+          } else throw new Error(r.json.error || 'Not saved. Try again in a moment.');
+        });
+      });
+    }, Promise.resolve()) : api('GET', '/api/state').then(function (r) {
+      if (r.status !== 200 || !r.json.docs) throw new Error('The other version could not be loaded. Try again in a moment.');
+      conflicted().forEach(function (k) {
+        var d = r.json.docs[k];
+        if (d) { origSet.call(ls, k, d.value); meta.versions[k] = d.version; }
+        delete meta.conflict[k];
+        delete meta.pending[k];
+        delete dirty[k];
+      });
+      writeMeta();
+      location.reload();
+    });
+    work.then(function () {
+      writeMeta();
+      showConflict();
+      setState(idle());
+      flush();
+    }, function (e) {
+      writeMeta();
+      showConflict();
+      lock(false);
+      msg.textContent = e instanceof TypeError ? 'The server could not be reached. Check your connection and try again.' : e.message;
+    });
+  }
+
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'hidden') flush(true);
     else pull();
   });
   window.addEventListener('pagehide', function () { flush(true); });
   window.addEventListener('online', function () { flush(); });
-  window.addEventListener('focus', pull);
+  window.addEventListener('focus', function () { pull(); });
   setInterval(function () { if (document.visibilityState === 'visible') pull(); }, 120000);
 
   /* ---- 5. Uni: server-side sync of Moodle, SIGARRA and a manual timetable. */
@@ -216,7 +388,7 @@
     el._t = setTimeout(function () { el.hidden = true; }, 6000);
   }
 
-  var LABELS = { saved: 'Saved', saving: 'Saving…', offline: 'Offline, will save when back', error: 'Not saved yet, retrying' };
+  var LABELS = { saved: 'Saved', saving: 'Saving…', offline: 'Offline, will save when back', error: 'Not saved yet, retrying', conflict: 'Not saved: changed on another device' };
 
   // Lucide icons (lucide.dev), drawn inline so they follow the text colour.
   function icon(paths) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + paths + '</svg>'; }
@@ -244,11 +416,8 @@
       '<button class="menu-item danger" type="button" data-act="out-all">' + ICON.devices + 'Sign out on all devices</button>' +
       '<p class="account-version" data-f="version" hidden></p>' +
       '</div></details>';
-    wrap.querySelector('.account-who b').textContent = auth.json.user.username;
-    wrap.querySelector('.account-name').textContent = auth.json.user.username;
-    // The GitHub commit the server was built from: matches the newest commit once an update is live.
-    var version = wrap.querySelector('[data-f="version"]');
-    if (auth.json.version) { version.textContent = 'Version ' + auth.json.version; version.hidden = false; }
+    wrap.querySelector('.account-who b').textContent = meta.user;
+    wrap.querySelector('.account-name').textContent = meta.user;
     var status = wrap.querySelector('#sync-status');
     var paint = function (s) { status.firstChild.textContent = LABELS[s]; status.title = LABELS[s]; status.dataset.state = s; };
     paint(state);
@@ -269,6 +438,7 @@
       if (e.key === 'Escape' && menu.open) { menu.open = false; menu.querySelector('summary').focus(); }
     });
     bar.appendChild(wrap);
+    paintVersion();
 
     var foot = document.querySelector('.foot');
     if (foot) foot.textContent = 'Saved to your account and synced across your devices.';
@@ -282,12 +452,19 @@
     }
   }
 
+  // The GitHub commit the server was built from: matches the newest commit once an update is live.
+  function paintVersion() {
+    var el = document.querySelector('#online-bar [data-f="version"]');
+    if (el && version) { el.textContent = 'Version ' + version; el.hidden = false; }
+  }
+
   function signOut(everywhere) {
     flush().then(function () {
-      return api('POST', everywhere ? '/api/logout-all' : '/api/logout', {});
-    }).catch(function () {}).then(function () {
-      KEYS.concat([META, 'pd.tutor.chat']).forEach(function (k) { try { ls.removeItem(k); } catch (e) {} });
-      location.replace('/login');
+      // Signing out clears this browser, so anything the server does not have yet would be gone.
+      var unsent = KEYS.some(function (k) { return meta.pending[k]; });
+      if (unsent && !confirm('Some changes are not saved to your account yet. Sign out and lose them?')) return;
+      return api('POST', everywhere ? '/api/logout-all' : '/api/logout', {}).catch(function () {})
+        .then(forget).then(function () { location.replace('/login'); });
     });
   }
 
@@ -461,7 +638,7 @@
   }
 
   window.PDOnline = {
-    user: auth.json.user,
+    user: { username: meta.user },
     openUni: openUni,
     syncUni: syncUni,
     signOut: signOut,
@@ -469,14 +646,20 @@
     flush: flush
   };
 
-  function start() {
-    buildBar();
-    if (Object.keys(dirty).length) flush();
-    // Refresh uni data in the background if it is more than an hour old.
-    api('POST', '/api/uni/sync', { ifStale: true }).then(function (r) {
+  // Refresh uni data in the background if it is more than an hour old.
+  function refreshUni() {
+    return api('POST', '/api/uni/sync', { ifStale: true }).then(function (r) {
       if (r.status === 200 && r.json.data) publishUni(r.json.data);
       if (r.json && r.json.forgotPassword) notice('The SIGARRA sign-in failed, so your saved password was removed. Type it again in Account → Uni connections.');
     }).catch(function () {});
+  }
+
+  function start() {
+    buildBar();
+    showConflict();
+    if (!confirmed) return; // reconcile() does the rest once the server has answered
+    if (Object.keys(dirty).length) flush();
+    refreshUni();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();

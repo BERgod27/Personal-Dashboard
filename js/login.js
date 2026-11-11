@@ -4,6 +4,13 @@
   var $ = function (id) { return document.getElementById(id); };
   var mode = 'login';
 
+  // This page means nobody is signed in: drop the last user's uni data and headlines, and the
+  // cached app page, so the next launch asks the server (sw.js keeps both).
+  if (window.caches) {
+    caches.delete('pd-data');
+    caches.open('pd-shell').then(function (c) { c.delete('/'); });
+  }
+
   function setMode(m) {
     mode = m;
     var setup = m === 'signup';
