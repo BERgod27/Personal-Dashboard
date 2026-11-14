@@ -19,7 +19,7 @@ It runs two ways:
   `Calculus 9:00-10:30 #uni weekly` makes a weekly class, `gym 18h tomorrow` an event tomorrow at 18:00, `buy oats` a task. Tags (`#uni #gym #meal #personal`) and words like *hoje*, *amanhã*, *seg*, *às 13h* are understood.
 - Each module feeds the day: classes and exams go on the schedule, Moodle deadlines become tasks, workouts show up on the days they were logged, and a nutrition card tracks calories, macros and water.
 - Keyboard first: `←`/`→` change day, `t` jumps to today, `/` focuses quick add, `1`–`5` switch tabs.
-- Dark and light themes that follow the system setting.
+- One look: black that deepens into blue, with a cobalt gradient accent.
 
 ### Uni: timetable, exams and deadlines
 ![Uni tab with a week of classes](docs/screenshots/uni.png)

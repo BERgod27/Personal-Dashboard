@@ -27,11 +27,11 @@
   transition: color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 .pdm-tab:hover { color: var(--text-1); }
-.pdm-tab[aria-selected="true"] { color: var(--text-1); box-shadow: inset 0 -2px 0 var(--accent); }
+.pdm-tab[aria-selected="true"] { color: var(--text-1); background: var(--grad-bright) bottom / 100% 2px no-repeat; }
 .pdm-tab:focus-visible { outline-offset: -2px; }
 
 .pdm-card {
-  background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--card) var(--grad-card); border: 1px solid var(--border); border-radius: var(--radius);
   padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); min-width: 0;
 }
 .pdm-card > summary {
@@ -80,8 +80,8 @@ div.pdm-muted { max-width: 70ch; } /* help text keeps a readable line length on 
   transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 .pdm-btn:hover { background: var(--surface-3); border-color: var(--border-hover); }
-.pdm-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
-.pdm-btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.pdm-btn.primary { background: var(--grad-accent) border-box; border-color: transparent; color: var(--accent-fg); box-shadow: var(--glow-accent); }
+.pdm-btn.primary:hover { background: var(--grad-accent-hover) border-box; border-color: transparent; }
 .pdm-btn.ghost { background: transparent; border-color: transparent; color: var(--text-2); }
 .pdm-btn.ghost:hover { background: var(--surface-3); color: var(--text-1); }
 .pdm-btn.icon { width: var(--control-h); padding: 0; }
@@ -107,7 +107,7 @@ div.pdm-muted { max-width: 70ch; } /* help text keeps a readable line length on 
 .pdm-bar-head { display: flex; justify-content: space-between; gap: var(--space-2); font-size: var(--fs-13); color: var(--text-2); }
 .pdm-bar-head > :last-child { color: var(--text-1); font-variant-numeric: tabular-nums; }
 .pdm-track { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
-.pdm-fill { height: 100%; background: var(--accent); border-radius: 3px; }
+.pdm-fill { height: 100%; background: var(--grad-bright); border-radius: 3px; }
 .pdm-bar.over .pdm-fill { background: var(--warning); }
 .pdm-grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
 .pdm-totals { gap: var(--space-4); }
@@ -151,7 +151,7 @@ div.pdm-muted { max-width: 70ch; } /* help text keeps a readable line length on 
 .pdm-chart { position: relative; height: 140px; display: flex; align-items: flex-end; gap: var(--space-2); padding-bottom: 20px; }
 .pdm-col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; }
 .pdm-colbar { width: 100%; max-width: 32px; background: var(--surface-4); border-radius: var(--radius-xs) var(--radius-xs) 0 0; min-height: 2px; }
-.pdm-col:last-child .pdm-colbar { background: var(--accent); }
+.pdm-col:last-child .pdm-colbar { background: var(--grad-bar); }
 .pdm-colbar.over, .pdm-col:last-child .pdm-colbar.over { background: var(--warning); }
 .pdm-collabel { position: absolute; bottom: -20px; font-size: var(--fs-12); color: var(--text-3); }
 .pdm-goal-line { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--border-hover); pointer-events: none; }
@@ -161,7 +161,7 @@ div.pdm-muted { max-width: 70ch; } /* help text keeps a readable line length on 
 .pdm-wb { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); }
 .pdm-wb .pdm-bar-head > :last-child { color: var(--text-1); font-variant-numeric: tabular-nums; }
 .pdm-btn:disabled { opacity: 0.55; cursor: default; }
-.pdm-btn.primary:disabled:hover { background: var(--accent); border-color: var(--accent); }
+.pdm-btn.primary:disabled:hover { background: var(--grad-accent) border-box; border-color: transparent; }
 .pdm-link { font: inherit; color: var(--text-1); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
 .pdm-link:hover { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
 

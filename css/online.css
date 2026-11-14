@@ -7,7 +7,7 @@
 .auth > .brand { margin: 0; }
 .auth-card {
   display: grid; gap: var(--space-4); padding: var(--space-6);
-  background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--card) var(--grad-card); border: 1px solid var(--border); border-radius: var(--radius);
 }
 .auth-head { display: grid; gap: var(--space-1); }
 .auth-head h1 { font-size: var(--fs-20); letter-spacing: var(--tracking-tighter); }
