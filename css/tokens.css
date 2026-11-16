@@ -3,15 +3,15 @@
    (modules/uni, modules/workouts, modules/meals, modules/news) read these names directly.
    Change a value here and it changes everywhere.
 
-   "Midnight" theme: black that deepens into blue. The page is true black with two soft blue
-   lights behind it (top right, bottom left), so the black is never flat and the blue never
-   takes over. Cards are see-through blue-black with a sheen from the top-left corner, so each one picks
-   up the light behind it; one cobalt
-   accent carries primary actions, focus rings, active states and the now-line, and it is
-   always drawn as a gradient (--grad-accent for fills with text on them, --grad-bright for
-   bars, lines and numerals). Area and course hues still appear only as small dots and 2px
-   bars. The app has this one look; it no longer follows the system's light setting. An
-   explicit [data-theme="light"] keeps a flat light version with the same blue accent.
+   "Amber on night" theme: a near-black page with dark navy glass cards and one warm amber
+   accent. The page is black with a faint navy light at the top and an amber ember in the
+   bottom-right corner. Cards are see-through navy with a cool sheen from the top-left and a
+   faint amber glow in the top-right corner, large radius (22px). Buttons, tabs and chips are
+   pills. Amber carries primary actions, focus rings, active states, the now-line and the bars
+   in charts, always as a gradient (--grad-accent for fills, which take dark text;
+   --grad-bright for bars and lines). Area and course hues stay as small dots and 2px bars.
+   The app has this one look; it does not follow the system's light setting. An explicit
+   [data-theme="light"] keeps a flat light version with an amber accent.
    Text pairs were checked for WCAG AA (4.5:1) on every surface. */
 
 @font-face {
@@ -33,57 +33,57 @@
   color-scheme: dark;
 
   /* ---------- surfaces: page, then four raised levels (blue-black) ---------- */
-  --bg: #000000;            /* page: true black; the blue lights are --grad-page */
-  --surface-1: #060b17;     /* panels, cards, sidebar */
-  --surface-2: #0c1426;     /* rows on hover, popovers, inner wells */
-  --surface-3: #121d36;     /* selected rows, pressed controls */
-  --surface-4: #1a2848;     /* hover on surface-3, skeleton blocks on raised surfaces */
-  --input-bg: #02050c;      /* inputs sit a step darker than the surface they are on */
-  --overlay: rgb(0 3 12 / 0.72);
+  --bg: #050507;            /* page: true black; the blue lights are --grad-page */
+  --surface-1: #0b0e15;     /* panels, cards, sidebar */
+  --surface-2: #121722;     /* rows on hover, popovers, inner wells */
+  --surface-3: #1a2232;     /* selected rows, pressed controls */
+  --surface-4: #232d42;     /* hover on surface-3, skeleton blocks on raised surfaces */
+  --input-bg: #06080d;      /* inputs sit a step darker than the surface they are on */
+  --overlay: rgb(2 3 8 / 0.74);
 
   /* ---------- borders ---------- */
-  --border-subtle: rgb(140 175 255 / 0.06);
-  --border: rgb(140 175 255 / 0.11);
-  --border-strong: rgb(140 175 255 / 0.17);
-  --border-hover: rgb(140 175 255 / 0.30);
+  --border-subtle: rgb(170 190 230 / 0.06);
+  --border: rgb(170 190 230 / 0.10);
+  --border-strong: rgb(170 190 230 / 0.16);
+  --border-hover: rgb(170 190 230 / 0.30);
 
   /* ---------- text (cool white; contrast on --surface-1: 16.9, 8.0, 6.1) ---------- */
-  --text-1: #eaf0ff;
-  --text-2: #9fabc8;
-  --text-3: #8793b2;
+  --text-1: #f4f2ee;
+  --text-2: #a6aab6;
+  --text-3: #8c919e;
 
   /* ---------- accent: cobalt ---------- */
-  --accent: #1d5cf0;        /* flat fills; white text on it is 5.4:1 */
-  --accent-hover: #2a66f7;
-  --accent-fg: #ffffff;
-  --accent-text: #7cb4ff;   /* accent used as text or icon on dark surfaces (9.0:1) */
-  --accent-soft: rgb(47 108 255 / 0.20);
-  --focus: #5b9dff;         /* focus ring, 7.1:1 against surfaces */
-  --focus-soft: rgb(91 157 255 / 0.32);
+  --accent: #e8890c;        /* flat fills; white text on it is 5.4:1 */
+  --accent-hover: #f39a1f;
+  --accent-fg: #1c1100;
+  --accent-text: #ffb84a;   /* accent used as text or icon on dark surfaces (9.0:1) */
+  --accent-soft: rgb(255 170 50 / 0.16);
+  --focus: #ffb84a;         /* focus ring, 7.1:1 against surfaces */
+  --focus-soft: rgb(255 184 74 / 0.30);
 
   /* ---------- gradients: where the black turns blue ---------- */
   /* Behind everything, fixed to the screen (body::before in app.css). */
-  --grad-page:
-    radial-gradient(70rem 46rem at 92% -14%, rgb(36 100 255 / 0.58), transparent 64%),
-    radial-gradient(60rem 44rem at -16% 112%, rgb(18 72 230 / 0.46), transparent 62%),
-    linear-gradient(180deg, #000000 0%, #01030b 50%, #041030 100%);
+  --grad-page: 
+    radial-gradient(64rem 38rem at 50% -18%, rgb(52 72 118 / 0.34), transparent 66%),
+    radial-gradient(54rem 40rem at 104% 112%, rgb(255 140 24 / 0.13), transparent 62%),
+    linear-gradient(180deg, #050507 0%, #07090e 100%);
   /* Bars that stay put while content scrolls under them: sidebar, phone top bar, tab bar. */
-  --grad-chrome: linear-gradient(180deg, #050b1c 0%, #010309 100%);
+  --grad-chrome: linear-gradient(180deg, #0c1019 0%, #050507 100%);
   /* Cards are see-through blue-black (--card), so the page's light shows through them and a card
      near the light is bluer than one far from it. --grad-card adds a sheen from the top-left corner. */
-  --card: rgb(8 15 34 / 0.62);
-  --grad-card: linear-gradient(155deg, rgb(96 156 255 / 0.13) 0%, rgb(96 156 255 / 0.035) 42%, transparent 78%);
+  --card: rgb(12 17 28 / 0.68);
+  --grad-card: radial-gradient(120% 90% at 100% 0%, rgb(255 168 56 / 0.075), transparent 55%), linear-gradient(160deg, rgb(130 160 215 / 0.14) 0%, rgb(90 120 180 / 0.04) 45%, transparent 80%);
   /* Fills that carry white text (primary buttons, the now label): 4.6:1 at the light end. */
-  --grad-accent: linear-gradient(135deg, #1443c7 0%, #2a6fe8 100%);
-  --grad-accent-hover: linear-gradient(135deg, #1a4ed8 0%, #3378ee 100%);
+  --grad-accent: linear-gradient(135deg, #e8800a 0%, #ffc24d 100%);
+  --grad-accent-hover: linear-gradient(135deg, #f28d14 0%, #ffcc66 100%);
   /* Bars, lines and big numerals: no text sits on these. */
-  --grad-bright: linear-gradient(90deg, #2460f0 0%, #63c0ff 100%);
-  --grad-bar: linear-gradient(180deg, #63c0ff 0%, #1d5cf0 100%);
-  --grad-numeral: linear-gradient(170deg, #ffffff 10%, #a9cfff 48%, #3d86ff 100%);
-  --grad-figure: linear-gradient(180deg, #ffffff 25%, #86bbff 100%);   /* smaller headline figures */
+  --grad-bright: linear-gradient(90deg, #e8800a 0%, #ffd36e 100%);
+  --grad-bar: linear-gradient(180deg, #ffd36e 0%, #e8800a 100%);
+  --grad-numeral: linear-gradient(170deg, #ffffff 10%, #ffe3ad 50%, #f5a524 100%);
+  --grad-figure: linear-gradient(180deg, #ffffff 25%, #ffd88f 100%);   /* smaller headline figures */
   /* The selected row or day: blue coming in from the left, fading to the surface. */
-  --grad-selected: linear-gradient(90deg, rgb(47 108 255 / 0.26) 0%, rgb(47 108 255 / 0.07) 100%);
-  --glow-accent: 0 0 0 1px rgb(99 160 255 / 0.22) inset, 0 6px 20px -8px rgb(36 96 240 / 0.75);
+  --grad-selected: linear-gradient(90deg, rgb(255 168 56 / 0.20) 0%, rgb(255 168 56 / 0.05) 100%);
+  --glow-accent: 0 0 0 1px rgb(255 210 120 / 0.28) inset, 0 6px 22px -8px rgb(255 150 30 / 0.7);
 
   /* ---------- status: muted, used for text, icons and thin borders ---------- */
   --success: #5fae86;
@@ -143,16 +143,17 @@
   --space-12: 48px;
 
   /* ---------- shape ---------- */
-  --radius-xs: 4px;         /* checkboxes, tiny tags */
-  --radius-sm: 6px;         /* buttons, inputs, rows */
-  --radius: 8px;            /* cards, panels, dialogs, menus */
+  --radius-xs: 6px;         /* checkboxes, tiny tags */
+  --radius-sm: 12px;         /* buttons, inputs, rows */
+  --radius: 22px;
+  --radius-pill: 999px;            /* cards, panels, dialogs, menus */
   --control-h: 32px;
   --control-h-sm: 28px;
   --icon: 16px;
   --icon-stroke: 1.5px;
 
   /* ---------- elevation: overlays only ---------- */
-  --shadow-overlay: 0 0 0 1px rgb(0 0 0 / 0.5), 0 16px 40px rgb(0 4 20 / 0.7), 0 0 60px -20px rgb(36 96 240 / 0.35);
+  --shadow-overlay: 0 0 0 1px rgb(0 0 0 / 0.5), 0 18px 44px rgb(0 0 0 / 0.7), 0 0 70px -24px rgb(255 150 30 / 0.28);
 
   /* ---------- motion: 100 / 150 / 200ms only ---------- */
   --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
@@ -185,13 +186,13 @@
   --text-1: #0d1424;
   --text-2: #4a556c;
   --text-3: #5f6a82;
-  --accent: #1d5cf0;
-  --accent-hover: #174fd6;
+  --accent: #b45309;
+  --accent-hover: #9a4507;
   --accent-fg: #ffffff;
-  --accent-text: #1a4fcf;
-  --accent-soft: rgb(29 92 240 / 0.12);
-  --focus: #1d5cf0;
-  --focus-soft: rgb(29 92 240 / 0.26);
+  --accent-text: #a04a06;
+  --accent-soft: rgb(180 83 9 / 0.12);
+  --focus: #b45309;
+  --focus-soft: rgb(180 83 9 / 0.26);
   --success: #1f7a4d;
   --success-soft: rgb(31 122 77 / 0.12);
   --warning: #8a6410;
@@ -208,9 +209,9 @@
   --grad-chrome: none;
   --grad-card: none;
   --grad-bar: linear-gradient(180deg, #63c0ff 0%, #1d5cf0 100%);
-  --grad-numeral: linear-gradient(170deg, #0d1424 10%, #1d5cf0 100%);
-  --grad-figure: linear-gradient(180deg, #0d1424 25%, #1d5cf0 100%);
-  --grad-selected: linear-gradient(90deg, rgb(29 92 240 / 0.14) 0%, rgb(29 92 240 / 0.04) 100%);
+  --grad-numeral: linear-gradient(170deg, #0d1424 10%, #b45309 100%);
+  --grad-figure: linear-gradient(180deg, #0d1424 25%, #b45309 100%);
+  --grad-selected: linear-gradient(90deg, rgb(180 83 9 / 0.14) 0%, rgb(180 83 9 / 0.04) 100%);
   --glow-accent: 0 0 0 1px rgb(255 255 255 / 0.18) inset;
 }
 

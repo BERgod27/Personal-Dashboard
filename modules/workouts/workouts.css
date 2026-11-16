@@ -38,7 +38,7 @@
 /* ---------- buttons ---------- */
 .wt-root .wt-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
-  min-height: var(--control-h); padding: 0 var(--space-3); border-radius: var(--radius-sm);
+  min-height: var(--control-h); padding: 0 var(--space-4); border-radius: var(--radius-pill);
   border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text-1);
   font-size: var(--fs-13); font-weight: var(--fw-medium); white-space: nowrap;
   transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
