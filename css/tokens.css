@@ -32,17 +32,17 @@
   color-scheme: dark;
 
   /* ---------- surfaces: page, then four raised levels (blue-black) ---------- */
-  --bg: #050507;            /* page: true black; the blue lights are --grad-page */
-  --surface-1: #0b0e15;     /* panels, cards, sidebar */
+  --bg: #040405;            /* page: near-black; the key light is --grad-page */
+  --surface-1: #080b11;     /* dialogs, menus, popovers (cards use --card) */
   --surface-2: #121722;     /* rows on hover, popovers, inner wells */
   --surface-3: #1a2232;     /* selected rows, pressed controls */
   --surface-4: #232d42;     /* hover on surface-3, skeleton blocks on raised surfaces */
-  --input-bg: #06080d;      /* inputs sit a step darker than the surface they are on */
+  --input-bg: #030407;      /* inputs sit a step darker than the surface they are on */
   --overlay: rgb(2 3 8 / 0.74);
 
   /* ---------- borders ---------- */
   --border-subtle: rgb(170 190 230 / 0.06);
-  --border: rgb(170 190 230 / 0.10);
+  --border: rgb(170 190 230 / 0.11);
   --border-strong: rgb(170 190 230 / 0.16);
   --border-hover: rgb(170 190 230 / 0.30);
 
@@ -82,18 +82,18 @@
   --grad-page:
     var(--grad-key),
     radial-gradient(80rem 44rem at 30% -24%, rgb(44 60 100 / 0.20), transparent 70%),
-    linear-gradient(180deg, #050507 0%, #07090e 100%);
+    linear-gradient(180deg, #040405 0%, #050608 100%);
   /* Bars that stay put while content scrolls under them: phone top bar and tab bar. */
-  --grad-chrome: linear-gradient(180deg, #0c1019 0%, #050507 100%);
+  --grad-chrome: linear-gradient(180deg, #090c13 0%, #040405 100%);
 
   /* ---------- glass cards: lit by the key light ----------
-     The fill is navy at 92%. Each card's 1px rim catches the light as a crisp highlight on its
-     top-right corner that fades along the top and right edges within about 80px; only 8% of it
+     The fill is a very dark navy at 96%, a few points lighter and bluer than the page. Each card's 1px rim catches the light as a crisp highlight on its
+     top-right corner that fades along the top and right edges within about 80px; only 4% of it
      shows on the glass inside, so the face stays clean instead of turning a muddy brown. The highlight is sized
      in px, so a wide card gets the same small highlight as a narrow one. A cool line along the
      top edge is the glass bevel. Use background: var(--card-bg) (or --dialog-bg for opaque
      overlays) with a normal 1px border; the border colour sits over the rim. */
-  --card: rgb(12 17 28 / 0.92);
+  --card: rgb(7 10 17 / 0.96);
   --card-rim: radial-gradient(circle 200px at 100% 0,
       rgb(255 243 224 / 0.88) 0%,
       rgb(255 230 194 / 0.52) 8%,
