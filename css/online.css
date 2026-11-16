@@ -124,3 +124,20 @@
   animation: fade var(--dur) var(--ease-out) both;
 }
 @media (min-width: 960px) { .online-notice { bottom: var(--space-6); } }
+
+/* Two devices changed the same data: stays on screen until one version is chosen (js/online.js). */
+.online-conflict {
+  position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 12px); transform: translateX(-50%); z-index: 71;
+  width: min(480px, calc(100vw - 32px)); padding: var(--space-3) var(--space-4);
+  background: var(--surface-3); color: var(--text-1); border: 1px solid var(--warning-border); border-radius: var(--radius);
+  box-shadow: var(--shadow-overlay); font-size: var(--fs-13);
+}
+.online-conflict p { margin: 0 0 var(--space-2); }
+.online-conflict .row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.online-conflict .form-msg:empty { display: none; }
+.sync-status[data-state="conflict"]::before { background: var(--danger); }
+@media (min-width: 960px) { .online-conflict { bottom: var(--space-6); } }
+
+/* Shown instead of the app when the server does not answer and no data is on this device yet. */
+.unreachable { max-width: 420px; margin: 20vh auto 0; padding: var(--space-4); text-align: center; }
+.unreachable h1 { font-size: var(--fs-20); margin: 0 0 var(--space-2); }

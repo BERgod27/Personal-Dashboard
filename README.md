@@ -55,7 +55,7 @@ It runs two ways:
 ### On a phone
 <img src="docs/screenshots/phone.png" alt="Today and workout progress on a phone" width="520">
 
-The layout works from 375 px up, with a bottom tab bar on phones, and the app can be installed to the home screen (web app manifest).
+The layout works from 360 px up, with a bottom tab bar on phones, and the hosted app can be installed to the home screen (in Chrome on Android: menu, Add to home screen, Install). Once installed it opens at once and without a connection: a service worker (`sw.js`) keeps the app's files, the timetable and the last headlines on the device, and changes made offline are sent when the connection is back.
 
 ## Tech stack
 
@@ -92,7 +92,7 @@ The layout works from 375 px up, with a bottom tab bar on phones, and the app ca
 ```
 
 - **Module registry.** `js/core.js` exposes `Dashboard.registerModule({...})`. A module can draw its panel (`render`), put items on the day's schedule (`itemsFor(date)`) and add tasks (`tasksFor(date)`). Uni, workouts, meals and news are plugged in this way, and each one also works as a standalone page.
-- **Sync without a sync engine.** In hosted mode, `js/online.js` loads the user's documents before the dashboard starts, saves each change within a second and reloads when another device saved something newer. Each `localStorage` key is one versioned JSON document on the server, so the front end doesn't know whether it's online or not.
+- **Sync without a sync engine.** In hosted mode, `js/online.js` loads the user's documents before the dashboard starts (on a device that has signed in before, it starts from the copy already there and catches up right after), saves each change within a second and reloads when another device saved something newer. If two devices changed the same document, nothing is overwritten: a notice asks which version to keep. Each `localStorage` key is one versioned JSON document on the server, so the front end doesn't know whether it's online or not.
 - **One data contract for uni.** The Python script and the server both write the same `uni/1` JSON format, so the panel doesn't care where the data came from.
 
 ## Engineering decisions
@@ -181,8 +181,7 @@ Create `js/modules/<name>.js`, add a `<script>` tag for it in `index.html` befor
 
 ## Roadmap
 
-- A service worker, so the app shell opens offline and installs as a full PWA.
-- Merging edits from two devices per field instead of per document (today the first save wins and the other device reloads).
+- Merging edits from two devices per field instead of per document (today one whole version is kept, and the app asks which).
 - One interface language: Meals is in Portuguese and the rest in English.
 - A demo mode for the hosted version, so visitors can try it without an account.
 - Continuous integration running both test suites on every push.

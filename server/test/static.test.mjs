@@ -2,6 +2,8 @@
 // Windows too, where a file answers to more than one spelling of its name.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { join, sep } from 'node:path';
 import { staticPath } from '../static.mjs';
 
@@ -42,4 +44,21 @@ test('another spelling of a protected name is refused as well', () => {
     '/%C5%BFerver/db.mjs',                                             // "ſerver": a letter that upper-cases to S
     '/js/online.js%00.png',
   ]) assert.equal(staticPath(ROOT, p), null, p);
+});
+
+// sw.js installs only if every file on its list is fetched: one wrong name and the app never
+// works offline, with nothing on screen to say so.
+test('every file the service worker keeps offline exists and is served', () => {
+  const web = fileURLToPath(new URL('../..', import.meta.url));
+  const sw = readFileSync(join(web, 'sw.js'), 'utf8');
+  const files = sw.slice(sw.indexOf('var FILES = ['), sw.indexOf('];')).match(/'\/[^']+'/g).map((f) => f.slice(1, -1));
+  assert.ok(files.length > 20, 'the list was not found in sw.js');
+  for (const f of files) {
+    const full = staticPath(web, f);
+    assert.ok(full && existsSync(full), f);
+  }
+  // And nothing the page loads is missing from it.
+  const html = readFileSync(join(web, 'index.html'), 'utf8');
+  for (const [, ref] of html.matchAll(/<(?:script src|link rel="stylesheet" href)="([^"]+)"/g)) assert.ok(files.includes('/' + ref), ref);
+  assert.equal(staticPath(web, '/sw.js'), join(web, 'sw.js'));
 });
