@@ -80,7 +80,7 @@ const STYLE = `
 .uni-panel .u-day b{font-size:var(--fs-14);font-weight:var(--fw-medium);font-variant-numeric:tabular-nums;line-height:1.3}
 .uni-panel .u-day i{width:4px;height:4px;border-radius:50%;background:var(--text-3)}
 .uni-panel .u-day i.none{visibility:hidden}
-.uni-panel .u-day.is-today b{color:var(--accent-text)}
+.uni-panel .u-day.is-today b{color:var(--gold)}
 .uni-panel .u-day[aria-selected=true]{background:var(--surface-3);border-color:var(--border-strong);color:var(--text-1)}
 .uni-panel .u-day[aria-selected=true] b{font-weight:var(--fw-semibold)}
 .uni-panel .u-daylist{overflow:hidden}
@@ -108,7 +108,7 @@ const STYLE = `
 .uni-panel .u-wk-head div{padding:var(--space-2) var(--space-3);display:flex;align-items:baseline;gap:6px;font-size:var(--fs-12);color:var(--text-3);border-left:1px solid var(--border)}
 .uni-panel .u-wk-head div:first-child{border-left:0}
 .uni-panel .u-wk-head b{font-size:var(--fs-14);color:var(--text-1);font-weight:var(--fw-medium);font-variant-numeric:tabular-nums}
-.uni-panel .u-wk-head .is-today,.uni-panel .u-wk-head .is-today b{color:var(--accent-text)}
+.uni-panel .u-wk-head .is-today,.uni-panel .u-wk-head .is-today b{color:var(--gold)}
 .uni-panel .u-wk-hours{position:relative;height:calc(var(--u-hour)*var(--rows))}
 .uni-panel .u-wk-hours span{position:absolute;right:var(--space-2);transform:translateY(-50%);font-size:var(--fs-12);color:var(--text-3);font-variant-numeric:tabular-nums}
 .uni-panel .u-wk-hours span:first-child{transform:none;top:4px!important}

@@ -20,7 +20,8 @@
 // next to this script (written by `node server.mjs --once`).
 // Styles read the dashboard's design tokens (css/tokens.css), so a page that hosts the panel links that file.
 // CSS hooks: --news-title-display: none hides the panel's own "News" title; --news-sticky-top is
-// where the topic bar sticks (below a fixed app bar, for example).
+// where the topic bar sticks (below a fixed app bar, for example); --news-bar-bg is the topic
+// bar's background (the page colour by default), drawn with background-attachment: fixed.
 
 const SNAPSHOT_URL = new URL('./data/news.json', import.meta.url).href;
 const TOPIC_KEY = 'pd.news.topic';
@@ -96,8 +97,7 @@ ol, ul { list-style:none; padding:0; }
 /* ---------- topic bar ---------- */
 .bar { position:sticky; top:var(--news-sticky-top, 0px); z-index:5; display:flex; align-items:center; gap:var(--space-2);
   margin-bottom:var(--space-3); border-bottom:1px solid var(--border);
-  /* the page backdrop, pinned to the screen like the page itself, so the key light runs through the bar */
-  background:var(--grad-page), var(--bg); background-attachment:fixed; }
+  background:var(--news-bar-bg, var(--bg)); background-attachment:fixed; }
 h2 { display:var(--news-title-display, block); flex:none; padding-right:var(--space-2); font-size:var(--fs-16); font-weight:var(--fw-semibold); letter-spacing:var(--tracking-tight); }
 .chips { flex:1; min-width:0; display:flex; overflow-x:auto; scrollbar-width:none; overscroll-behavior-x:contain;
   -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 24px), transparent); mask-image:linear-gradient(to right, #000 calc(100% - 24px), transparent); }

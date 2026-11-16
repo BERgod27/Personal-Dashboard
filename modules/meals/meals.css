@@ -60,7 +60,7 @@ div.pdm-muted { max-width: 70ch; } /* help text keeps a readable line length on 
 .pdm-hidden { display: none; }
 
 .pdm-input {
-  font: inherit; font-size: var(--fs-14); color: var(--text-1); background: var(--input-bg); border: 1px solid var(--border-strong);
+  font: inherit; font-size: var(--fs-14); color: var(--text-1); background-color: var(--input-bg); border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm); padding: 0 10px; min-width: 0; height: var(--control-h);
   transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
@@ -69,7 +69,8 @@ div.pdm-muted { max-width: 70ch; } /* help text keeps a readable line length on 
 .pdm-input.grow { min-width: 120px; }
 .pdm-input.w-num { width: 72px; flex: 0 0 auto; font-variant-numeric: tabular-nums; }
 .pdm-input:focus { outline: none; border-color: var(--focus); box-shadow: 0 0 0 3px var(--focus-soft); }
-.pdm select.pdm-input { padding-right: 28px; }
+/* background-color above, not the shorthand, keeps the dropdown arrow css/app.css draws on selects */
+.pdm select.pdm-input { padding-right: 30px; }
 
 /* Buttons: secondary by default, .primary for the one main action of a form, .ghost for quiet ones. */
 .pdm-btn {
@@ -132,7 +133,8 @@ div.pdm-muted { max-width: 70ch; } /* help text keeps a readable line length on 
 .pdm-week { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-3); }
 .pdm-day { gap: var(--space-2); }
 .pdm-day.is-today { border-color: var(--border-hover); }
-.pdm-day.is-today h3 { color: var(--accent-text); }
+/* today is marked in gold, like today's date on the Today screen */
+.pdm-day.is-today h3 { color: var(--gold); }
 .pdm-dayslot { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-13); }
 
 .pdm-scroll { max-height: 480px; overflow: auto; margin: 0 calc(-1 * var(--space-4)) calc(-1 * var(--space-4)); border-top: 1px solid var(--border); }

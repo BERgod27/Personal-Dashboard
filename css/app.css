@@ -137,8 +137,9 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .btn-group > .btn { border: 0; border-radius: 0; background: transparent; height: calc(var(--control-h) - 2px); color: var(--text-2); }
 .btn-group > .btn.icon { width: calc(var(--control-h) - 2px); }
 .btn-group > .btn + .btn { border-left: 1px solid var(--border); }
-.btn-group > .btn:first-child { border-radius: calc(var(--radius-sm) - 1px) 0 0 calc(var(--radius-sm) - 1px); }
-.btn-group > .btn:last-child { border-radius: 0 calc(var(--radius-sm) - 1px) calc(var(--radius-sm) - 1px) 0; }
+/* the end buttons follow the pill, so their inset focus ring isn't cut off at the corners */
+.btn-group > .btn:first-child { border-radius: var(--radius-pill) 0 0 var(--radius-pill); }
+.btn-group > .btn:last-child { border-radius: 0 var(--radius-pill) var(--radius-pill) 0; }
 .btn-group > .btn:hover { background: var(--surface-2); color: var(--text-1); }
 .btn-group > .btn:focus-visible { outline-offset: -2px; }
 
@@ -530,3 +531,8 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 /* The news page's topic bar sticks under the phone's app bar. */
 .view-module news-panel { --news-title-display: none; --news-sticky-top: calc(var(--topbar-h) + env(safe-area-inset-top)); }
 @media (min-width: 960px) { .view-module news-panel { --news-sticky-top: 0px; } }
+/* The topic bar paints the page backdrop, pinned to the screen, so the key light runs through it
+   instead of stopping at its edge. iOS ignores background-attachment: fixed and would draw a
+   second light inside the bar, so there the bar stays the plain page colour. */
+.view-module news-panel { --news-bar-bg: var(--grad-page), var(--bg); }
+@supports (-webkit-touch-callout: none) { .view-module news-panel { --news-bar-bg: var(--bg); } }

@@ -22,10 +22,12 @@
 .wt-root button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .wt-root button:focus-visible, .wt-root select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .wt-root input, .wt-root select, .wt-root textarea {
-  background: var(--input-bg); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background-color: var(--input-bg); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
   padding: 0 10px; min-height: var(--control-h); min-width: 0; font-size: var(--fs-14);
   transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
+/* background-color, not the shorthand, keeps the dropdown arrow css/app.css draws on selects */
+.wt-root select { padding-right: 30px; }
 .wt-root input:hover, .wt-root select:hover, .wt-root textarea:hover { border-color: var(--border-hover); }
 .wt-root input:focus, .wt-root select:focus, .wt-root textarea:focus {
   outline: none; border-color: var(--focus); box-shadow: 0 0 0 3px var(--focus-soft);

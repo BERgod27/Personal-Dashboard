@@ -7,7 +7,7 @@
    controls, and one warm key light just above the top-right corner of the screen. Glass cards
    catch that light on their rim at the top-right corner (--grad-key, --card-bg).
    Gold is kept for small things only (--gold, --grad-gold): the now-line, the current bar,
-   today's weekday, the focus ring and the glow on the day numeral. Primary buttons, tabs,
+   today's date, the focus ring and the glow on the day numeral. Primary buttons, tabs,
    progress bars and the heat map are silver-blue (--grad-accent, --grad-bright). Buttons and
    tabs are pills; cards have a 22px radius. The app has this one look; it does not follow
    the system's light setting. An explicit [data-theme="light"] keeps a flat light version.
@@ -185,9 +185,9 @@
 
   /* ---------- shape ---------- */
   --radius-xs: 6px;         /* checkboxes, tiny tags */
-  --radius-sm: 12px;         /* buttons, inputs, rows */
-  --radius: 22px;
-  --radius-pill: 999px;            /* cards, panels, dialogs, menus */
+  --radius-sm: 12px;        /* inputs, rows, small boxes */
+  --radius: 22px;           /* cards, panels, dialogs, menus */
+  --radius-pill: 999px;     /* buttons, button groups, chips */
   --control-h: 32px;
   --control-h-sm: 28px;
   --icon: 16px;
