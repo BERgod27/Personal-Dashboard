@@ -21,7 +21,7 @@ const STYLE = `
 .uni-panel h3{margin:0;font-size:var(--fs-14);font-weight:var(--fw-semibold);color:var(--text-1)}
 .uni-panel .ic{width:var(--icon);height:var(--icon);flex:none;fill:none;stroke:currentColor;stroke-width:var(--icon-stroke);stroke-linecap:round;stroke-linejoin:round}
 .uni-panel .ic *{vector-effect:non-scaling-stroke}
-.uni-panel .u-card{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius)}
+.uni-panel .u-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius)}
 .uni-panel .u-muted{color:var(--text-3)}
 .uni-panel .u-sec{display:grid;gap:var(--space-3);min-width:0}
 .uni-panel .u-sec-head{display:flex;align-items:center;gap:var(--space-2) var(--space-3);flex-wrap:wrap;min-height:32px}
@@ -80,7 +80,7 @@ const STYLE = `
 .uni-panel .u-day b{font-size:var(--fs-14);font-weight:var(--fw-medium);font-variant-numeric:tabular-nums;line-height:1.3}
 .uni-panel .u-day i{width:4px;height:4px;border-radius:50%;background:var(--text-3)}
 .uni-panel .u-day i.none{visibility:hidden}
-.uni-panel .u-day.is-today b{color:var(--accent-text)}
+.uni-panel .u-day.is-today b{color:var(--gold)}
 .uni-panel .u-day[aria-selected=true]{background:var(--surface-3);border-color:var(--border-strong);color:var(--text-1)}
 .uni-panel .u-day[aria-selected=true] b{font-weight:var(--fw-semibold)}
 .uni-panel .u-daylist{overflow:hidden}
@@ -108,7 +108,7 @@ const STYLE = `
 .uni-panel .u-wk-head div{padding:var(--space-2) var(--space-3);display:flex;align-items:baseline;gap:6px;font-size:var(--fs-12);color:var(--text-3);border-left:1px solid var(--border)}
 .uni-panel .u-wk-head div:first-child{border-left:0}
 .uni-panel .u-wk-head b{font-size:var(--fs-14);color:var(--text-1);font-weight:var(--fw-medium);font-variant-numeric:tabular-nums}
-.uni-panel .u-wk-head .is-today,.uni-panel .u-wk-head .is-today b{color:var(--accent-text)}
+.uni-panel .u-wk-head .is-today,.uni-panel .u-wk-head .is-today b{color:var(--gold)}
 .uni-panel .u-wk-hours{position:relative;height:calc(var(--u-hour)*var(--rows))}
 .uni-panel .u-wk-hours span{position:absolute;right:var(--space-2);transform:translateY(-50%);font-size:var(--fs-12);color:var(--text-3);font-variant-numeric:tabular-nums}
 .uni-panel .u-wk-hours span:first-child{transform:none;top:4px!important}
@@ -124,8 +124,8 @@ const STYLE = `
 .uni-panel .u-blk.is-past{box-shadow:inset 2px 0 0 color-mix(in srgb,var(--cc) 45%,transparent)}
 .uni-panel .u-blk.is-past b,.uni-panel .u-blk.is-past span{color:var(--text-3)}
 .uni-panel .u-blk.is-now{border-color:var(--focus)}
-.uni-panel .u-nowline{position:absolute;left:-1px;right:0;height:1px;background:var(--accent);z-index:2;pointer-events:none}
-.uni-panel .u-nowline::before{content:"";position:absolute;left:-3px;top:-3px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.uni-panel .u-nowline{position:absolute;left:-1px;right:0;height:1px;background:var(--grad-gold);z-index:2;pointer-events:none}
+.uni-panel .u-nowline::before{content:"";position:absolute;left:-3px;top:-3px;width:7px;height:7px;border-radius:50%;background:var(--gold)}
 @container (min-width:720px){
   .uni-panel .u-days,.uni-panel .u-daylist{display:none}
   .uni-panel .u-week{display:block}

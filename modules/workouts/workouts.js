@@ -1114,10 +1114,16 @@
     function renderHeatmap() {
       var weeks = heatWeeks, hm = Insights().heatmap(data.sessions, today(), weeks);
       var lastMonth = '';
-      var cols = hm.cols.map(function (col) {
+      var labels = hm.cols.map(function (col) {
         var m = fmtDate(col[0].date, { month: 'short' }), label = m !== lastMonth ? m : '';
         lastMonth = m;
-        return '<span class="wt-heat-m">' + esc(label) + '</span>' + col.map(function (d) {
+        return label;
+      });
+      // A month name is wider than one week's column, so when the next month starts one column
+      // later (only possible at the left edge) the first name would run into it: drop it.
+      labels.forEach(function (label, i) { if (label && labels[i + 1]) labels[i] = ''; });
+      var cols = hm.cols.map(function (col, ci) {
+        return '<span class="wt-heat-m">' + esc(labels[ci]) + '</span>' + col.map(function (d) {
           if (d.future) return '<i class="is-future"></i>';
           var tip = fmtDate(d.date) + (d.workouts ? ' · ' + (d.titles.length ? d.titles.join(', ') : plural(d.workouts, 'workout')) + ' · ' + plural(d.sets, 'set') : ' · rest');
           return '<i class="l' + d.level + (d.date === today() ? ' is-today' : '') + '" title="' + esc(tip) + '"></i>';

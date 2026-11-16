@@ -6,9 +6,11 @@
 /* ---------- base ---------- */
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; background: var(--bg); }
+/* The black-to-blue backdrop: fixed to the screen, so it stays put while pages scroll. */
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: var(--grad-page); pointer-events: none; }
 body {
   margin: 0;
-  background: var(--bg);
+  background: transparent;
   color: var(--text-1);
   font: var(--fw-regular) var(--fs-14)/var(--lh-body) var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -66,10 +68,6 @@ kbd {
 :where(input[readonly], textarea[readonly]) { color: var(--text-2); }
 :where(input:disabled, select:disabled, textarea:disabled) { opacity: 0.5; cursor: not-allowed; }
 input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) input[type="date"]::-webkit-calendar-picker-indicator,
-  :root:not([data-theme="dark"]) input[type="time"]::-webkit-calendar-picker-indicator { filter: none; }
-}
 :root[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator,
 :root[data-theme="light"] input[type="time"]::-webkit-calendar-picker-indicator { filter: none; }
 :where(input[type="checkbox"]) {
@@ -81,7 +79,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 }
 :where(input[type="checkbox"]):hover { border-color: var(--text-3); }
 :where(input[type="checkbox"]):checked {
-  background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 11px no-repeat;
+  background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230a1020' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 11px no-repeat;
   border-color: var(--accent);
 }
 :where(input[type="checkbox"]):disabled { cursor: default; opacity: 0.5; }
@@ -105,7 +103,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   height: var(--control-h); padding: 0 12px;
-  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-pill);
   background: var(--surface-2); color: var(--text-1);
   font-size: var(--fs-13); font-weight: var(--fw-medium); line-height: 1; white-space: nowrap;
   cursor: pointer; user-select: none; text-decoration: none;
@@ -116,14 +114,17 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .btn:disabled { opacity: 0.5; cursor: default; pointer-events: none; }
 .btn svg.ic { color: var(--text-2); }
 .btn.icon { width: var(--control-h); padding: 0; }
-.btn.small { height: var(--control-h-sm); padding: 0 10px; }
+.btn.small { height: var(--control-h-sm); padding: 0 12px; }
+.btn:not(.icon):not(.small):not(.ghost) { padding-inline: 14px; }
+/* dialogs keep the tighter padding so four actions still fit on one row at 480px */
+.dialog-actions .btn:not(.icon):not(.small):not(.ghost) { padding-inline: 12px; }
 .btn.small.icon { width: var(--control-h-sm); }
 .btn.ghost { background: transparent; border-color: transparent; color: var(--text-2); }
 .btn.ghost:hover { background: var(--surface-2); color: var(--text-1); }
 .btn.ghost:hover svg.ic { color: var(--text-1); }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.btn.primary { background: var(--grad-accent) border-box; border-color: transparent; color: var(--accent-fg); box-shadow: var(--glow-accent); }
 .btn.primary svg.ic { color: currentColor; }
-.btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn.primary:hover { background: var(--grad-accent-hover) border-box; border-color: transparent; }
 .btn.danger { color: var(--danger); }
 .btn.danger svg.ic { color: currentColor; }
 .btn.danger:hover { background: var(--danger-soft); border-color: rgb(224 115 107 / 0.3); }
@@ -131,13 +132,14 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .btn.danger.solid:hover { background: var(--danger-fill-hover); border-color: var(--danger-fill-hover); }
 .btn-group {
   display: inline-flex; align-items: stretch; flex: none;
-  background: var(--surface-1); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--surface-1); border: 1px solid var(--border-strong); border-radius: var(--radius-pill); overflow: hidden;
 }
 .btn-group > .btn { border: 0; border-radius: 0; background: transparent; height: calc(var(--control-h) - 2px); color: var(--text-2); }
 .btn-group > .btn.icon { width: calc(var(--control-h) - 2px); }
 .btn-group > .btn + .btn { border-left: 1px solid var(--border); }
-.btn-group > .btn:first-child { border-radius: calc(var(--radius-sm) - 1px) 0 0 calc(var(--radius-sm) - 1px); }
-.btn-group > .btn:last-child { border-radius: 0 calc(var(--radius-sm) - 1px) calc(var(--radius-sm) - 1px) 0; }
+/* the end buttons follow the pill, so their inset focus ring isn't cut off at the corners */
+.btn-group > .btn:first-child { border-radius: var(--radius-pill) 0 0 var(--radius-pill); }
+.btn-group > .btn:last-child { border-radius: 0 var(--radius-pill) var(--radius-pill) 0; }
 .btn-group > .btn:hover { background: var(--surface-2); color: var(--text-1); }
 .btn-group > .btn:focus-visible { outline-offset: -2px; }
 
@@ -156,7 +158,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .banner {
   display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
   padding: 8px 8px 8px 12px; min-height: 44px;
-  background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius);
   font-size: var(--fs-13); color: var(--text-2);
 }
 .banner > svg.ic { color: var(--text-3); }
@@ -203,12 +205,12 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
   display: flex; align-items: center; gap: var(--space-2);
   min-height: calc(var(--topbar-h) + env(safe-area-inset-top));
   padding: env(safe-area-inset-top) 8px 0 16px;
-  background: var(--bg); border-bottom: 1px solid var(--border);
+  background: var(--grad-key), var(--grad-chrome), var(--bg); border-bottom: 1px solid var(--border);
 }
 .brand { display: flex; align-items: center; gap: 10px; margin-right: auto; min-width: 0; }
 .brand-mark {
   width: 24px; height: 24px; flex: none; display: grid; place-items: center;
-  background: var(--accent-soft); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--accent-text);
+  background: var(--grad-accent); border-radius: var(--radius-sm); color: var(--accent-fg); box-shadow: var(--glow-accent);
 }
 .brand-mark svg.ic { width: 14px; height: 14px; }
 .brand-name { font-size: var(--fs-14); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-tight); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -221,9 +223,10 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
   display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
   height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
   padding: 0 4px env(safe-area-inset-bottom);
-  background: var(--bg); border-top: 1px solid var(--border);
+  background: var(--bg) var(--grad-chrome); border-top: 1px solid var(--border);
 }
 .tab {
+  position: relative;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   color: var(--text-3); text-decoration: none; font-size: var(--fs-12); font-weight: var(--fw-medium);
   border-radius: var(--radius-sm);
@@ -233,6 +236,8 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .tab:hover { color: var(--text-2); }
 .tab[aria-current="page"] { color: var(--text-1); }
 .tab[aria-current="page"] svg.ic { color: var(--accent-text); }
+/* the current tab carries a short bright bar: on top on a phone, down the left edge in the sidebar */
+.tab[aria-current="page"]::before { content: ""; position: absolute; top: 0; left: 50%; width: 28px; height: 2px; margin-left: -14px; border-radius: 0 0 2px 2px; background: var(--grad-bright); }
 .tab:focus-visible { outline-offset: -2px; }
 .tab-key { display: none; }
 
@@ -268,11 +273,14 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .masthead-num {
   flex: none;
   padding-left: var(--space-4);
-  border-left: 2px solid var(--accent);
+  border-left: 2px solid var(--accent); border-image: var(--grad-bar) 1;
   font-family: var(--font-mono);
   font-size: var(--fs-40); font-weight: var(--fw-light); line-height: 0.92;
-  letter-spacing: -0.03em; color: var(--text-1);
+  letter-spacing: -0.03em; color: transparent;
+  background: var(--grad-numeral) padding-box; -webkit-background-clip: text; background-clip: text;
   font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  /* lit like a display: a tight warm-white halo, then a soft one */
+  filter: drop-shadow(0 0 1px rgb(255 240 220 / 0.55)) drop-shadow(0 0 12px rgb(255 196 120 / 0.32));
 }
 .masthead-label { display: grid; gap: 3px; min-width: 0; }
 .masthead-label h1 { font-size: var(--fs-20); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-tighter); }
@@ -286,7 +294,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .weekstrip {
   list-style: none; margin: 0; padding: 3px;
   display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px;
-  background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius);
 }
 .wday {
   width: 100%; height: 56px; padding: 0; border: 1px solid transparent; border-radius: var(--radius-sm);
@@ -297,8 +305,8 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .wday:hover { background: var(--surface-2); }
 .wday-name { font-size: var(--fs-12); color: var(--text-3); line-height: 1.2; }
 .wday-num { font-size: var(--fs-14); font-weight: var(--fw-medium); font-variant-numeric: tabular-nums; line-height: 1.3; }
-.wday.is-today .wday-num { color: var(--accent-text); }
-.wday.selected { background: var(--surface-3); border-color: var(--border-strong); color: var(--text-1); }
+.wday.is-today .wday-num { color: var(--gold); }
+.wday.selected { background: linear-gradient(180deg, rgb(150 175 230 / 0.22), rgb(150 175 230 / 0.05)); border-color: rgb(170 195 245 / 0.38); color: var(--text-1); }
 .wday.selected .wday-num { font-weight: var(--fw-semibold); }
 .wday-dots { display: flex; gap: 3px; height: 4px; align-items: center; }
 
@@ -313,7 +321,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .side { display: grid; gap: var(--space-4); min-width: 0; }
 /* Nutrição and the notes sit in the side column with Tasks; a wide screen gives them a column of their own. */
 .side-col { display: contents; }
-.panel { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
+.panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
 .panel-head {
   display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
   min-height: 44px; padding: 0 var(--space-4); border-bottom: 1px solid var(--border);
@@ -331,10 +339,12 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
   scrollbar-width: thin; scrollbar-color: var(--surface-4) transparent;
 }
 .timeline { position: relative; cursor: copy; }
-.hour { position: absolute; left: 0; right: 0; border-top: 1px solid var(--border-subtle); }
+.hour { position: absolute; left: 0; right: 0; }
+/* the hour line starts after the label, so the label needs no patch of card colour behind it */
+.hour::after { content: ""; position: absolute; top: 0; left: calc(var(--gutter) - 4px); right: 0; border-top: 1px solid var(--border-subtle); }
 .hour-label {
   position: absolute; top: -0.7em; left: 0; width: calc(var(--gutter) - 8px); padding-right: var(--space-2);
-  background: var(--surface-1); font-size: var(--fs-12); color: var(--text-3); font-variant-numeric: tabular-nums; line-height: 1.4;
+  font-size: var(--fs-12); color: var(--text-3); font-variant-numeric: tabular-nums; line-height: 1.4;
 }
 .hour:first-child .hour-label { top: 2px; }
 .timeline-empty { position: absolute; left: var(--gutter); right: var(--space-2); color: var(--text-3); font-size: var(--fs-13); pointer-events: none; }
@@ -342,15 +352,15 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .event {
   display: flex; flex-direction: column; align-items: flex-start; gap: 0; text-align: left;
   width: 100%; padding: 5px 8px 5px 10px; overflow: hidden; cursor: pointer;
-  background: var(--surface-2); color: var(--text-1);
+  background: var(--surface-2) linear-gradient(90deg, color-mix(in srgb, var(--c) 16%, transparent), transparent 55%); color: var(--text-1);
   border: 1px solid var(--border); border-radius: var(--radius-sm);
   box-shadow: inset 2px 0 0 var(--c);
   transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
 }
 .event.positioned { position: absolute; }
-.event:hover { background: var(--surface-3); border-color: var(--border-strong); }
+.event:hover { background-color: var(--surface-3); border-color: var(--border-strong); }
 .event:disabled { cursor: default; }
-.event:disabled:hover { background: var(--surface-2); border-color: var(--border); }
+.event:disabled:hover { background-color: var(--surface-2); border-color: var(--border); }
 .event-time { font-size: var(--fs-12); color: var(--text-2); font-variant-numeric: tabular-nums; line-height: 1.4; }
 .event-title { font-weight: var(--fw-medium); font-size: var(--fs-13); line-height: 1.35; overflow-wrap: break-word; max-width: 100%; }
 /* Narrow lanes (overlapping events on a phone): start time only, no tags. */
@@ -365,11 +375,11 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .event.compact .event-meta, .event.short .event-meta { display: none; }
 .event.compact .event-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
-.now { position: absolute; left: calc(var(--gutter) - 4px); right: 0; border-top: 1px solid var(--accent); pointer-events: none; z-index: 2; }
-.now::before { content: ""; position: absolute; left: -3px; top: -4px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.now { position: absolute; left: calc(var(--gutter) - 4px); right: 0; height: 1px; background: var(--grad-gold); pointer-events: none; z-index: 2; }
+.now::before { content: ""; position: absolute; left: -3px; top: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 3px var(--focus-soft), var(--glow-light); }
 .now-label {
   position: absolute; right: 0; top: -9px; padding: 0 5px; border-radius: var(--radius-xs);
-  background: var(--accent); color: var(--accent-fg);
+  background: var(--grad-gold); color: #1c1100;
   font-size: var(--fs-12); font-weight: var(--fw-medium); font-variant-numeric: tabular-nums; line-height: 17px;
 }
 
@@ -426,7 +436,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 /* ---------- dialogs ---------- */
 .dialog {
   width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0;
-  background: var(--surface-1); color: var(--text-1);
+  background: var(--dialog-bg); color: var(--text-1);
   border: 1px solid var(--border-strong); border-radius: var(--radius);
   box-shadow: var(--shadow-overlay);
 }
@@ -467,7 +477,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
     display: flex; flex-direction: column; gap: 2px;
     position: fixed; inset: 0 auto 0 0; width: var(--sidebar-w); z-index: 30;
     padding: var(--space-3) var(--space-2);
-    background: var(--bg); border-right: 1px solid var(--border);
+    background: none; border-right: 1px solid var(--border);
   }
   .topbar { display: contents; }
   .brand { order: 0; margin: 0; padding: var(--space-1) var(--space-2) var(--space-4); }
@@ -482,7 +492,8 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
   }
   .tab svg.ic { width: var(--icon); height: var(--icon); color: var(--text-3); }
   .tab:hover { background: var(--surface-2); color: var(--text-1); }
-  .tab[aria-current="page"] { background: var(--surface-2); color: var(--text-1); box-shadow: inset 2px 0 0 var(--accent); }
+  .tab[aria-current="page"] { background: var(--grad-selected); color: var(--text-1); }
+  .tab[aria-current="page"]::before { top: 6px; bottom: 6px; left: 0; width: 2px; height: auto; margin: 0; border-radius: 0 2px 2px 0; background: var(--grad-bar); }
   .tab[aria-current="page"] svg.ic { color: var(--accent-text); }
   .tab-key { display: inline-grid; margin-left: auto; opacity: 0; transition: opacity var(--dur-fast) var(--ease-out); }
   .tab:hover .tab-key, .tab:focus-visible .tab-key { opacity: 1; }
@@ -520,3 +531,8 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 /* The news page's topic bar sticks under the phone's app bar. */
 .view-module news-panel { --news-title-display: none; --news-sticky-top: calc(var(--topbar-h) + env(safe-area-inset-top)); }
 @media (min-width: 960px) { .view-module news-panel { --news-sticky-top: 0px; } }
+/* The topic bar paints the page backdrop, pinned to the screen, so the key light runs through it
+   instead of stopping at its edge. iOS ignores background-attachment: fixed and would draw a
+   second light inside the bar, so there the bar stays the plain page colour. */
+.view-module news-panel { --news-bar-bg: var(--grad-page), var(--bg); }
+@supports (-webkit-touch-callout: none) { .view-module news-panel { --news-bar-bg: var(--bg); } }

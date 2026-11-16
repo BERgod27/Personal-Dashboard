@@ -20,7 +20,8 @@
 // next to this script (written by `node server.mjs --once`).
 // Styles read the dashboard's design tokens (css/tokens.css), so a page that hosts the panel links that file.
 // CSS hooks: --news-title-display: none hides the panel's own "News" title; --news-sticky-top is
-// where the topic bar sticks (below a fixed app bar, for example).
+// where the topic bar sticks (below a fixed app bar, for example); --news-bar-bg is the topic
+// bar's background (the page colour by default), drawn with background-attachment: fixed.
 
 const SNAPSHOT_URL = new URL('./data/news.json', import.meta.url).href;
 const TOPIC_KEY = 'pd.news.topic';
@@ -95,7 +96,8 @@ ol, ul { list-style:none; padding:0; }
 
 /* ---------- topic bar ---------- */
 .bar { position:sticky; top:var(--news-sticky-top, 0px); z-index:5; display:flex; align-items:center; gap:var(--space-2);
-  margin-bottom:var(--space-3); background:var(--bg); border-bottom:1px solid var(--border); }
+  margin-bottom:var(--space-3); border-bottom:1px solid var(--border);
+  background:var(--news-bar-bg, var(--bg)); background-attachment:fixed; }
 h2 { display:var(--news-title-display, block); flex:none; padding-right:var(--space-2); font-size:var(--fs-16); font-weight:var(--fw-semibold); letter-spacing:var(--tracking-tight); }
 .chips { flex:1; min-width:0; display:flex; overflow-x:auto; scrollbar-width:none; overscroll-behavior-x:contain;
   -webkit-mask-image:linear-gradient(to right, #000 calc(100% - 24px), transparent); mask-image:linear-gradient(to right, #000 calc(100% - 24px), transparent); }
@@ -106,7 +108,7 @@ h2 { display:var(--news-title-display, block); flex:none; padding-right:var(--sp
 .chip:last-child { margin-right:var(--space-6); }
 .chip:hover { color:var(--text-1); }
 .chip[aria-pressed="true"] { color:var(--text-1); }
-.chip[aria-pressed="true"]::after { content:""; position:absolute; left:var(--space-3); right:var(--space-3); bottom:0; height:2px; border-radius:2px 2px 0 0; background:var(--accent); }
+.chip[aria-pressed="true"]::after { content:""; position:absolute; left:var(--space-3); right:var(--space-3); bottom:0; height:2px; border-radius:2px 2px 0 0; background:var(--grad-bright); }
 .chip:first-child[aria-pressed="true"]::after { left:0; }
 .chip:focus-visible { outline-offset:-2px; }
 .tool { flex:none; width:var(--control-h); height:var(--control-h); display:inline-grid; place-items:center; padding:0; border:0;
@@ -149,7 +151,7 @@ h2 { display:var(--news-title-display, block); flex:none; padding-right:var(--sp
 /* ---------- page layout ---------- */
 .page { display:grid; grid-template-columns:minmax(0, 1fr); gap:var(--space-4); align-items:start; }
 .col { display:grid; gap:var(--space-4); min-width:0; }
-.card { min-width:0; background:var(--surface-1); border:1px solid var(--border); border-radius:var(--radius); }
+.card { min-width:0; background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius); }
 .sec-h { display:flex; align-items:center; gap:var(--space-2) var(--space-3); flex-wrap:wrap; padding:var(--space-4) var(--space-4) var(--space-1); }
 .sec-h h3 { display:flex; align-items:center; gap:var(--space-2); font-size:var(--fs-16); font-weight:var(--fw-semibold); letter-spacing:var(--tracking-tight); line-height:var(--lh-tight); }
 .sec-sub { color:var(--text-3); font:var(--fs-12) var(--font-mono); font-variant-numeric:tabular-nums; }
@@ -279,7 +281,7 @@ h2 { display:var(--news-title-display, block); flex:none; padding-right:var(--sp
 
 /* ---------- compact tile ---------- */
 :host([compact]) { height:100%; container-type:normal; }
-.tile-wrap { display:flex; flex-direction:column; height:100%; background:var(--surface-1); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.tile-wrap { display:flex; flex-direction:column; height:100%; background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
 .tile-head { display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) var(--space-3) var(--space-2) var(--space-4); }
 .tile-head .status { margin-right:auto; color:var(--text-3); font-size:var(--fs-12); }
 .tile-wrap .rows { flex:1; overflow:auto; }
