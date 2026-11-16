@@ -93,7 +93,7 @@
 .wt-banner em { display: inline-flex; align-items: center; gap: 2px; font-style: normal; font-size: var(--fs-13); font-weight: var(--fw-medium); color: var(--text-2); }
 
 /* ---------- cards ---------- */
-.wt-card { background: var(--grad-card), var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-4); margin-bottom: var(--space-3); min-width: 0; }
+.wt-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-4); margin-bottom: var(--space-3); min-width: 0; }
 .wt-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-4); flex-wrap: wrap; }
 .wt-card-head span, .wt-sec-head span { display: block; color: var(--text-3); font-size: var(--fs-13); }
 .wt-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; margin: var(--space-6) 0 var(--space-3); }
@@ -111,7 +111,7 @@
 
 /* ---------- stats strip ---------- */
 .wt-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-5); }
-.wt-stat { background: var(--grad-card), var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-3) var(--space-4); min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.wt-stat { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-3) var(--space-4); min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .wt-stat-l, .wt-stat-top span { color: var(--text-3); font-size: var(--fs-12); }
 .wt-stat b { font-size: var(--fs-20); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-tighter); font-variant-numeric: tabular-nums; line-height: var(--lh-tight); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* headline figures take the same white-to-blue gradient as the day numeral on Today */
@@ -448,7 +448,7 @@
 .wt-exhero h3 { font-size: var(--fs-16); }
 .wt-exhero span { color: var(--text-3); font-size: var(--fs-13); }
 .wt-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-3); }
-.wt-tile { background: var(--grad-card), var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-3) var(--space-4); }
+.wt-tile { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-3) var(--space-4); }
 .wt-tile span { display: block; font-size: var(--fs-12); color: var(--text-3); }
 .wt-tile b { font-size: var(--fs-16); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-tight); font-variant-numeric: tabular-nums; }
 .wt-exhist { list-style: none; margin: 0; padding: 0; }

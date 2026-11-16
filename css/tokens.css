@@ -4,7 +4,8 @@
    Change a value here and it changes everywhere.
 
    "Night with a light" theme: a near-black page with dark navy glass cards, silver-blue
-   controls and a soft warm light in the corner of every card, like a lamp just out of frame.
+   controls, and one warm key light just above the top-right corner of the screen. Glass cards
+   catch that light on their rim at the top-right corner (--grad-key, --card-bg).
    Gold is kept for small things only (--gold, --grad-gold): the now-line, the current bar,
    today's weekday, the focus ring and the glow on the day numeral. Primary buttons, tabs,
    progress bars and the heat map are silver-blue (--grad-accent, --grad-bright). Buttons and
@@ -59,18 +60,56 @@
   --focus: #ffb84a;         /* focus ring, 7.1:1 against surfaces */
   --focus-soft: rgb(255 184 74 / 0.30);
 
-  /* ---------- gradients: where the black turns blue ---------- */
-  /* Behind everything, fixed to the screen (body::before in app.css). */
-  --grad-page: 
-    radial-gradient(64rem 38rem at 50% -18%, rgb(52 72 118 / 0.34), transparent 66%),
-    radial-gradient(54rem 40rem at 104% 112%, rgb(255 140 24 / 0.13), transparent 62%),
+  /* ---------- light: one warm key light, just above the top-right corner of the screen ----------
+     It falls off the way a real lamp does (roughly 1/d²): a small near-white core, mostly
+     hidden above the top edge so the lamp itself stays out of frame, half its strength about 20px out, a tenth by 80px, gone by 260px.
+     A dim warm wash over a large area reads as a brown stain; a hot core with a fast falloff
+     reads as light. It is painted on the page (fixed) and again on the phone's top bar, lined up,
+     so the bar and the page read as one lit scene. */
+  --grad-key: radial-gradient(circle 640px at calc(100% - 112px) -18px,
+      rgb(255 251 244 / 0.90) 0%,
+      rgb(255 245 226 / 0.84) 1.6%,
+      rgb(255 230 190 / 0.58) 3.2%,
+      rgb(255 212 152 / 0.34) 5.4%,
+      rgb(255 194 124 / 0.18) 8.4%,
+      rgb(255 180 106 / 0.088) 12.5%,
+      rgb(250 172 102 / 0.04) 18.5%,
+      rgb(240 168 106 / 0.017) 27%,
+      rgb(230 168 112 / 0.006) 40%,
+      transparent 60%);
+  /* Behind everything, fixed to the screen (body::before in app.css): the key light, a faint
+     cool fill from above so the black has depth, and the black itself. */
+  --grad-page:
+    var(--grad-key),
+    radial-gradient(80rem 44rem at 30% -24%, rgb(44 60 100 / 0.20), transparent 70%),
     linear-gradient(180deg, #050507 0%, #07090e 100%);
-  /* Bars that stay put while content scrolls under them: sidebar, phone top bar, tab bar. */
+  /* Bars that stay put while content scrolls under them: phone top bar and tab bar. */
   --grad-chrome: linear-gradient(180deg, #0c1019 0%, #050507 100%);
-  /* Cards are see-through blue-black (--card), so the page's light shows through them and a card
-     near the light is bluer than one far from it. --grad-card adds a sheen from the top-left corner. */
-  --card: rgb(12 17 28 / 0.68);
-  --grad-card: radial-gradient(62% 90% at 100% 0%, rgb(255 232 190 / 0.28) 0%, rgb(255 170 60 / 0.09) 38%, transparent 74%), linear-gradient(160deg, rgb(130 160 215 / 0.14) 0%, rgb(90 120 180 / 0.04) 45%, transparent 80%);
+
+  /* ---------- glass cards: lit by the key light ----------
+     The fill is navy at 92%. Each card's 1px rim catches the light as a crisp highlight on its
+     top-right corner that fades along the top and right edges within about 80px; only 8% of it
+     shows on the glass inside, so the face stays clean instead of turning a muddy brown. The highlight is sized
+     in px, so a wide card gets the same small highlight as a narrow one. A cool line along the
+     top edge is the glass bevel. Use background: var(--card-bg) (or --dialog-bg for opaque
+     overlays) with a normal 1px border; the border colour sits over the rim. */
+  --card: rgb(12 17 28 / 0.92);
+  --card-rim: radial-gradient(circle 200px at 100% 0,
+      rgb(255 243 224 / 0.88) 0%,
+      rgb(255 230 194 / 0.52) 8%,
+      rgb(255 214 166 / 0.25) 20%,
+      rgb(255 204 152 / 0.09) 38%,
+      rgb(255 200 150 / 0.03) 58%,
+      transparent 80%);
+  --card-top: linear-gradient(180deg, rgb(225 235 255 / 0.10) 0, rgb(225 235 255 / 0.025) 40px, transparent 120px);
+  --card-bg:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    var(--card-rim) border-box,
+    var(--card-top) border-box;
+  --dialog-bg:
+    linear-gradient(var(--surface-1), var(--surface-1)) padding-box,
+    var(--card-rim) border-box,
+    var(--card-top) border-box;
   /* Fills that carry white text (primary buttons, the now label): 4.6:1 at the light end. */
   --grad-accent: linear-gradient(135deg, #8499c6 0%, #c9d6ef 100%);
   --grad-accent-hover: linear-gradient(135deg, #92a6d0 0%, #d6e1f5 100%);
@@ -85,7 +124,7 @@
   --grad-figure: linear-gradient(180deg, #ffffff 30%, #c9d6f0 100%);   /* smaller headline figures */
   /* The selected row or day: blue coming in from the left, fading to the surface. */
   --grad-selected: linear-gradient(90deg, rgb(150 175 230 / 0.18) 0%, rgb(150 175 230 / 0.04) 100%);
-  --glow-accent: 0 0 0 1px rgb(255 255 255 / 0.28) inset, 0 6px 22px -8px rgb(150 178 240 / 0.65);
+  --glow-accent: inset 0 1px 0 rgb(255 255 255 / 0.55), inset 0 -1px 0 rgb(20 30 60 / 0.25), 0 1px 2px rgb(0 0 0 / 0.45), 0 4px 14px -6px rgb(150 178 240 / 0.40);
 
   /* ---------- status: muted, used for text, icons and thin borders ---------- */
   --success: #5fae86;
@@ -155,7 +194,7 @@
   --icon-stroke: 1.5px;
 
   /* ---------- elevation: overlays only ---------- */
-  --shadow-overlay: 0 0 0 1px rgb(0 0 0 / 0.5), 0 18px 44px rgb(0 0 0 / 0.7), 0 0 70px -24px rgb(255 150 30 / 0.28);
+  --shadow-overlay: 0 0 0 1px rgb(0 0 0 / 0.5), 0 24px 60px rgb(0 0 0 / 0.72);
 
   /* ---------- motion: 100 / 150 / 200ms only ---------- */
   --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
@@ -209,7 +248,9 @@
   --grad-page: none;
   --card: #ffffff;
   --grad-chrome: none;
-  --grad-card: none;
+  --grad-key: none;
+  --card-rim: none;
+  --card-top: none;
   --grad-bar: linear-gradient(180deg, #63c0ff 0%, #1d5cf0 100%);
   --gold: #b45309;
   --grad-gold: linear-gradient(90deg, #b45309, #d97706);

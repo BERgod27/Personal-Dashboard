@@ -21,7 +21,7 @@ const STYLE = `
 .uni-panel h3{margin:0;font-size:var(--fs-14);font-weight:var(--fw-semibold);color:var(--text-1)}
 .uni-panel .ic{width:var(--icon);height:var(--icon);flex:none;fill:none;stroke:currentColor;stroke-width:var(--icon-stroke);stroke-linecap:round;stroke-linejoin:round}
 .uni-panel .ic *{vector-effect:non-scaling-stroke}
-.uni-panel .u-card{background:var(--grad-card), var(--card);border:1px solid var(--border);border-radius:var(--radius)}
+.uni-panel .u-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius)}
 .uni-panel .u-muted{color:var(--text-3)}
 .uni-panel .u-sec{display:grid;gap:var(--space-3);min-width:0}
 .uni-panel .u-sec-head{display:flex;align-items:center;gap:var(--space-2) var(--space-3);flex-wrap:wrap;min-height:32px}
