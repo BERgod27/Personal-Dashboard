@@ -3,15 +3,13 @@
    (modules/uni, modules/workouts, modules/meals, modules/news) read these names directly.
    Change a value here and it changes everywhere.
 
-   "Amber on night" theme: a near-black page with dark navy glass cards and one warm amber
-   accent. The page is black with a faint navy light at the top and an amber ember in the
-   bottom-right corner. Cards are see-through navy with a cool sheen from the top-left and a
-   faint amber glow in the top-right corner, large radius (22px). Buttons, tabs and chips are
-   pills. Amber carries primary actions, focus rings, active states, the now-line and the bars
-   in charts, always as a gradient (--grad-accent for fills, which take dark text;
-   --grad-bright for bars and lines). Area and course hues stay as small dots and 2px bars.
-   The app has this one look; it does not follow the system's light setting. An explicit
-   [data-theme="light"] keeps a flat light version with an amber accent.
+   "Night with a light" theme: a near-black page with dark navy glass cards, silver-blue
+   controls and a soft warm light in the corner of every card, like a lamp just out of frame.
+   Gold is kept for small things only (--gold, --grad-gold): the now-line, the current bar,
+   today's weekday, the focus ring and the glow on the day numeral. Primary buttons, tabs,
+   progress bars and the heat map are silver-blue (--grad-accent, --grad-bright). Buttons and
+   tabs are pills; cards have a 22px radius. The app has this one look; it does not follow
+   the system's light setting. An explicit [data-theme="light"] keeps a flat light version.
    Text pairs were checked for WCAG AA (4.5:1) on every surface. */
 
 @font-face {
@@ -53,11 +51,11 @@
   --text-3: #8c919e;
 
   /* ---------- accent: cobalt ---------- */
-  --accent: #e8890c;        /* flat fills; white text on it is 5.4:1 */
-  --accent-hover: #f39a1f;
-  --accent-fg: #1c1100;
-  --accent-text: #ffb84a;   /* accent used as text or icon on dark surfaces (9.0:1) */
-  --accent-soft: rgb(255 170 50 / 0.16);
+  --accent: #8ea3d0;        /* flat fills; white text on it is 5.4:1 */
+  --accent-hover: #a5b7df;
+  --accent-fg: #0a1020;
+  --accent-text: #c7d4f0;   /* accent used as text or icon on dark surfaces (9.0:1) */
+  --accent-soft: rgb(150 175 230 / 0.16);
   --focus: #ffb84a;         /* focus ring, 7.1:1 against surfaces */
   --focus-soft: rgb(255 184 74 / 0.30);
 
@@ -72,18 +70,22 @@
   /* Cards are see-through blue-black (--card), so the page's light shows through them and a card
      near the light is bluer than one far from it. --grad-card adds a sheen from the top-left corner. */
   --card: rgb(12 17 28 / 0.68);
-  --grad-card: radial-gradient(120% 90% at 100% 0%, rgb(255 168 56 / 0.075), transparent 55%), linear-gradient(160deg, rgb(130 160 215 / 0.14) 0%, rgb(90 120 180 / 0.04) 45%, transparent 80%);
+  --grad-card: radial-gradient(62% 90% at 100% 0%, rgb(255 232 190 / 0.28) 0%, rgb(255 170 60 / 0.09) 38%, transparent 74%), linear-gradient(160deg, rgb(130 160 215 / 0.14) 0%, rgb(90 120 180 / 0.04) 45%, transparent 80%);
   /* Fills that carry white text (primary buttons, the now label): 4.6:1 at the light end. */
-  --grad-accent: linear-gradient(135deg, #e8800a 0%, #ffc24d 100%);
-  --grad-accent-hover: linear-gradient(135deg, #f28d14 0%, #ffcc66 100%);
+  --grad-accent: linear-gradient(135deg, #8499c6 0%, #c9d6ef 100%);
+  --grad-accent-hover: linear-gradient(135deg, #92a6d0 0%, #d6e1f5 100%);
   /* Bars, lines and big numerals: no text sits on these. */
-  --grad-bright: linear-gradient(90deg, #e8800a 0%, #ffd36e 100%);
-  --grad-bar: linear-gradient(180deg, #ffd36e 0%, #e8800a 100%);
-  --grad-numeral: linear-gradient(170deg, #ffffff 10%, #ffe3ad 50%, #f5a524 100%);
-  --grad-figure: linear-gradient(180deg, #ffffff 25%, #ffd88f 100%);   /* smaller headline figures */
+  --grad-bright: linear-gradient(90deg, #6d84b6 0%, #c9d6f0 100%);
+  --grad-bar: linear-gradient(180deg, #d6e1f5 0%, #6d84b6 100%);
+  /* The one place gold is used: the now-line, the current bar, today's weekday, focus. */
+  --gold: #ffb84a;
+  --grad-gold: linear-gradient(90deg, #e8800a 0%, #ffd36e 100%);
+  --glow-light: 0 0 22px rgb(255 190 90 / 0.40);
+  --grad-numeral: linear-gradient(170deg, #ffffff 15%, #e4ebfa 55%, #a9bbe0 100%);
+  --grad-figure: linear-gradient(180deg, #ffffff 30%, #c9d6f0 100%);   /* smaller headline figures */
   /* The selected row or day: blue coming in from the left, fading to the surface. */
-  --grad-selected: linear-gradient(90deg, rgb(255 168 56 / 0.20) 0%, rgb(255 168 56 / 0.05) 100%);
-  --glow-accent: 0 0 0 1px rgb(255 210 120 / 0.28) inset, 0 6px 22px -8px rgb(255 150 30 / 0.7);
+  --grad-selected: linear-gradient(90deg, rgb(150 175 230 / 0.18) 0%, rgb(150 175 230 / 0.04) 100%);
+  --glow-accent: 0 0 0 1px rgb(255 255 255 / 0.28) inset, 0 6px 22px -8px rgb(150 178 240 / 0.65);
 
   /* ---------- status: muted, used for text, icons and thin borders ---------- */
   --success: #5fae86;
@@ -209,6 +211,9 @@
   --grad-chrome: none;
   --grad-card: none;
   --grad-bar: linear-gradient(180deg, #63c0ff 0%, #1d5cf0 100%);
+  --gold: #b45309;
+  --grad-gold: linear-gradient(90deg, #b45309, #d97706);
+  --glow-light: none;
   --grad-numeral: linear-gradient(170deg, #0d1424 10%, #b45309 100%);
   --grad-figure: linear-gradient(180deg, #0d1424 25%, #b45309 100%);
   --grad-selected: linear-gradient(90deg, rgb(180 83 9 / 0.14) 0%, rgb(180 83 9 / 0.04) 100%);

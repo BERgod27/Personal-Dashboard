@@ -79,7 +79,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 }
 :where(input[type="checkbox"]):hover { border-color: var(--text-3); }
 :where(input[type="checkbox"]):checked {
-  background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231c1100' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 11px no-repeat;
+  background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230a1020' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 11px no-repeat;
   border-color: var(--accent);
 }
 :where(input[type="checkbox"]):disabled { cursor: default; opacity: 0.5; }
@@ -155,7 +155,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .banner {
   display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
   padding: 8px 8px 8px 12px; min-height: 44px;
-  background: var(--card) var(--grad-card); border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--grad-card), var(--card); border: 1px solid var(--border); border-radius: var(--radius);
   font-size: var(--fs-13); color: var(--text-2);
 }
 .banner > svg.ic { color: var(--text-3); }
@@ -276,6 +276,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
   letter-spacing: -0.03em; color: transparent;
   background: var(--grad-numeral) padding-box; -webkit-background-clip: text; background-clip: text;
   font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  filter: drop-shadow(0 0 20px rgb(255 190 90 / 0.55));
 }
 .masthead-label { display: grid; gap: 3px; min-width: 0; }
 .masthead-label h1 { font-size: var(--fs-20); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-tighter); }
@@ -289,7 +290,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .weekstrip {
   list-style: none; margin: 0; padding: 3px;
   display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px;
-  background: var(--card) var(--grad-card); border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--grad-card), var(--card); border: 1px solid var(--border); border-radius: var(--radius);
 }
 .wday {
   width: 100%; height: 56px; padding: 0; border: 1px solid transparent; border-radius: var(--radius-sm);
@@ -300,8 +301,8 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .wday:hover { background: var(--surface-2); }
 .wday-name { font-size: var(--fs-12); color: var(--text-3); line-height: 1.2; }
 .wday-num { font-size: var(--fs-14); font-weight: var(--fw-medium); font-variant-numeric: tabular-nums; line-height: 1.3; }
-.wday.is-today .wday-num { color: var(--accent-text); }
-.wday.selected { background: linear-gradient(180deg, rgb(255 168 56 / 0.26), rgb(255 168 56 / 0.06)); border-color: rgb(255 190 90 / 0.45); color: var(--text-1); }
+.wday.is-today .wday-num { color: var(--gold); }
+.wday.selected { background: linear-gradient(180deg, rgb(150 175 230 / 0.22), rgb(150 175 230 / 0.05)); border-color: rgb(170 195 245 / 0.38); color: var(--text-1); }
 .wday.selected .wday-num { font-weight: var(--fw-semibold); }
 .wday-dots { display: flex; gap: 3px; height: 4px; align-items: center; }
 
@@ -316,7 +317,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .side { display: grid; gap: var(--space-4); min-width: 0; }
 /* Nutrição and the notes sit in the side column with Tasks; a wide screen gives them a column of their own. */
 .side-col { display: contents; }
-.panel { background: var(--card) var(--grad-card); border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
+.panel { background: var(--grad-card), var(--card); border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
 .panel-head {
   display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
   min-height: 44px; padding: 0 var(--space-4); border-bottom: 1px solid var(--border);
@@ -370,11 +371,11 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 .event.compact .event-meta, .event.short .event-meta { display: none; }
 .event.compact .event-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
-.now { position: absolute; left: calc(var(--gutter) - 4px); right: 0; height: 1px; background: var(--grad-bright); pointer-events: none; z-index: 2; }
-.now::before { content: ""; position: absolute; left: -3px; top: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--focus); box-shadow: 0 0 0 3px var(--focus-soft); }
+.now { position: absolute; left: calc(var(--gutter) - 4px); right: 0; height: 1px; background: var(--grad-gold); pointer-events: none; z-index: 2; }
+.now::before { content: ""; position: absolute; left: -3px; top: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 3px var(--focus-soft), var(--glow-light); }
 .now-label {
   position: absolute; right: 0; top: -9px; padding: 0 5px; border-radius: var(--radius-xs);
-  background: var(--grad-accent); color: var(--accent-fg);
+  background: var(--grad-gold); color: #1c1100;
   font-size: var(--fs-12); font-weight: var(--fw-medium); font-variant-numeric: tabular-nums; line-height: 17px;
 }
 
@@ -431,7 +432,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webk
 /* ---------- dialogs ---------- */
 .dialog {
   width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0;
-  background: var(--surface-1) var(--grad-card); color: var(--text-1);
+  background: var(--grad-card), var(--surface-1); color: var(--text-1);
   border: 1px solid var(--border-strong); border-radius: var(--radius);
   box-shadow: var(--shadow-overlay);
 }

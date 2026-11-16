@@ -149,7 +149,7 @@ h2 { display:var(--news-title-display, block); flex:none; padding-right:var(--sp
 /* ---------- page layout ---------- */
 .page { display:grid; grid-template-columns:minmax(0, 1fr); gap:var(--space-4); align-items:start; }
 .col { display:grid; gap:var(--space-4); min-width:0; }
-.card { min-width:0; background:var(--card) var(--grad-card); border:1px solid var(--border); border-radius:var(--radius); }
+.card { min-width:0; background:var(--grad-card), var(--card); border:1px solid var(--border); border-radius:var(--radius); }
 .sec-h { display:flex; align-items:center; gap:var(--space-2) var(--space-3); flex-wrap:wrap; padding:var(--space-4) var(--space-4) var(--space-1); }
 .sec-h h3 { display:flex; align-items:center; gap:var(--space-2); font-size:var(--fs-16); font-weight:var(--fw-semibold); letter-spacing:var(--tracking-tight); line-height:var(--lh-tight); }
 .sec-sub { color:var(--text-3); font:var(--fs-12) var(--font-mono); font-variant-numeric:tabular-nums; }
@@ -279,7 +279,7 @@ h2 { display:var(--news-title-display, block); flex:none; padding-right:var(--sp
 
 /* ---------- compact tile ---------- */
 :host([compact]) { height:100%; container-type:normal; }
-.tile-wrap { display:flex; flex-direction:column; height:100%; background:var(--card) var(--grad-card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.tile-wrap { display:flex; flex-direction:column; height:100%; background:var(--grad-card), var(--card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
 .tile-head { display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) var(--space-3) var(--space-2) var(--space-4); }
 .tile-head .status { margin-right:auto; color:var(--text-3); font-size:var(--fs-12); }
 .tile-wrap .rows { flex:1; overflow:auto; }
